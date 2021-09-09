@@ -17,7 +17,7 @@ use crate::{
     context::StandardObjects,
     object::{
         internal_methods::get_prototype_from_constructor, ConstructorBuilder, FunctionBuilder,
-        ObjectData,
+        JsObject, ObjectData,
     },
     property::{Attribute, PropertyDescriptor, PropertyNameKind},
     symbol::WellKnownSymbols,
@@ -121,10 +121,6 @@ impl Map {
         let prototype =
             get_prototype_from_constructor(new_target, StandardObjects::map_object, context)?;
 
-        let obj = context.construct_object();
-        obj.set_prototype_instance(prototype.into());
-        let this = JsValue::new(obj);
-
         // add our arguments in
         let data = match args.len() {
             0 => OrderedMap::new(),
@@ -160,14 +156,14 @@ impl Map {
             },
         };
 
+        let size = data.len();
+
+        let obj = JsObject::from_proto_and_data(Some(prototype), ObjectData::map(data));
+
         // finally create size property
-        Self::set_size(&this, data.len());
+        Self::set_size(&obj, size);
 
-        // This value is used by console.log and other routines to match Object type
-        // to its Javascript Identifier (global constructor method name)
-        this.set_data(ObjectData::map(data));
-
-        Ok(this)
+        Ok(obj.into())
     }
 
     /// `get Map [ @@species ]`
@@ -218,14 +214,14 @@ impl Map {
     }
 
     /// Helper function to set the size property.
-    fn set_size(this: &JsValue, size: usize) {
+    fn set_size(this: &JsObject, size: usize) {
         let size = PropertyDescriptor::builder()
             .value(size)
             .writable(false)
             .enumerable(false)
             .configurable(false);
 
-        this.set_property("size", size);
+        this.insert_property("size", size);
     }
 
     /// `Map.prototype.set( key, value )`
@@ -246,18 +242,17 @@ impl Map {
         let key = args.get_or_undefined(0);
         let value = args.get_or_undefined(1);
 
-        let size = if let Some(object) = this.as_object() {
-            if let Some(map) = object.borrow_mut().as_map_mut() {
+        if let Some(object) = this.as_object() {
+            let size = if let Some(map) = object.borrow_mut().as_map_mut() {
                 map.insert(key.clone(), value.clone());
                 map.len()
             } else {
                 return Err(context.construct_type_error("'this' is not a Map"));
-            }
+            };
+            Self::set_size(&object, size);
         } else {
             return Err(context.construct_type_error("'this' is not a Map"));
         };
-
-        Self::set_size(this, size);
         Ok(this.clone())
     }
 
@@ -278,17 +273,18 @@ impl Map {
     ) -> JsResult<JsValue> {
         let key = args.get_or_undefined(0);
 
-        let (deleted, size) = if let Some(object) = this.as_object() {
-            if let Some(map) = object.borrow_mut().as_map_mut() {
+        let deleted = if let Some(object) = this.as_object() {
+            let (deleted, size) = if let Some(map) = object.borrow_mut().as_map_mut() {
                 let deleted = map.remove(key).is_some();
                 (deleted, map.len())
             } else {
                 return Err(context.construct_type_error("'this' is not a Map"));
-            }
+            };
+            Self::set_size(&object, size);
+            deleted
         } else {
             return Err(context.construct_type_error("'this' is not a Map"));
         };
-        Self::set_size(this, size);
         Ok(deleted.into())
     }
 
@@ -333,12 +329,15 @@ impl Map {
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-map.prototype.clear
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/clear
-    pub(crate) fn clear(this: &JsValue, _: &[JsValue], _: &mut Context) -> JsResult<JsValue> {
-        this.set_data(ObjectData::map(OrderedMap::new()));
-
-        Self::set_size(this, 0);
-
-        Ok(JsValue::undefined())
+    pub(crate) fn clear(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        match this {
+            JsValue::Object(obj) if obj.is_map() => {
+                obj.borrow_mut().data = ObjectData::map(OrderedMap::new());
+                Self::set_size(obj, 0);
+                Ok(JsValue::undefined())
+            }
+            _ => context.throw_type_error("'this' is not a Map"),
+        }
     }
 
     /// `Map.prototype.has( key )`

@@ -18,7 +18,7 @@ use crate::{
     context::StandardObjects,
     object::{
         internal_methods::get_prototype_from_constructor, ConstructorBuilder, IntegrityLevel,
-        JsObject, Object as BuiltinObject, ObjectData, ObjectInitializer, ObjectKind,
+        JsObject, ObjectData, ObjectInitializer, ObjectKind,
     },
     property::{Attribute, DescriptorKind, PropertyDescriptor, PropertyKey, PropertyNameKind},
     symbol::WellKnownSymbols,
@@ -136,10 +136,9 @@ impl Object {
         let properties = args.get_or_undefined(1);
 
         let obj = match prototype {
-            JsValue::Object(_) | JsValue::Null => JsObject::new(BuiltinObject::with_prototype(
-                prototype.clone(),
-                ObjectData::ordinary(),
-            )),
+            JsValue::Object(_) | JsValue::Null => {
+                JsObject::from_proto_and_data(prototype.as_object(), ObjectData::ordinary())
+            }
             _ => {
                 return context.throw_type_error(format!(
                     "Object prototype may only be an Object or null: {}",

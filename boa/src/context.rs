@@ -8,7 +8,7 @@ use crate::{
     },
     class::{Class, ClassBuilder},
     exec::Interpreter,
-    object::{FunctionBuilder, JsObject, Object, PROTOTYPE},
+    object::{FunctionBuilder, JsObject, ObjectData, PROTOTYPE},
     property::{Attribute, PropertyDescriptor, PropertyKey},
     realm::Realm,
     syntax::{
@@ -40,18 +40,18 @@ pub struct StandardConstructor {
 impl Default for StandardConstructor {
     fn default() -> Self {
         Self {
-            constructor: JsObject::new(Object::default()),
-            prototype: JsObject::new(Object::default()),
+            constructor: JsObject::empty(),
+            prototype: JsObject::empty(),
         }
     }
 }
 
 impl StandardConstructor {
     /// Build a constructor with a defined prototype.
-    fn with_prototype(prototype: Object) -> Self {
+    fn with_prototype(prototype: JsObject) -> Self {
         Self {
-            constructor: JsObject::new(Object::default()),
-            prototype: JsObject::new(prototype),
+            constructor: JsObject::empty(),
+            prototype,
         }
     }
 
@@ -102,9 +102,18 @@ impl Default for StandardObjects {
             function: StandardConstructor::default(),
             array: StandardConstructor::default(),
             bigint: StandardConstructor::default(),
-            number: StandardConstructor::with_prototype(Object::number(0.0)),
-            boolean: StandardConstructor::with_prototype(Object::boolean(false)),
-            string: StandardConstructor::with_prototype(Object::string("")),
+            number: StandardConstructor::with_prototype(JsObject::from_proto_and_data(
+                None,
+                ObjectData::number(0.0),
+            )),
+            boolean: StandardConstructor::with_prototype(JsObject::from_proto_and_data(
+                None,
+                ObjectData::boolean(false),
+            )),
+            string: StandardConstructor::with_prototype(JsObject::from_proto_and_data(
+                None,
+                ObjectData::string("".into()),
+            )),
             regexp: StandardConstructor::default(),
             symbol: StandardConstructor::default(),
             error: StandardConstructor::default(),
@@ -331,11 +340,11 @@ impl Context {
         builtins::init(self);
     }
 
-    /// Construct an empty object.
+    /// Construct a `JsObject` with the `Object` prototype
     #[inline]
     pub fn construct_object(&self) -> JsObject {
-        let object_prototype: JsValue = self.standard_objects().object_object().prototype().into();
-        JsObject::new(Object::create(object_prototype))
+        let object_prototype = self.standard_objects().object_object().prototype();
+        JsObject::from_proto_and_data(Some(object_prototype), ObjectData::ordinary())
     }
 
     /// <https://tc39.es/ecma262/#sec-call>
@@ -532,8 +541,7 @@ impl Context {
         B: Into<StatementList>,
     {
         let name = name.into();
-        let function_prototype: JsValue =
-            self.standard_objects().function_object().prototype().into();
+        let function_prototype = self.standard_objects().function_object().prototype();
 
         // Every new function has a prototype property pre-made
         let prototype = self.construct_object();
@@ -547,7 +555,8 @@ impl Context {
             environment: self.get_current_environment().clone(),
         };
 
-        let function = JsObject::new(Object::function(func, function_prototype));
+        let function =
+            JsObject::from_proto_and_data(Some(function_prototype), ObjectData::function(func));
 
         // Set constructor field to the newly created Value (function object)
         let constructor = PropertyDescriptor::builder()

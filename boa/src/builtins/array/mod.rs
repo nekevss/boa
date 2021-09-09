@@ -222,12 +222,7 @@ impl Array {
             Some(prototype) => prototype,
             None => context.standard_objects().array_object().prototype(),
         };
-        let array = context.construct_object();
-
-        array.set_prototype_instance(prototype.into());
-        // This value is used by console.log and other routines to match Object type
-        // to its Javascript Identifier (global constructor method name)
-        array.borrow_mut().data = ObjectData::array();
+        let array = JsObject::from_proto_and_data(Some(prototype), ObjectData::array());
 
         // 6. Perform ! OrdinaryDefineOwnProperty(A, "length", PropertyDescriptor { [[Value]]: 𝔽(length), [[Writable]]: true, [[Enumerable]]: false, [[Configurable]]: false }).
         crate::object::internal_methods::ordinary_define_own_property(

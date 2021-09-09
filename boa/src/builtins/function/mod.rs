@@ -18,7 +18,7 @@ use crate::{
     builtins::{Array, BuiltIn},
     environment::lexical_environment::Environment,
     gc::{empty_trace, Finalize, Trace},
-    object::{ConstructorBuilder, FunctionBuilder, JsObject, Object, ObjectData},
+    object::{ConstructorBuilder, FunctionBuilder, JsObject, ObjectData},
     property::{Attribute, PropertyDescriptor},
     syntax::ast::node::{FormalParameter, RcStatementList},
     BoaProfiler, Context, JsResult, JsValue,
@@ -205,7 +205,7 @@ pub fn create_unmapped_arguments_object(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let len = arguments_list.len();
-    let obj = JsObject::new(Object::default());
+    let obj = JsObject::empty();
     // Set length
     let length = PropertyDescriptor::builder()
         .value(len)
@@ -265,16 +265,12 @@ pub fn make_builtin_fn<N>(
     let name = name.into();
     let _timer = BoaProfiler::global().start_event(&format!("make_builtin_fn: {}", &name), "init");
 
-    let mut function = Object::function(
-        Function::Native {
+    let function = JsObject::from_proto_and_data(
+        Some(interpreter.standard_objects().function_object().prototype()),
+        ObjectData::function(Function::Native {
             function: function.into(),
             constructable: false,
-        },
-        interpreter
-            .standard_objects()
-            .function_object()
-            .prototype()
-            .into(),
+        }),
     );
     let attribute = PropertyDescriptor::builder()
         .writable(false)

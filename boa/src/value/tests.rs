@@ -142,11 +142,11 @@ fn hash_rational() {
 #[test]
 #[allow(clippy::eq_op)]
 fn hash_object() {
-    let object1 = JsValue::new(Object::default());
+    let object1 = JsValue::new(JsObject::empty());
     assert_eq!(object1, object1);
     assert_eq!(object1, object1.clone());
 
-    let object2 = JsValue::new(Object::default());
+    let object2 = JsValue::new(JsObject::empty());
     assert_ne!(object1, object2);
 
     assert_eq!(hash_value(&object1), hash_value(&object1.clone()));

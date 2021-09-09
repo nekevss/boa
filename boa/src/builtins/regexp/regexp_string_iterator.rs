@@ -161,13 +161,16 @@ impl RegExpStringIterator {
     ///  - [ECMA reference][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-%arrayiteratorprototype%-object
-    pub(crate) fn create_prototype(context: &mut Context, iterator_prototype: JsValue) -> JsObject {
+    pub(crate) fn create_prototype(
+        context: &mut Context,
+        iterator_prototype: JsObject,
+    ) -> JsObject {
         let _timer = BoaProfiler::global().start_event("RegExp String Iterator", "init");
 
         // Create prototype
-        let result = context.construct_object();
+        let result =
+            JsObject::from_proto_and_data(Some(iterator_prototype), ObjectData::ordinary());
         make_builtin_fn(Self::next, "next", &result, 0, context);
-        result.set_prototype_instance(iterator_prototype);
 
         let to_string_tag = WellKnownSymbols::to_string_tag();
         let to_string_tag_property = PropertyDescriptor::builder()

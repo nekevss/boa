@@ -139,8 +139,7 @@ impl<'a> Vm<'a> {
                 for _ in 0..count {
                     elements.push(self.pop());
                 }
-                let array = Array::new_array(self.context);
-                Array::add_to_array_object(&array, &elements, self.context)?;
+                let array = Array::create_array_from_list(elements, self.context);
                 self.push(array);
             }
             Opcode::Add => bin_op!(add),
