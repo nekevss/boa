@@ -146,17 +146,16 @@ impl JsObject {
         for name in &method_names {
             // a. Let method be ? Get(O, name).
             let method = self.get(*name, context)?;
+
             // b. If IsCallable(method) is true, then
-            match method {
-                JsValue::Object(ref method) if method.is_callable() => {
-                    // i. Let result be ? Call(method, O).
-                    let result = method.call(&self.clone().into(), &[], context)?;
-                    // ii. If Type(result) is not Object, return result.
-                    if !result.is_object() {
-                        return Ok(result);
-                    }
+            if let Some(method) = method.as_callable() {
+                // i. Let result be ? Call(method, O).
+                let result = method.call(&self.clone().into(), &[], context)?;
+
+                // ii. If Type(result) is not Object, return result.
+                if !result.is_object() {
+                    return Ok(result);
                 }
-                _ => {}
             }
         }
 
@@ -481,7 +480,7 @@ impl JsObject {
     /// [spec]: https://tc39.es/ecma262/#sec-copydataproperties
     #[inline]
     pub fn copy_data_properties<K>(
-        &mut self,
+        &self,
         source: &JsValue,
         excluded_keys: Vec<K>,
         context: &mut Context,

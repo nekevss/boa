@@ -197,15 +197,7 @@ impl RegExp {
         let flags = args.get_or_undefined(1);
 
         // 1. Let patternIsRegExp be ? IsRegExp(pattern).
-        let pattern_is_regexp = if let JsValue::Object(obj) = &pattern {
-            if obj.is_regexp() {
-                Some(obj)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        let pattern_is_regexp = pattern.as_object().filter(|obj| obj.is_regexp());
 
         // 2. If NewTarget is undefined, then
         // 3. Else, let newTarget be NewTarget.
@@ -414,7 +406,7 @@ impl RegExp {
             }
 
             if JsObject::equals(
-                &object,
+                object,
                 &context.standard_objects().regexp_object().prototype,
             ) {
                 return Ok(JsValue::undefined());
@@ -703,10 +695,10 @@ impl RegExp {
     ) -> JsResult<JsValue> {
         // 1. Let R be the this value.
         // 2. If Type(R) is not Object, throw a TypeError exception.
-        if !this.is_object() {
-            return context
-                .throw_type_error("RegExp.prototype.test method called on incompatible value");
-        }
+        let this = this.as_object().ok_or_else(|| {
+            context
+                .construct_type_error("RegExp.prototype.test method called on incompatible value")
+        })?;
 
         // 3. Let string be ? ToString(S).
         let arg_str = args
@@ -745,19 +737,15 @@ impl RegExp {
     ) -> JsResult<JsValue> {
         // 1. Let R be the this value.
         // 2. Perform ? RequireInternalSlot(R, [[RegExpMatcher]]).
-        let obj = this.as_object().unwrap_or_default();
-        if !obj.is_regexp() {
-            return Err(
+        let obj = this
+            .as_object()
+            .filter(|obj| obj.is_regexp())
+            .ok_or_else(|| {
                 context.construct_type_error("RegExp.prototype.exec called with invalid value")
-            );
-        }
+            })?;
 
         // 3. Let S be ? ToString(string).
-        let arg_str = args
-            .get(0)
-            .cloned()
-            .unwrap_or_default()
-            .to_string(context)?;
+        let arg_str = args.get_or_undefined(0).to_string(context)?;
 
         // 4. Return ? RegExpBuiltinExec(R, S).
         if let Some(v) = Self::abstract_builtin_exec(obj, arg_str, context)? {
@@ -774,44 +762,39 @@ impl RegExp {
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-regexpexec
     pub(crate) fn abstract_exec(
-        this: &JsValue,
+        this: &JsObject,
         input: JsString,
         context: &mut Context,
     ) -> JsResult<Option<JsObject>> {
         // 1. Assert: Type(R) is Object.
-        let object = this
-            .as_object()
-            .ok_or_else(|| context.construct_type_error("RegExpExec called with invalid value"))?;
         // 2. Assert: Type(S) is String.
 
         // 3. Let exec be ? Get(R, "exec").
-        let exec = object.get("exec", context)?;
+        let exec = this.get("exec", context)?;
 
         // 4. If IsCallable(exec) is true, then
-        match exec {
-            JsValue::Object(ref obj) if obj.is_callable() => {
-                // a. Let result be ? Call(exec, R, « S »).
-                let result = context.call(&exec, this, &[input.into()])?;
+        if let Some(exec) = exec.as_callable() {
+            // a. Let result be ? Call(exec, R, « S »).
+            let result = exec.call(&this.clone().into(), &[input.into()], context)?;
 
-                // b. If Type(result) is neither Object nor Null, throw a TypeError exception.
-                if !result.is_object() && !result.is_null() {
-                    return Err(context
-                        .construct_type_error("regexp exec returned neither object nor null"));
-                }
-
-                // c. Return result.
-                return Ok(result.as_object());
+            // b. If Type(result) is neither Object nor Null, throw a TypeError exception.
+            if !result.is_object() && !result.is_null() {
+                return Err(
+                    context.construct_type_error("regexp exec returned neither object nor null")
+                );
             }
-            _ => {}
+
+            // c. Return result.
+            return Ok(result.as_object().cloned());
         }
 
         // 5. Perform ? RequireInternalSlot(R, [[RegExpMatcher]]).
-        if !object.is_regexp() {
+        if !this.is_regexp() {
             return Err(context.construct_type_error("RegExpExec called with invalid value"));
         }
 
         // 6. Return ? RegExpBuiltinExec(R, S).
-        Self::abstract_builtin_exec(object, input, context)
+        Self::abstract_builtin_exec(this, input, context)
     }
 
     /// `22.2.5.2.2 RegExpBuiltinExec ( R, S )`
@@ -821,7 +804,7 @@ impl RegExp {
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-regexpbuiltinexec
     pub(crate) fn abstract_builtin_exec(
-        this: JsObject,
+        this: &JsObject,
         input: JsString,
         context: &mut Context,
     ) -> JsResult<Option<JsObject>> {
@@ -1082,7 +1065,7 @@ impl RegExp {
         // 6. Else,
         if !global {
             // a. Return ? RegExpExec(rx, S).
-            if let Some(v) = Self::abstract_exec(&JsValue::new(rx), arg_str, context)? {
+            if let Some(v) = Self::abstract_exec(rx, arg_str, context)? {
                 Ok(v.into())
             } else {
                 Ok(JsValue::null())
@@ -1105,8 +1088,7 @@ impl RegExp {
             // f. Repeat,
             loop {
                 // i. Let result be ? RegExpExec(rx, S).
-                let result =
-                    Self::abstract_exec(&JsValue::new(rx.clone()), arg_str.clone(), context)?;
+                let result = Self::abstract_exec(rx, arg_str.clone(), context)?;
 
                 // ii. If result is null, then
                 // iii. Else,
@@ -1196,11 +1178,11 @@ impl RegExp {
     ) -> JsResult<JsValue> {
         // 1. Let R be the this value.
         // 2. If Type(R) is not Object, throw a TypeError exception.
-        if !this.is_object() {
-            return context.throw_type_error(
+        let this = this.as_object().ok_or_else(|| {
+            context.construct_type_error(
                 "RegExp.prototype.match_all method called on incompatible value",
-            );
-        }
+            )
+        })?;
 
         // 3. Let S be ? ToString(string).
         let arg_str = args
@@ -1210,25 +1192,26 @@ impl RegExp {
             .to_string(context)?;
 
         // 4. Let C be ? SpeciesConstructor(R, %RegExp%).
-        let c = this
-            .as_object()
-            .unwrap_or_default()
-            .species_constructor(context.global_object().get(RegExp::NAME, context)?, context)?;
+        let c =
+            this.species_constructor(context.global_object().get(RegExp::NAME, context)?, context)?;
 
         // 5. Let flags be ? ToString(? Get(R, "flags")).
-        let flags = this.get_field("flags", context)?.to_string(context)?;
+        let flags = this.get("flags", context)?.to_string(context)?;
 
         // 6. Let matcher be ? Construct(C, « R, flags »).
         let matcher = c
             .as_object()
             .expect("SpeciesConstructor returned non Object")
-            .construct(&[this.clone(), flags.clone().into()], &c, context)?;
+            .construct(&[this.clone().into(), flags.clone().into()], &c, context)?
+            .as_object()
+            .cloned()
+            .expect("Constructor must return an object");
 
         // 7. Let lastIndex be ? ToLength(? Get(R, "lastIndex")).
-        let last_index = this.get_field("lastIndex", context)?.to_length(context)?;
+        let last_index = this.get("lastIndex", context)?.to_length(context)?;
 
         // 8. Perform ? Set(matcher, "lastIndex", lastIndex, true).
-        matcher.set_field("lastIndex", last_index, true, context)?;
+        matcher.set("lastIndex", last_index, true, context)?;
 
         // 9. If flags contains "g", let global be true.
         // 10. Else, let global be false.
@@ -1240,7 +1223,7 @@ impl RegExp {
 
         // 13. Return ! CreateRegExpStringIterator(matcher, S, global, fullUnicode).
         RegExpStringIterator::create_regexp_string_iterator(
-            &matcher, arg_str, global, unicode, context,
+            matcher, arg_str, global, unicode, context,
         )
     }
 
@@ -1314,7 +1297,7 @@ impl RegExp {
         // 11. Repeat, while done is false,
         loop {
             // a. Let result be ? RegExpExec(rx, S).
-            let result = Self::abstract_exec(&JsValue::new(rx.clone()), arg_str.clone(), context)?;
+            let result = Self::abstract_exec(rx, arg_str.clone(), context)?;
 
             // b. If result is null, set done to true.
             // c. Else,
@@ -1534,7 +1517,7 @@ impl RegExp {
         }
 
         // 6. Let result be ? RegExpExec(rx, S).
-        let result = Self::abstract_exec(&JsValue::new(rx.clone()), arg_str, context)?;
+        let result = Self::abstract_exec(rx, arg_str, context)?;
 
         // 7. Let currentLastIndex be ? Get(rx, "lastIndex").
         let current_last_index = rx.get("lastIndex", context)?;
@@ -1610,10 +1593,14 @@ impl RegExp {
             .as_object()
             .expect("SpeciesConstructor returned non Object")
             .construct(
-                &[JsValue::from(rx), new_flags.into()],
+                &[JsValue::from(rx.clone()), new_flags.into()],
                 &constructor,
                 context,
-            )?;
+            )?
+            .as_object()
+            .cloned()
+            // todo: change to `expect` when we consider realms inside `GetPrototypeFromConstructor`
+            .unwrap_or_default();
 
         // 11. Let A be ! ArrayCreate(0).
         let a = Array::array_create(0, None, context).unwrap();
@@ -1663,7 +1650,7 @@ impl RegExp {
         // 19. Repeat, while q < size,
         while q < size {
             // a. Perform ? Set(splitter, "lastIndex", 𝔽(q), true).
-            splitter.set_field("lastIndex", JsValue::new(q), true, context)?;
+            splitter.set("lastIndex", JsValue::new(q), true, context)?;
 
             // b. Let z be ? RegExpExec(splitter, S).
             let result = Self::abstract_exec(&splitter, arg_str.clone(), context)?;
@@ -1672,9 +1659,7 @@ impl RegExp {
             // d. Else,
             if let Some(result) = result {
                 // i. Let e be ℝ(? ToLength(? Get(splitter, "lastIndex"))).
-                let mut e = splitter
-                    .get_field("lastIndex", context)?
-                    .to_length(context)?;
+                let mut e = splitter.get("lastIndex", context)?.to_length(context)?;
 
                 // ii. Set e to min(e, size).
                 e = std::cmp::min(e, size);

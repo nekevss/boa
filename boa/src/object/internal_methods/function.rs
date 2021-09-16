@@ -1,6 +1,7 @@
 use crate::{
-    builtins::function::{
-        create_unmapped_arguments_object, ClosureFunction, Function, NativeFunction,
+    builtins::{
+        function::{create_unmapped_arguments_object, ClosureFunction, Function, NativeFunction},
+        JsArgs,
     },
     environment::{
         environment_record_trait::EnvironmentRecordTrait,
@@ -211,13 +212,13 @@ fn call_construct(
                             break;
                         }
 
-                        let value = match args.get(i).cloned() {
-                            None | Some(JsValue::Undefined) => param
+                        let value = match args.get_or_undefined(i).clone() {
+                            JsValue::Undefined => param
                                 .init()
                                 .map(|init| init.run(context).ok())
                                 .flatten()
                                 .unwrap_or_default(),
-                            Some(value) => value,
+                            value => value,
                         };
 
                         function.add_arguments_to_environment(param, value, &local_env, context);

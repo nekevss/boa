@@ -198,10 +198,7 @@ impl Object {
         args: &[JsValue],
         context: &mut Context,
     ) -> JsResult<JsValue> {
-        let object = args
-            .get(0)
-            .unwrap_or(&JsValue::undefined())
-            .to_object(context)?;
+        let object = args.get_or_undefined(0).to_object(context)?;
         let descriptors = context.construct_object();
 
         for key in object.borrow().properties().keys() {
@@ -380,7 +377,7 @@ impl Object {
         context: &mut Context,
     ) -> JsResult<JsValue> {
         let object = args.get_or_undefined(0);
-        if let Some(object) = object.as_object() {
+        if let JsValue::Object(object) = object {
             let key = args
                 .get(1)
                 .unwrap_or(&JsValue::Undefined)
@@ -392,7 +389,7 @@ impl Object {
 
             object.define_property_or_throw(key, desc, context)?;
 
-            Ok(object.into())
+            Ok(object.clone().into())
         } else {
             context.throw_type_error("Object.defineProperty called on non-object")
         }
@@ -414,10 +411,9 @@ impl Object {
         context: &mut Context,
     ) -> JsResult<JsValue> {
         let arg = args.get_or_undefined(0);
-        let arg_obj = arg.as_object();
-        if let Some(obj) = arg_obj {
+        if let JsValue::Object(obj) = arg {
             let props = args.get_or_undefined(1);
-            object_define_properties(&obj, props.clone(), context)?;
+            object_define_properties(obj, props.clone(), context)?;
             Ok(arg.clone())
         } else {
             context.throw_type_error("Expected an object")

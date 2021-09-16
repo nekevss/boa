@@ -226,18 +226,10 @@ impl String {
     }
 
     fn this_string_value(this: &JsValue, context: &mut Context) -> JsResult<JsString> {
-        match this {
-            JsValue::String(ref string) => return Ok(string.clone()),
-            JsValue::Object(ref object) => {
-                let object = object.borrow();
-                if let Some(string) = object.as_string() {
-                    return Ok(string);
-                }
-            }
-            _ => {}
-        }
-
-        Err(context.construct_type_error("'this' is not a string"))
+        this.as_string()
+            .cloned()
+            .or_else(|| this.as_object().and_then(|obj| obj.borrow().as_string()))
+            .ok_or_else(|| context.construct_type_error("'this' is not a string"))
     }
 
     /// Get the string value to a primitive string
@@ -692,10 +684,10 @@ impl String {
     }
 
     fn is_regexp_object(value: &JsValue) -> bool {
-        match value {
-            JsValue::Object(ref obj) => obj.borrow().is_regexp(),
-            _ => false,
-        }
+        value
+            .as_object()
+            .map(|obj| obj.borrow().is_regexp())
+            .unwrap_or_default()
     }
 
     /// `String.prototype.replace( regexp|substr, newSubstr|function )`
@@ -729,8 +721,7 @@ impl String {
         if !search_value.is_null_or_undefined() {
             // a. Let replacer be ? GetMethod(searchValue, @@replace).
             let replacer = search_value
-                .as_object()
-                .unwrap_or_default()
+                .to_object(context)?
                 .get_method(context, WellKnownSymbols::replace())?;
 
             // b. If replacer is not undefined, then
@@ -846,7 +837,7 @@ impl String {
         // 2. If searchValue is neither undefined nor null, then
         if !search_value.is_null_or_undefined() {
             // a. Let isRegExp be ? IsRegExp(searchValue).
-            if let Some(obj) = search_value.as_object() {
+            if let Some(obj) = search_value.as_object().filter(|obj| obj.is_regexp()) {
                 // b. If isRegExp is true, then
                 if obj.is_regexp() {
                     // i. Let flags be ? Get(searchValue, "flags").
@@ -866,8 +857,7 @@ impl String {
 
             // c. Let replacer be ? GetMethod(searchValue, @@replace).
             let replacer = search_value
-                .as_object()
-                .unwrap_or_default()
+                .to_object(context)?
                 .get_method(context, WellKnownSymbols::replace())?;
 
             // d. If replacer is not undefined, then
@@ -1482,8 +1472,7 @@ impl String {
             // a. Let splitter be ? GetMethod(separator, @@split).
             // b. If splitter is not undefined, then
             if let Some(splitter) = separator
-                .as_object()
-                .unwrap_or_default()
+                .to_object(context)?
                 .get_method(context, WellKnownSymbols::split())?
             {
                 // i. Return ? Call(splitter, separator, « O, limit »).
@@ -1654,9 +1643,9 @@ impl String {
         if !regexp.is_null_or_undefined() {
             // a. Let isRegExp be ? IsRegExp(regexp).
             // b. If isRegExp is true, then
-            if regexp.as_object().unwrap_or_default().is_regexp() {
+            if let Some(regexp_obj) = regexp.as_object().filter(|obj| obj.is_regexp()) {
                 // i. Let flags be ? Get(regexp, "flags").
-                let flags = regexp.get_field("flags", context)?;
+                let flags = regexp_obj.get("flags", context)?;
 
                 // ii. Perform ? RequireObjectCoercible(flags).
                 flags.require_object_coercible(context)?;
@@ -1668,14 +1657,14 @@ impl String {
                     );
                 }
             }
-
             // c. Let matcher be ? GetMethod(regexp, @@matchAll).
             // d. If matcher is not undefined, then
-            if let Some(obj) = regexp.as_object() {
-                if let Some(matcher) = obj.get_method(context, WellKnownSymbols::match_all())? {
-                    // i. Return ? Call(matcher, regexp, « O »).
-                    return matcher.call(regexp, &[o.clone()], context);
-                }
+            if let Some(matcher) = regexp
+                .to_object(context)?
+                .get_method(context, WellKnownSymbols::match_all())?
+            {
+                // i. Return ? Call(matcher, regexp, « O »).
+                return matcher.call(regexp, &[o.clone()], context);
             }
         }
 

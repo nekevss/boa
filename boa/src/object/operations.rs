@@ -233,11 +233,9 @@ impl JsObject {
 
         // 4. If IsCallable(func) is false, throw a TypeError exception.
         // 5. Return func.
-        match value.as_object() {
-            Some(object) if object.is_callable() => Ok(Some(object)),
-            _ => Err(context
-                .construct_type_error("value returned for property of object is not a function")),
-        }
+        Ok(Some(value.as_callable().cloned().ok_or_else(|| {
+            context.construct_type_error("value returned for property of object is not a function")
+        })?))
     }
 
     /// Check if object has property.
@@ -656,9 +654,10 @@ impl JsValue {
         context: &mut Context,
     ) -> JsResult<bool> {
         // 1. If IsCallable(C) is false, return false.
-        let function = match function {
-            JsValue::Object(obj) if obj.is_callable() => obj,
-            _ => return Ok(false),
+        let function = if let Some(function) = function.as_callable() {
+            function
+        } else {
+            return Ok(false);
         };
 
         // 2. If C has a [[BoundTargetFunction]] internal slot, then
@@ -673,7 +672,7 @@ impl JsValue {
         }
 
         let mut object = if let Some(obj) = object.as_object() {
-            obj
+            obj.clone()
         } else {
             // 3. If Type(O) is not Object, return false.
             return Ok(false);
@@ -701,7 +700,7 @@ impl JsValue {
             };
 
             // c. If SameValue(P, O) is true, return true.
-            if JsObject::equals(&object, &prototype) {
+            if JsObject::equals(&object, prototype) {
                 return Ok(true);
             }
         }

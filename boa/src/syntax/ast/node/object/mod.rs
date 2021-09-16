@@ -137,7 +137,7 @@ impl Executable for Object {
                             obj.set_property(
                                 name,
                                 PropertyDescriptor::builder()
-                                    .maybe_get(func.run(context)?.as_object())
+                                    .maybe_get(func.run(context)?.as_object().cloned())
                                     .maybe_set(set)
                                     .enumerable(true)
                                     .configurable(true),
@@ -153,7 +153,7 @@ impl Executable for Object {
                                 name,
                                 PropertyDescriptor::builder()
                                     .maybe_get(get)
-                                    .maybe_set(func.run(context)?.as_object())
+                                    .maybe_set(func.run(context)?.as_object().cloned())
                                     .enumerable(true)
                                     .configurable(true),
                             )

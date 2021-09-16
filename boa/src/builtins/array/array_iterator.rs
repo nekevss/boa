@@ -62,50 +62,46 @@ impl ArrayIterator {
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-%arrayiteratorprototype%.next
     pub(crate) fn next(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
-        if let JsValue::Object(ref object) = this {
-            let mut object = object.borrow_mut();
-            if let Some(array_iterator) = object.as_array_iterator_mut() {
-                let index = array_iterator.next_index;
-                if array_iterator.array.is_undefined() {
-                    return Ok(create_iter_result_object(
-                        JsValue::undefined(),
-                        true,
-                        context,
-                    ));
-                }
-                let len = array_iterator
-                    .array
-                    .get_field("length", context)?
-                    .as_number()
-                    .ok_or_else(|| context.construct_type_error("Not an array"))?
-                    as u32;
-                if array_iterator.next_index >= len {
-                    array_iterator.array = JsValue::undefined();
-                    return Ok(create_iter_result_object(
-                        JsValue::undefined(),
-                        true,
-                        context,
-                    ));
-                }
-                array_iterator.next_index = index + 1;
-                return match array_iterator.kind {
-                    PropertyNameKind::Key => {
-                        Ok(create_iter_result_object(index.into(), false, context))
-                    }
-                    PropertyNameKind::Value => {
-                        let element_value = array_iterator.array.get_field(index, context)?;
-                        Ok(create_iter_result_object(element_value, false, context))
-                    }
-                    PropertyNameKind::KeyAndValue => {
-                        let element_value = array_iterator.array.get_field(index, context)?;
-                        let result =
-                            Array::create_array_from_list([index.into(), element_value], context);
-                        Ok(create_iter_result_object(result.into(), false, context))
-                    }
-                };
+        let mut array_iterator = this.as_object().map(|obj| obj.borrow_mut());
+        let array_iterator = array_iterator
+            .as_mut()
+            .and_then(|obj| obj.as_array_iterator_mut())
+            .ok_or_else(|| context.construct_type_error("`this` is not an ArrayIterator"))?;
+
+        let index = array_iterator.next_index;
+        if array_iterator.array.is_undefined() {
+            return Ok(create_iter_result_object(
+                JsValue::undefined(),
+                true,
+                context,
+            ));
+        }
+        let len = array_iterator
+            .array
+            .get_field("length", context)?
+            .as_number()
+            .ok_or_else(|| context.construct_type_error("Not an array"))? as u32;
+        if array_iterator.next_index >= len {
+            array_iterator.array = JsValue::undefined();
+            return Ok(create_iter_result_object(
+                JsValue::undefined(),
+                true,
+                context,
+            ));
+        }
+        array_iterator.next_index = index + 1;
+        match array_iterator.kind {
+            PropertyNameKind::Key => Ok(create_iter_result_object(index.into(), false, context)),
+            PropertyNameKind::Value => {
+                let element_value = array_iterator.array.get_field(index, context)?;
+                Ok(create_iter_result_object(element_value, false, context))
+            }
+            PropertyNameKind::KeyAndValue => {
+                let element_value = array_iterator.array.get_field(index, context)?;
+                let result = Array::create_array_from_list([index.into(), element_value], context);
+                Ok(create_iter_result_object(result.into(), false, context))
             }
         }
-        context.throw_type_error("`this` is not an ArrayIterator")
     }
 
     /// Create the %ArrayIteratorPrototype% object

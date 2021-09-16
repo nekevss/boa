@@ -388,10 +388,9 @@ impl Context {
         this: &JsValue,
         args: &[JsValue],
     ) -> JsResult<JsValue> {
-        match *f {
-            JsValue::Object(ref object) => object.call(this, args, self),
-            _ => self.throw_type_error("not a function"),
-        }
+        f.as_callable()
+            .ok_or_else(|| self.construct_type_error("not a function"))
+            .and_then(|obj| obj.call(this, args, self))
     }
 
     /// Return the global object.

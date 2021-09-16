@@ -337,11 +337,10 @@ impl BuiltInFunctionObject {
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
     fn apply(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
         // 1. Let func be the this value.
-        let func = match this {
-            JsValue::Object(obj) if obj.is_callable() => obj,
-            // 2. If IsCallable(func) is false, throw a TypeError exception.
-            _ => return context.throw_type_error(format!("{} is not a function", this.display())),
-        };
+        // 2. If IsCallable(func) is false, throw a TypeError exception.
+        let func = this.as_callable().ok_or_else(|| {
+            context.construct_type_error(format!("{} is not a function", this.display()))
+        })?;
 
         let this_arg = args.get_or_undefined(0);
         let arg_array = args.get_or_undefined(1);
@@ -378,14 +377,11 @@ impl BuiltInFunctionObject {
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_objects/Function/bind
     fn bind(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
         // 1. Let Target be the this value.
-        let target = match this {
-            JsValue::Object(obj) if obj.is_callable() => obj,
-            // 2. If IsCallable(Target) is false, throw a TypeError exception.
-            _ => {
-                return context
-                    .throw_type_error("cannot bind `this` without a `[[Call]]` internal method")
-            }
-        };
+        // 2. If IsCallable(Target) is false, throw a TypeError exception.
+        let target = this.as_callable().ok_or_else(|| {
+            context.construct_type_error("cannot bind `this` without a `[[Call]]` internal method")
+        })?;
+
         let this_arg = args.get_or_undefined(0).clone();
         let bound_args = args.get(1..).unwrap_or_else(|| &[]).to_vec();
         let arg_count = bound_args.len() as i64;
@@ -462,12 +458,10 @@ impl BuiltInFunctionObject {
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/call
     fn call(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
         // 1. Let func be the this value.
-        let func = match this {
-            JsValue::Object(obj) if obj.is_callable() => obj,
-            // 2. If IsCallable(func) is false, throw a TypeError exception.
-            _ => return context.throw_type_error(format!("{} is not a function", this.display())),
-        };
-
+        // 2. If IsCallable(func) is false, throw a TypeError exception.
+        let func = this.as_callable().ok_or_else(|| {
+            context.construct_type_error(format!("{} is not a function", this.display()))
+        })?;
         let this_arg = args.get_or_undefined(0);
 
         // 3. Perform PrepareForTailCall().

@@ -336,7 +336,7 @@ impl<'a> Vm<'a> {
 
                 let value = self.pop();
                 let object = if let Some(object) = value.as_object() {
-                    object
+                    object.clone()
                 } else {
                     value.to_object(self.context)?
                 };
@@ -350,7 +350,7 @@ impl<'a> Vm<'a> {
                 let value = self.pop();
                 let key = self.pop();
                 let object = if let Some(object) = value.as_object() {
-                    object
+                    object.clone()
                 } else {
                     value.to_object(self.context)?
                 };
@@ -366,7 +366,7 @@ impl<'a> Vm<'a> {
                 let object = self.pop();
                 let value = self.pop();
                 let object = if let Some(object) = object.as_object() {
-                    object
+                    object.clone()
                 } else {
                     object.to_object(self.context)?
                 };
@@ -380,7 +380,7 @@ impl<'a> Vm<'a> {
                 let key = self.pop();
                 let value = self.pop();
                 let object = if let Some(object) = object.as_object() {
-                    object
+                    object.clone()
                 } else {
                     object.to_object(self.context)?
                 };
