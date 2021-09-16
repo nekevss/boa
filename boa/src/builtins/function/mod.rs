@@ -13,7 +13,11 @@
 
 use crate::context::StandardObjects;
 use crate::object::internal_methods::get_prototype_from_constructor;
+use crate::JsString;
 
+use crate::property::PropertyKey;
+use crate::symbol::WellKnownSymbols;
+use crate::value::IntegerOrInfinity;
 use crate::{
     builtins::{Array, BuiltIn},
     environment::lexical_environment::Environment,
@@ -26,6 +30,7 @@ use crate::{
 use bitflags::bitflags;
 use dyn_clone::DynClone;
 use sealed::Sealed;
+use std::borrow::Cow;
 use std::fmt::{self, Debug};
 
 use super::JsArgs;
@@ -120,12 +125,12 @@ unsafe impl Trace for FunctionFlags {
 pub enum Function {
     Native {
         function: BuiltInFunction,
-        constructable: bool,
+        constructor: bool,
     },
     Closure {
         #[unsafe_ignore_trace]
         function: Box<dyn ClosureFunction>,
-        constructable: bool,
+        constructor: bool,
     },
     Ordinary {
         flags: FunctionFlags,
@@ -187,11 +192,11 @@ impl Function {
             .expect("Failed to intialize binding");
     }
 
-    /// Returns true if the function object is constructable.
-    pub fn is_constructable(&self) -> bool {
+    /// Returns true if the function object is a constructor.
+    pub fn is_constructor(&self) -> bool {
         match self {
-            Self::Native { constructable, .. } => *constructable,
-            Self::Closure { constructable, .. } => *constructable,
+            Self::Native { constructor, .. } => *constructor,
+            Self::Closure { constructor, .. } => *constructor,
             Self::Ordinary { flags, .. } => flags.is_constructable(),
         }
     }
@@ -268,7 +273,7 @@ pub fn make_builtin_fn<N>(
     let mut function = Object::function(
         Function::Native {
             function: function.into(),
-            constructable: false,
+            constructor: false,
         },
         interpreter
             .standard_objects()
@@ -314,36 +319,12 @@ impl BuiltInFunctionObject {
 
         this.set_data(ObjectData::function(Function::Native {
             function: BuiltInFunction(|_, _, _| Ok(JsValue::undefined())),
-            constructable: true,
+            constructor: true,
         }));
         Ok(this)
     }
 
-    fn prototype(_: &JsValue, _: &[JsValue], _: &mut Context) -> JsResult<JsValue> {
-        Ok(JsValue::undefined())
-    }
-
-    /// `Function.prototype.call`
-    ///
-    /// The call() method invokes self with the first argument as the `this` value.
-    ///
-    /// More information:
-    ///  - [MDN documentation][mdn]
-    ///  - [ECMAScript reference][spec]
-    ///
-    /// [spec]: https://tc39.es/ecma262/#sec-function.prototype.call
-    /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/call
-    fn call(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
-        if !this.is_function() {
-            return context.throw_type_error(format!("{} is not a function", this.display()));
-        }
-        let this_arg = args.get_or_undefined(0);
-        // TODO?: 3. Perform PrepareForTailCall
-        let start = if !args.is_empty() { 1 } else { 0 };
-        context.call(this, this_arg, &args[start..])
-    }
-
-    /// `Function.prototype.apply`
+    /// `Function.prototype.apply ( thisArg, argArray )`
     ///
     /// The apply() method invokes self with the first argument as the `this` value
     /// and the rest of the arguments provided as an array (or an array-like object).
@@ -355,18 +336,145 @@ impl BuiltInFunctionObject {
     /// [spec]: https://tc39.es/ecma262/#sec-function.prototype.apply
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
     fn apply(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
-        if !this.is_function() {
-            return context.throw_type_error(format!("{} is not a function", this.display()));
-        }
+        // 1. Let func be the this value.
+        let func = match this {
+            JsValue::Object(obj) if obj.is_callable() => obj,
+            // 2. If IsCallable(func) is false, throw a TypeError exception.
+            _ => return context.throw_type_error(format!("{} is not a function", this.display())),
+        };
+
         let this_arg = args.get_or_undefined(0);
         let arg_array = args.get_or_undefined(1);
+        // 3. If argArray is undefined or null, then
         if arg_array.is_null_or_undefined() {
+            // a. Perform PrepareForTailCall().
             // TODO?: 3.a. PrepareForTailCall
-            return context.call(this, this_arg, &[]);
+
+            // b. Return ? Call(func, thisArg).
+            return func.call(this_arg, &[], context);
         }
+
+        // 4. Let argList be ? CreateListFromArrayLike(argArray).
         let arg_list = arg_array.create_list_from_array_like(&[], context)?;
+
+        // 5. Perform PrepareForTailCall().
         // TODO?: 5. PrepareForTailCall
-        context.call(this, this_arg, &arg_list)
+
+        // 6. Return ? Call(func, thisArg, argList).
+        func.call(this_arg, &arg_list, context)
+    }
+
+    /// `Function.prototype.bind ( thisArg, ...args )`
+    ///
+    /// The bind() method creates a new function that, when called, has its
+    /// this keyword set to the provided value, with a given sequence of arguments
+    /// preceding any provided when the new function is called.
+    ///
+    /// More information:
+    ///  - [MDN documentation][mdn]
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-function.prototype.bind
+    /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_objects/Function/bind
+    fn bind(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let Target be the this value.
+        let target = match this {
+            JsValue::Object(obj) if obj.is_callable() => obj,
+            // 2. If IsCallable(Target) is false, throw a TypeError exception.
+            _ => {
+                return context
+                    .throw_type_error("cannot bind `this` without a `[[Call]]` internal method")
+            }
+        };
+        let this_arg = args.get_or_undefined(0).clone();
+        let bound_args = args.get(1..).unwrap_or_else(|| &[]).to_vec();
+        let arg_count = bound_args.len() as i64;
+
+        // 3. Let F be ? BoundFunctionCreate(Target, thisArg, args).
+        let f = BoundFunction::create(target.clone(), this_arg, bound_args, context)?;
+
+        // 4. Let L be 0.
+        let mut l = JsValue::new(0);
+
+        // 5. Let targetHasLength be ? HasOwnProperty(Target, "length").
+        // 6. If targetHasLength is true, then
+        if target.has_own_property("length", context)? {
+            // a. Let targetLen be ? Get(Target, "length").
+            let target_len = target.get("length", context)?;
+            // b. If Type(targetLen) is Number, then
+            if target_len.is_number() {
+                // 1. Let targetLenAsInt be ! ToIntegerOrInfinity(targetLen).
+                match target_len
+                    .to_integer_or_infinity(context)
+                    .expect("to_integer_or_infinity cannot fail for a number")
+                {
+                    // i. If targetLen is +∞𝔽, set L to +∞.
+                    IntegerOrInfinity::PositiveInfinity => l = f64::INFINITY.into(),
+                    // ii. Else if targetLen is -∞𝔽, set L to 0.
+                    IntegerOrInfinity::NegativeInfinity => {}
+                    // iii. Else,
+                    IntegerOrInfinity::Integer(target_len) => {
+                        // 2. Assert: targetLenAsInt is finite.
+                        // 3. Let argCount be the number of elements in args.
+                        // 4. Set L to max(targetLenAsInt - argCount, 0).
+                        l = (target_len - arg_count).max(0).into();
+                    }
+                }
+            }
+        }
+
+        // 7. Perform ! SetFunctionLength(F, L).
+        f.define_property_or_throw(
+            "length",
+            PropertyDescriptor::builder()
+                .value(l)
+                .writable(false)
+                .enumerable(false)
+                .configurable(true),
+            context,
+        )
+        .expect("defining the `length` property for a new object should not fail");
+
+        // 8. Let targetName be ? Get(Target, "name").
+        let target_name = target.get("name", context)?;
+
+        // 9. If Type(targetName) is not String, set targetName to the empty String.
+        let target_name = target_name
+            .as_string()
+            .map_or(JsString::new(""), Clone::clone);
+
+        // 10. Perform SetFunctionName(F, targetName, "bound").
+        set_function_name(&f, &target_name.into(), Some("bound"), context);
+
+        // 11. Return F.
+        Ok(f.into())
+    }
+
+    /// `Function.prototype.call ( thisArg, ...args )`
+    ///
+    /// The call() method calls a function with a given this value and arguments provided individually.
+    ///
+    /// More information:
+    ///  - [MDN documentation][mdn]
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-function.prototype.call
+    /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/call
+    fn call(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let func be the this value.
+        let func = match this {
+            JsValue::Object(obj) if obj.is_callable() => obj,
+            // 2. If IsCallable(func) is false, throw a TypeError exception.
+            _ => return context.throw_type_error(format!("{} is not a function", this.display())),
+        };
+
+        let this_arg = args.get_or_undefined(0);
+
+        // 3. Perform PrepareForTailCall().
+        // TODO?: 3. Perform PrepareForTailCall
+
+        // 4. Return ? Call(func, thisArg, args).
+        func.call(this_arg, args.get(1..).unwrap_or(&[]), context)
     }
 
     #[allow(clippy::wrong_self_convention)]
@@ -398,7 +506,7 @@ impl BuiltInFunctionObject {
             (
                 Function::Native {
                     function: _,
-                    constructable: _,
+                    constructor: _,
                 },
                 Some(name),
             ) => Ok(format!("function {}() {{\n  [native Code]\n}}", &name).into()),
@@ -445,6 +553,22 @@ impl BuiltInFunctionObject {
             _ => Ok("TODO".into()),
         }
     }
+
+    /// `Function.prototype [ @@hasInstance ] ( V )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-function.prototype-@@hasinstance
+    fn has_instance(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let F be the this value.
+        // 2. Return ? OrdinaryHasInstance(F, V).
+        Ok(JsValue::ordinary_has_instance(this, args.get_or_undefined(0), context)?.into())
+    }
+
+    fn prototype(_: &JsValue, _: &[JsValue], _: &mut Context) -> JsResult<JsValue> {
+        Ok(JsValue::undefined())
+    }
 }
 
 impl BuiltIn for BuiltInFunctionObject {
@@ -461,8 +585,16 @@ impl BuiltIn for BuiltInFunctionObject {
         FunctionBuilder::native(context, Self::prototype)
             .name("")
             .length(0)
-            .constructable(false)
+            .constructor(false)
             .build_function_prototype(&function_prototype);
+
+        let symbol_has_instance = WellKnownSymbols::has_instance();
+
+        let has_instance = FunctionBuilder::native(context, Self::has_instance)
+            .name("[Symbol.iterator]")
+            .length(1)
+            .constructor(false)
+            .build();
 
         let function_object = ConstructorBuilder::with_standard_object(
             context,
@@ -471,11 +603,137 @@ impl BuiltIn for BuiltInFunctionObject {
         )
         .name(Self::NAME)
         .length(Self::LENGTH)
-        .method(Self::call, "call", 1)
         .method(Self::apply, "apply", 1)
+        .method(Self::bind, "bind", 1)
+        .method(Self::call, "call", 1)
         .method(Self::to_string, "toString", 0)
+        .property(symbol_has_instance, has_instance, Attribute::default())
         .build();
 
         (Self::NAME, function_object.into(), Self::attribute())
+    }
+}
+
+/// Abstract operation `SetFunctionName`
+///
+/// More information:
+///  - [ECMAScript reference][spec]
+///
+/// [spec]: https://tc39.es/ecma262/#sec-setfunctionname
+fn set_function_name(
+    function: &JsObject,
+    name: &PropertyKey,
+    prefix: Option<&str>,
+    context: &mut Context,
+) {
+    // 1. Assert: F is an extensible object that does not have a "name" own property.
+    // 2. If Type(name) is Symbol, then
+    let mut name = match name {
+        PropertyKey::Symbol(sym) => {
+            // a. Let description be name's [[Description]] value.
+            if let Some(desc) = sym.description() {
+                // c. Else, set name to the string-concatenation of "[", description, and "]".
+                Cow::Owned(JsString::concat_array(&["[", &desc, "]"]))
+            } else {
+                // b. If description is undefined, set name to the empty String.
+                Cow::Owned(JsString::new(""))
+            }
+        }
+        PropertyKey::String(string) => Cow::Borrowed(string),
+        PropertyKey::Index(index) => Cow::Owned(JsString::new(format!("{}", index))),
+    };
+
+    // 3. Else if name is a Private Name, then
+    // a. Set name to name.[[Description]].
+    // todo: implement Private Names
+
+    // 4. If F has an [[InitialName]] internal slot, then
+    // a. Set F.[[InitialName]] to name.
+    // todo: implement [[InitialName]] for builtins
+
+    // 5. If prefix is present, then
+    if let Some(prefix) = prefix {
+        name = Cow::Owned(JsString::concat_array(&[prefix, " ", &name]));
+        // b. If F has an [[InitialName]] internal slot, then
+        // i. Optionally, set F.[[InitialName]] to name.
+        // todo: implement [[InitialName]] for builtins
+    }
+
+    // 6. Return ! DefinePropertyOrThrow(F, "name", PropertyDescriptor { [[Value]]: name,
+    // [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }).
+    function
+        .define_property_or_throw(
+            "name",
+            PropertyDescriptor::builder()
+                .value(name.into_owned())
+                .writable(false)
+                .enumerable(false)
+                .configurable(true),
+            context,
+        )
+        .expect("defining the `name` property must not fail per the spec");
+}
+
+/// Binds a `Function Object` when `bind` is called.
+#[derive(Debug, Trace, Finalize)]
+pub struct BoundFunction {
+    target_function: JsObject,
+    this: JsValue,
+    args: Vec<JsValue>,
+}
+
+impl BoundFunction {
+    /// Abstract operation `BoundFunctionCreate`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-boundfunctioncreate
+    pub fn create(
+        target_function: JsObject,
+        this: JsValue,
+        args: Vec<JsValue>,
+        context: &mut Context,
+    ) -> JsResult<JsObject> {
+        // 1. Let proto be ? targetFunction.[[GetPrototypeOf]]().
+        let proto = target_function.__get_prototype_of__(context)?;
+        let is_constructor = target_function.is_constructor();
+
+        // 2. Let internalSlotsList be the internal slots listed in Table 35, plus [[Prototype]] and [[Extensible]].
+        // 3. Let obj be ! MakeBasicObject(internalSlotsList).
+        // 4. Set obj.[[Prototype]] to proto.
+        // 5. Set obj.[[Call]] as described in 10.4.1.1.
+        // 6. If IsConstructor(targetFunction) is true, then
+        // a. Set obj.[[Construct]] as described in 10.4.1.2.
+        // 7. Set obj.[[BoundTargetFunction]] to targetFunction.
+        // 8. Set obj.[[BoundThis]] to boundThis.
+        // 9. Set obj.[[BoundArguments]] to boundArgs.
+        // 10. Return obj.
+        Ok(JsObject::new(Object::with_prototype(
+            proto,
+            ObjectData::bound_function(
+                BoundFunction {
+                    target_function,
+                    this,
+                    args,
+                },
+                is_constructor,
+            ),
+        )))
+    }
+
+    /// Get a reference to the bound function's this.
+    pub fn this(&self) -> &JsValue {
+        &self.this
+    }
+
+    /// Get a reference to the bound function's target function.
+    pub fn target_function(&self) -> &JsObject {
+        &self.target_function
+    }
+
+    /// Get a reference to the bound function's args.
+    pub fn args(&self) -> &[JsValue] {
+        self.args.as_slice()
     }
 }

@@ -49,13 +49,13 @@ impl BuiltIn for Array {
 
         let get_species = FunctionBuilder::native(context, Self::get_species)
             .name("get [Symbol.species]")
-            .constructable(false)
+            .constructor(false)
             .build();
 
         let values_function = FunctionBuilder::native(context, Self::values)
             .name("values")
             .length(0)
-            .constructable(false)
+            .constructor(false)
             .build();
 
         let array = ConstructorBuilder::with_standard_object(
@@ -376,7 +376,7 @@ impl Array {
 
         // 7. If IsConstructor(C) is false, throw a TypeError exception.
         if let Some(c) = c.as_object() {
-            if !c.is_constructable() {
+            if !c.is_constructor() {
                 return Err(context.construct_type_error("Symbol.species must be a constructor"));
             }
             // 8. Return ? Construct(C, « 𝔽(length) »).
@@ -461,7 +461,7 @@ impl Array {
         // 5. Else,
         //     a. Let A be ? ArrayCreate(len).
         let a = match this.as_object() {
-            Some(object) if object.is_constructable() => object
+            Some(object) if object.is_constructor() => object
                 .construct(&[len.into()], this, context)?
                 .as_object()
                 .ok_or_else(|| {
@@ -1072,9 +1072,12 @@ impl Array {
         let len = o.length_of_array_like(context)?;
         // 3. If IsCallable(callbackfn) is false, throw a TypeError exception.
         let callback = args.get_or_undefined(0);
-        if !callback.is_function() {
-            return context.throw_type_error("Array.prototype.map: Callbackfn is not callable");
-        }
+        let callback = match callback {
+            JsValue::Object(obj) if obj.is_callable() => obj,
+            _ => {
+                return context.throw_type_error("Array.prototype.map: Callbackfn is not callable")
+            }
+        };
 
         // 4. Let A be ? ArraySpeciesCreate(O, len).
         let a = Self::array_species_create(&o, len, context)?;
@@ -1093,7 +1096,7 @@ impl Array {
                 let k_value = o.get(k, context)?;
                 // ii. Let mappedValue be ? Call(callbackfn, thisArg, « kValue, 𝔽(k), O »).
                 let mapped_value =
-                    context.call(callback, this_arg, &[k_value, k.into(), this.into()])?;
+                    callback.call(this_arg, &[k_value, k.into(), this.into()], context)?;
                 // iii. Perform ? CreateDataPropertyOrThrow(A, Pk, mappedValue).
                 a.create_data_property_or_throw(k, mapped_value, context)?;
             }
@@ -1453,9 +1456,10 @@ impl Array {
 
         // 3. If ! IsCallable(mapperFunction) is false, throw a TypeError exception.
         let mapper_function = args.get_or_undefined(0);
-        if !mapper_function.is_function() {
-            return context.throw_type_error("flatMap mapper function is not callable");
-        }
+        let mapper_function = match mapper_function {
+            JsValue::Object(obj) if obj.is_callable() => obj,
+            _ => return context.throw_type_error("flatMap mapper function is not callable"),
+        };
 
         // 4. Let A be ? ArraySpeciesCreate(O, 0).
         let a = Self::array_species_create(&o, 0, context)?;
@@ -1467,7 +1471,7 @@ impl Array {
             source_len as u64,
             0,
             1,
-            Some(mapper_function.as_object().unwrap()),
+            Some(mapper_function.clone()),
             args.get_or_undefined(1),
             context,
         )?;
@@ -2110,10 +2114,9 @@ impl Array {
         context: &mut Context,
     ) -> JsResult<JsValue> {
         // 1. If comparefn is not undefined and IsCallable(comparefn) is false, throw a TypeError exception.
-        let comparefn = match args.get(0).cloned() {
-            // todo: change to `is_callable` inside `JsValue`
-            Some(fun) if fun.is_function() => fun,
-            None => JsValue::undefined(),
+        let comparefn = match args.get_or_undefined(0) {
+            JsValue::Object(ref obj) if obj.is_callable() => Some(obj),
+            JsValue::Undefined => None,
             _ => {
                 return context.throw_type_error(
                     "The comparison function must be either a function or undefined",
@@ -2140,11 +2143,11 @@ impl Array {
                 }
 
                 // 4. If comparefn is not undefined, then
-                if !comparefn.is_undefined() {
+                if let Some(cmp) = comparefn {
                     let args = [x.clone(), y.clone()];
                     // a. Let v be ? ToNumber(? Call(comparefn, undefined, « x, y »)).
-                    let v = context
-                        .call(&comparefn, &JsValue::Undefined, &args)?
+                    let v = cmp
+                        .call(&JsValue::Undefined, &args, context)?
                         .to_number(context)?;
                     // b. If v is NaN, return +0𝔽.
                     // c. Return v.

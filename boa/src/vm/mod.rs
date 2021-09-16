@@ -3,8 +3,8 @@
 //! plus an interpreter to execute those instructions
 
 use crate::{
-    builtins::Array, environment::lexical_environment::VariableScope, symbol::WellKnownSymbols,
-    BoaProfiler, Context, JsResult, JsValue,
+    builtins::Array, environment::lexical_environment::VariableScope, BoaProfiler, Context,
+    JsResult, JsValue,
 };
 
 mod code_block;
@@ -198,28 +198,7 @@ impl<'a> Vm<'a> {
             Opcode::InstanceOf => {
                 let y = self.pop();
                 let x = self.pop();
-                let value = if let Some(object) = y.as_object() {
-                    let key = WellKnownSymbols::has_instance();
-
-                    match object.get_method(self.context, key)? {
-                        Some(instance_of_handler) => instance_of_handler
-                            .call(&y, &[x], self.context)?
-                            .to_boolean(),
-                        None if object.is_callable() => {
-                            object.ordinary_has_instance(self.context, &x)?
-                        }
-                        None => {
-                            return Err(self.context.construct_type_error(
-                                "right-hand side of 'instanceof' is not callable",
-                            ));
-                        }
-                    }
-                } else {
-                    return Err(self.context.construct_type_error(format!(
-                        "right-hand side of 'instanceof' should be an object, got {}",
-                        y.type_of()
-                    )));
-                };
+                let value = x.instance_of(&y, self.context)?;
 
                 self.push(value);
             }

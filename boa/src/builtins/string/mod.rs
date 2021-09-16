@@ -751,7 +751,10 @@ impl String {
         let search_str = search_value.to_string(context)?;
 
         // 5. Let functionalReplace be IsCallable(replaceValue).
-        let functional_replace = replace_value.is_function();
+        let functional_replace = replace_value
+            .as_object()
+            .map(|obj| obj.is_callable())
+            .unwrap_or_default();
 
         // 6. If functionalReplace is false, then
         // a. Set replaceValue to ? ToString(replaceValue).
@@ -881,7 +884,10 @@ impl String {
         let search_string = search_value.to_string(context)?;
 
         // 5. Let functionalReplace be IsCallable(replaceValue).
-        let functional_replace = replace_value.is_function();
+        let functional_replace = replace_value
+            .as_object()
+            .map(|obj| obj.is_callable())
+            .unwrap_or_default();
 
         // 6. If functionalReplace is false, then
         let replace_value_string = if !functional_replace {

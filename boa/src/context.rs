@@ -652,7 +652,7 @@ impl Context {
         let function = FunctionBuilder::native(self, body)
             .name(name)
             .length(length)
-            .constructable(true)
+            .constructor(true)
             .build();
 
         self.global_object().insert_property(
@@ -686,7 +686,7 @@ impl Context {
         let function = FunctionBuilder::closure(self, body)
             .name(name)
             .length(length)
-            .constructable(true)
+            .constructor(true)
             .build();
 
         self.global_object().insert_property(

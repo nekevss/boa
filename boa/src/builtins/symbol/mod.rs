@@ -101,7 +101,7 @@ impl BuiltIn for Symbol {
 
         let get_description = FunctionBuilder::native(context, Self::get_description)
             .name("get description")
-            .constructable(false)
+            .constructor(false)
             .build();
 
         let symbol_object = ConstructorBuilder::with_standard_object(

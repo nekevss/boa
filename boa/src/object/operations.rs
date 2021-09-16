@@ -293,7 +293,13 @@ impl JsObject {
         args: &[JsValue],
         context: &mut Context,
     ) -> JsResult<JsValue> {
-        self.call_construct(this, args, context, false)
+        // 1. If argumentsList is not present, set argumentsList to a new empty List.
+        // 2. If IsCallable(F) is false, throw a TypeError exception.
+        if !self.is_callable() {
+            return context.throw_type_error("not a function");
+        }
+        // 3. Return ? F.[[Call]](V, argumentsList).
+        self.__call__(this, args, context)
     }
 
     /// Construct an instance of this object with the specified arguments.
@@ -310,7 +316,10 @@ impl JsObject {
         new_target: &JsValue,
         context: &mut Context,
     ) -> JsResult<JsValue> {
-        self.call_construct(new_target, args, context, true)
+        // 1. If newTarget is not present, set newTarget to F.
+        // 2. If argumentsList is not present, set argumentsList to a new empty List.
+        // 3. Return ? F.[[Construct]](argumentsList, newTarget).
+        self.__construct__(args, new_target, context)
     }
 
     /// Make the object [`sealed`][IntegrityLevel::Sealed] or [`frozen`][IntegrityLevel::Frozen].
@@ -481,7 +490,7 @@ impl JsObject {
         // 7. If IsConstructor(S) is true, return S.
         // 8. Throw a TypeError exception.
         if let Some(obj) = s.as_object() {
-            if obj.is_constructable() {
+            if obj.is_constructor() {
                 Ok(s)
             } else {
                 context.throw_type_error("property 'constructor' is not a constructor")
@@ -633,5 +642,68 @@ impl JsValue {
 
         // 7. Return list.
         Ok(list)
+    }
+
+    /// Abstract operation `OrdinaryHasInstance ( C, O )`
+    ///
+    /// More information:
+    /// - [EcmaScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-ordinaryhasinstance
+    pub fn ordinary_has_instance(
+        function: &JsValue,
+        object: &JsValue,
+        context: &mut Context,
+    ) -> JsResult<bool> {
+        // 1. If IsCallable(C) is false, return false.
+        let function = match function {
+            JsValue::Object(obj) if obj.is_callable() => obj,
+            _ => return Ok(false),
+        };
+
+        // 2. If C has a [[BoundTargetFunction]] internal slot, then
+        if let Some(bound_function) = function.borrow().as_bound_function() {
+            // a. Let BC be C.[[BoundTargetFunction]].
+            // b. Return ? InstanceofOperator(O, BC).
+            return JsValue::instance_of(
+                object,
+                &bound_function.target_function().clone().into(),
+                context,
+            );
+        }
+
+        let mut object = if let Some(obj) = object.as_object() {
+            obj
+        } else {
+            // 3. If Type(O) is not Object, return false.
+            return Ok(false);
+        };
+
+        // 4. Let P be ? Get(C, "prototype").
+        let prototype = function.get("prototype", context)?;
+
+        let prototype = if let Some(obj) = prototype.as_object() {
+            obj
+        } else {
+            // 5. If Type(P) is not Object, throw a TypeError exception.
+            return Err(context
+                .construct_type_error("function has non-object prototype in instanceof check"));
+        };
+
+        // 6. Repeat,
+        loop {
+            // a. Set O to ? O.[[GetPrototypeOf]]().
+            object = match object.__get_prototype_of__(context)? {
+                JsValue::Object(ref obj) => obj.clone(),
+                // b. If O is null, return false.
+                JsValue::Null => return Ok(false),
+                _ => unreachable!(),
+            };
+
+            // c. If SameValue(P, O) is true, return true.
+            if JsObject::equals(&object, &prototype) {
+                return Ok(true);
+            }
+        }
     }
 }

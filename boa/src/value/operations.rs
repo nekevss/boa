@@ -388,6 +388,45 @@ impl JsValue {
         })
     }
 
+    /// Abstract operation `InstanceofOperator ( V, target )`
+    ///
+    /// More information:
+    /// - [EcmaScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-instanceofoperator
+    #[inline]
+    pub fn instance_of(&self, target: &JsValue, context: &mut Context) -> JsResult<bool> {
+        if let Some(object) = target.as_object() {
+            let key = WellKnownSymbols::has_instance();
+
+            // 2. Let instOfHandler be ? GetMethod(target, @@hasInstance).
+            match object.get_method(context, key)? {
+                // 3. If instOfHandler is not undefined, then
+                Some(instance_of_handler) => {
+                    // a. Return ! ToBoolean(? Call(instOfHandler, target, « V »)).
+                    Ok(instance_of_handler
+                        .call(target, std::slice::from_ref(self), context)?
+                        .to_boolean())
+                }
+                None if object.is_callable() => {
+                    // 5. Return ? OrdinaryHasInstance(target, V).
+                    JsValue::ordinary_has_instance(target, self, context)
+                }
+                None => {
+                    // 4. If IsCallable(target) is false, throw a TypeError exception.
+                    Err(context
+                        .construct_type_error("right-hand side of 'instanceof' is not callable"))
+                }
+            }
+        } else {
+            // 1. If Type(target) is not Object, throw a TypeError exception.
+            Err(context.construct_type_error(format!(
+                "right-hand side of 'instanceof' should be an object, got {}",
+                target.type_of()
+            )))
+        }
+    }
+
     #[inline]
     pub fn neg(&self, context: &mut Context) -> JsResult<JsValue> {
         Ok(match *self {

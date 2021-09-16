@@ -141,12 +141,6 @@ impl JsValue {
         }
     }
 
-    /// Returns true if the value is a function
-    #[inline]
-    pub fn is_function(&self) -> bool {
-        matches!(self, Self::Object(o) if o.is_function())
-    }
-
     /// Returns true if the value is undefined.
     #[inline]
     pub fn is_undefined(&self) -> bool {
