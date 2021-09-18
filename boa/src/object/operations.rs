@@ -544,9 +544,58 @@ impl JsObject {
 }
 
 impl JsValue {
-    // todo: GetV
+    /// Abstract operation `GetV ( V, P )`.
+    ///
+    /// Retrieves the value of a specific property of an ECMAScript language value. If the value is
+    /// not an object, the property lookup is performed using a wrapper object appropriate for the
+    /// type of the value.
+    ///
+    /// More information:
+    /// - [EcmaScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-getmethod
+    #[inline]
+    pub(crate) fn get_v<K>(&self, key: K, context: &mut Context) -> JsResult<JsValue>
+    where
+        K: Into<PropertyKey>,
+    {
+        // 1. Let O be ? ToObject(V).
+        let o = self.to_object(context)?;
 
-    // todo: GetMethod
+        // 2. Return ? O.[[Get]](P, V).
+        o.__get__(&key.into(), self.clone(), context)
+    }
+
+    /// Abstract operation `GetMethod ( V, P )`
+    ///
+    /// Retrieves the value of a specific property, when the value of the property is expected to be a function.
+    ///
+    /// More information:
+    /// - [EcmaScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-getmethod
+    pub(crate) fn get_method<K>(&self, key: K, context: &mut Context) -> JsResult<JsValue>
+    where
+        K: Into<PropertyKey>,
+    {
+        // 1. Assert: IsPropertyKey(P) is true.
+        // 2. Let func be ? GetV(V, P).
+        let func = self.get_v(key, context)?;
+
+        // 3. If func is either undefined or null, return undefined.
+        if func.is_null_or_undefined() {
+            return Ok(JsValue::undefined());
+        }
+
+        // 4. If IsCallable(func) is false, throw a TypeError exception.
+        if !func.is_callable() {
+            Err(context
+                .construct_type_error("value returned for property of object is not a function"))
+        } else {
+            // 5. Return func.
+            Ok(func)
+        }
+    }
 
     /// It is used to create List value whose elements are provided by the indexed properties of
     /// self.
@@ -604,5 +653,30 @@ impl JsValue {
 
         // 7. Return list.
         Ok(list)
+    }
+
+    /// Abstract operation `( V, P [ , argumentsList ] )
+    ///
+    /// Calls a method property of an ECMAScript language value.
+    ///
+    /// More information:
+    /// - [EcmaScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-invoke
+    pub(crate) fn invoke<K>(
+        &self,
+        key: K,
+        args: &[JsValue],
+        context: &mut Context,
+    ) -> JsResult<JsValue>
+    where
+        K: Into<PropertyKey>,
+    {
+        // 1. If argumentsList is not present, set argumentsList to a new empty List.
+        // 2. Let func be ? GetV(V, P).
+        let func = self.get_v(key, context)?;
+
+        // 3. Return ? Call(func, V, argumentsList)
+        context.call(&func, self, args)
     }
 }

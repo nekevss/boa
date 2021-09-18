@@ -382,7 +382,7 @@ impl JsValue {
         // 2. If Type(input) is Object, then
         if self.is_object() {
             // a. Let exoticToPrim be ? GetMethod(input, @@toPrimitive).
-            let exotic_to_prim = self.get_method(context, WellKnownSymbols::to_primitive())?;
+            let exotic_to_prim = self.get_method(WellKnownSymbols::to_primitive(), context)?;
 
             // b. If exoticToPrim is not undefined, then
             if !exotic_to_prim.is_undefined() {
@@ -1036,57 +1036,6 @@ impl JsValue {
         } else {
             Ok(false)
         }
-    }
-
-    /// Retrieves value of specific property, when the value of the property is expected to be a function.
-    ///
-    /// More information:
-    /// - [EcmaScript reference][spec]
-    ///
-    /// [spec]: https://tc39.es/ecma262/#sec-getmethod
-    pub(crate) fn get_method<K>(&self, context: &mut Context, key: K) -> JsResult<JsValue>
-    where
-        K: Into<PropertyKey>,
-    {
-        // 1. Assert: IsPropertyKey(P) is true.
-        // 2. Let func be ? GetV(V, P).
-        let func = self.get_v(context, key)?;
-
-        // 3. If func is either undefined or null, return undefined.
-        if func.is_null_or_undefined() {
-            return Ok(JsValue::undefined());
-        }
-
-        // 4. If IsCallable(func) is false, throw a TypeError exception.
-        if !func.is_callable() {
-            Err(context
-                .construct_type_error("value returned for property of object is not a function"))
-        } else {
-            // 5. Return func.
-            Ok(func)
-        }
-    }
-
-    /// The `GetV ( V, P )` abstract operation
-    ///
-    /// Retrieves the value of a specific property of an ECMAScript language value. If the value is
-    /// not an object, the property lookup is performed using a wrapper object appropriate for the
-    /// type of the value.
-    ///
-    /// More information:
-    /// - [EcmaScript reference][spec]
-    ///
-    /// [spec]: https://tc39.es/ecma262/#sec-getmethod
-    #[inline]
-    pub(crate) fn get_v<K>(&self, context: &mut Context, key: K) -> JsResult<JsValue>
-    where
-        K: Into<PropertyKey>,
-    {
-        // 1. Let O be ? ToObject(V).
-        let o = self.to_object(context)?;
-
-        // 2. Return ? O.[[Get]](P, V).
-        o.__get__(&key.into(), self.clone(), context)
     }
 
     /// It determines if the value is a callable function with a `[[Call]]` internal method.

@@ -159,7 +159,7 @@ impl Executable for BinOp {
 
                         // 2. Let instOfHandler be ? GetMethod(target, @@hasInstance).
                         let inst_of_handler =
-                            y.get_method(context, WellKnownSymbols::has_instance())?;
+                            y.get_method(WellKnownSymbols::has_instance(), context)?;
 
                         // 3. If instOfHandler is not undefined, then
                         if !inst_of_handler.is_undefined() {

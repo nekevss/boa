@@ -154,7 +154,7 @@ macro_rules! typed_array {
                         // 2. Let usingIterator be ? GetMethod(firstArgument, @@iterator).
                         let first_argument = JsValue::from(first_argument);
                         let using_iterator =
-                            first_argument.get_method(context, WellKnownSymbols::replace())?;
+                            first_argument.get_method(WellKnownSymbols::replace(), context)?;
 
                         // 3. If usingIterator is not undefined, then
                         if !using_iterator.is_undefined() {

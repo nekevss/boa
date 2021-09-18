@@ -728,7 +728,7 @@ impl String {
         // 2. If searchValue is neither undefined nor null, then
         if !search_value.is_null_or_undefined() {
             // a. Let replacer be ? GetMethod(searchValue, @@replace).
-            let replacer = search_value.get_method(context, WellKnownSymbols::replace())?;
+            let replacer = search_value.get_method(WellKnownSymbols::replace(), context)?;
 
             // b. If replacer is not undefined, then
             if !replacer.is_undefined() {
@@ -859,7 +859,7 @@ impl String {
             }
 
             // c. Let replacer be ? GetMethod(searchValue, @@replace).
-            let replacer = search_value.get_method(context, WellKnownSymbols::replace())?;
+            let replacer = search_value.get_method(WellKnownSymbols::replace(), context)?;
 
             // d. If replacer is not undefined, then
             if !replacer.is_undefined() {
@@ -1097,7 +1097,7 @@ impl String {
         let regexp = args.get_or_undefined(0);
         if !regexp.is_null_or_undefined() {
             // a. Let matcher be ? GetMethod(regexp, @@match).
-            let matcher = regexp.get_method(context, WellKnownSymbols::r#match())?;
+            let matcher = regexp.get_method(WellKnownSymbols::r#match(), context)?;
             // b. If matcher is not undefined, then
             if !matcher.is_undefined() {
                 // i. Return ? Call(matcher, regexp, « O »).
@@ -1112,9 +1112,7 @@ impl String {
         let rx = RegExp::create(regexp.clone(), JsValue::undefined(), context)?;
 
         // 5. Return ? Invoke(rx, @@match, « S »).
-        let obj = rx.to_object(context)?;
-        let func = obj.get(WellKnownSymbols::r#match(), context)?;
-        context.call(&func, &obj.into(), &[JsValue::new(s)])
+        rx.invoke(WellKnownSymbols::r#match(), &[JsValue::new(s)], context)
     }
 
     /// Abstract method `StringPad`.
@@ -1464,7 +1462,7 @@ impl String {
         // 2. If separator is neither undefined nor null, then
         if !separator.is_null_or_undefined() {
             // a. Let splitter be ? GetMethod(separator, @@split).
-            let splitter = separator.get_method(context, WellKnownSymbols::split())?;
+            let splitter = separator.get_method(WellKnownSymbols::split(), context)?;
             // b. If splitter is not undefined, then
             if !splitter.is_undefined() {
                 // i. Return ? Call(splitter, separator, « O, limit »).
@@ -1651,7 +1649,7 @@ impl String {
             }
 
             // c. Let matcher be ? GetMethod(regexp, @@matchAll).
-            let matcher = regexp.get_method(context, WellKnownSymbols::match_all())?;
+            let matcher = regexp.get_method(WellKnownSymbols::match_all(), context)?;
             // d. If matcher is not undefined, then
             if !matcher.is_undefined() {
                 // i. Return ? Call(matcher, regexp, « O »).
@@ -1666,9 +1664,7 @@ impl String {
         let rx = RegExp::create(regexp.clone(), JsValue::new("g"), context)?;
 
         // 5. Return ? Invoke(rx, @@matchAll, « S »).
-        let obj = rx.as_object().expect("RegExpCreate must return Object");
-        let func = obj.get(WellKnownSymbols::match_all(), context)?;
-        obj.call(&func, &[JsValue::new(s)], context)
+        rx.invoke(WellKnownSymbols::match_all(), &[JsValue::new(s)], context)
     }
 
     /// `String.prototype.normalize( [ form ] )`
@@ -1731,7 +1727,7 @@ impl String {
         let regexp = args.get_or_undefined(0);
         if !regexp.is_null_or_undefined() {
             // a. Let searcher be ? GetMethod(regexp, @@search).
-            let searcher = regexp.get_method(context, WellKnownSymbols::search())?;
+            let searcher = regexp.get_method(WellKnownSymbols::search(), context)?;
             // b. If searcher is not undefined, then
             if !searcher.is_undefined() {
                 // i. Return ? Call(searcher, regexp, « O »).
@@ -1746,8 +1742,7 @@ impl String {
         let rx = RegExp::create(regexp.clone(), JsValue::undefined(), context)?;
 
         // 5. Return ? Invoke(rx, @@search, « string »).
-        let func = rx.get_v(context, WellKnownSymbols::search())?;
-        context.call(&func, &rx, &[JsValue::new(string)])
+        rx.invoke(WellKnownSymbols::search(), &[JsValue::new(string)], context)
     }
 
     pub(crate) fn iterator(

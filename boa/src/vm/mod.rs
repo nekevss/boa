@@ -204,7 +204,7 @@ impl<'a> Vm<'a> {
                         target.type_of()
                     )));
                 };
-                let handler = target.get_method(self.context, WellKnownSymbols::has_instance())?;
+                let handler = target.get_method(WellKnownSymbols::has_instance(), self.context)?;
                 if !handler.is_undefined() {
                     let value = self
                         .context

@@ -130,11 +130,11 @@ impl JsValue {
             // a. If hint is async, then
             if hint == IteratorHint::Async {
                 // i. Set method to ? GetMethod(obj, @@asyncIterator).
-                let method = self.get_method(context, WellKnownSymbols::async_iterator())?;
+                let method = self.get_method(WellKnownSymbols::async_iterator(), context)?;
                 // ii. If method is undefined, then
                 if method.is_undefined() {
                     // 1. Let syncMethod be ? GetMethod(obj, @@iterator).
-                    let sync_method = self.get_method(context, WellKnownSymbols::iterator())?;
+                    let sync_method = self.get_method(WellKnownSymbols::iterator(), context)?;
                     // 2. Let syncIteratorRecord be ? GetIterator(obj, sync, syncMethod).
                     let _sync_iterator_record =
                         self.get_iterator(context, Some(IteratorHint::Sync), Some(sync_method));
@@ -145,7 +145,7 @@ impl JsValue {
                 method
             } else {
                 // b. Otherwise, set method to ? GetMethod(obj, @@iterator).
-                self.get_method(context, WellKnownSymbols::iterator())?
+                self.get_method(WellKnownSymbols::iterator(), context)?
             }
         };
 
@@ -158,7 +158,7 @@ impl JsValue {
         }
 
         // 5. Let nextMethod be ? GetV(iterator, "next").
-        let next_method = iterator.get_v(context, "next")?;
+        let next_method = iterator.get_v("next", context)?;
 
         // 6. Let iteratorRecord be the Record { [[Iterator]]: iterator, [[NextMethod]]: nextMethod, [[Done]]: false }.
         // 7. Return iteratorRecord.
