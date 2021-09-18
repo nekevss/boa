@@ -3,14 +3,16 @@
 pub use self::integer_indexed_object::IntegerIndexed;
 use crate::{
     builtins::{
-        array_buffer::ArrayBuffer, iterable::iterable_to_list,
-        typed_array::integer_indexed_object::ContentType, Array, BuiltIn, JsArgs,
+        array_buffer::{ArrayBuffer, SharedMemoryOrder},
+        iterable::iterable_to_list,
+        typed_array::integer_indexed_object::ContentType,
+        Array, BuiltIn, JsArgs,
     },
     context::{StandardConstructor, StandardObjects},
     gc::{empty_trace, Finalize, Trace},
     object::{
         internal_methods::get_prototype_from_constructor, ConstructorBuilder, FunctionBuilder,
-        JsObject,
+        JsObject, ObjectData,
     },
     property::Attribute,
     symbol::WellKnownSymbols,
@@ -21,7 +23,7 @@ use crate::{
 pub mod integer_indexed_object;
 
 macro_rules! typed_array {
-    ($ty:ident, $name:literal) => {
+    ($ty:ident, $name:literal, $global_object_name:ident) => {
         #[doc = concat!("JavaScript `", $name, "` built-in implementation.")]
         #[derive(Debug, Clone, Copy)]
         pub struct $ty;
@@ -44,7 +46,7 @@ macro_rules! typed_array {
                 let typed_array = ConstructorBuilder::with_standard_object(
                     context,
                     Self::constructor,
-                    context.standard_objects().typed_array_object().clone(),
+                    context.standard_objects().$global_object_name().clone(),
                 )
                 .name(Self::NAME)
                 .length(Self::LENGTH)
@@ -96,7 +98,7 @@ macro_rules! typed_array {
                 let constructor_name = TypedArrayName::$ty;
 
                 // 3. Let proto be "%TypedArray.prototype%".
-                let proto = StandardObjects::typed_array_object;
+                let proto = StandardObjects::$global_object_name;
 
                 // 4. Let numberOfArgs be the number of elements in args.
                 let number_of_args = args.len();
@@ -152,15 +154,16 @@ macro_rules! typed_array {
                         // either a [[TypedArrayName]] or an [[ArrayBufferData]] internal slot.
 
                         // 2. Let usingIterator be ? GetMethod(firstArgument, @@iterator).
-                        let first_argument = JsValue::from(first_argument);
+
+                        let first_argument_v = JsValue::from(first_argument.clone());
                         let using_iterator =
-                            first_argument.get_method(WellKnownSymbols::replace(), context)?;
+                            first_argument_v.get_method(WellKnownSymbols::replace(), context)?;
 
                         // 3. If usingIterator is not undefined, then
                         if !using_iterator.is_undefined() {
                             // a. Let values be ? IterableToList(firstArgument, usingIterator).
                             let values =
-                                iterable_to_list(context, first_argument, Some(using_iterator))?;
+                                iterable_to_list(context, first_argument_v, Some(using_iterator))?;
 
                             // b. Perform ? InitializeTypedArrayFromList(O, values).
                             TypedArray::initialize_from_list(&o, values, context)?;
@@ -169,7 +172,7 @@ macro_rules! typed_array {
 
                             // a. NOTE: firstArgument is not an Iterable so assume it is already an array-like object.
                             // b. Perform ? InitializeTypedArrayFromArrayLike(O, firstArgument).
-                            TypedArray::initialize_from_array_like(&o, first_argument, context)?;
+                            TypedArray::initialize_from_array_like(&o, &first_argument, context)?;
                         }
                     }
 
@@ -317,7 +320,7 @@ impl TypedArray {
         let len = values.len();
         {
             let mut o = o.borrow_mut();
-            let mut o_inner = o.as_mut_typed_array().expect("expected a TypedArray");
+            let mut o_inner = o.as_typed_array_mut().expect("expected a TypedArray");
 
             // 2. Perform ? AllocateTypedArrayBuffer(O, len).
             TypedArray::allocate_buffer(&mut o_inner, len, context)?;
@@ -390,20 +393,153 @@ impl TypedArray {
         Ok(obj)
     }
 
-    /// InitializeTypedArrayFromTypedArray
+    /// `23.2.5.1.2 InitializeTypedArrayFromTypedArray ( O, srcArray )`
     ///
-    /// <https://tc39.es/ecma262/#sec-initializetypedarrayfromtypedarray>
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-initializetypedarrayfromtypedarray
     fn initialize_from_typed_array(
         o: &JsObject,
         src_array: JsObject,
         context: &mut Context,
     ) -> JsResult<()> {
-        todo!("InitializeTypedArrayFromTypedArray");
+        // TODO: change parameters?
+        let o_obj = o.borrow();
+        let src_array_obj = src_array.borrow();
+        let o_array = o_obj.as_typed_array().expect("this must be a typed array");
+        let src_array = src_array_obj
+            .as_typed_array()
+            .expect("this must be a typed array");
+
+        // 1. Let srcData be srcArray.[[ViewedArrayBuffer]].
+        // 2. If IsDetachedBuffer(srcData) is true, throw a TypeError exception.
+        let src_data_obj = src_array.viewed_array_buffer().ok_or_else(|| {
+            context.construct_type_error("Cannot initialize typed array from detached buffer")
+        })?;
+        let src_data_obj_b = src_data_obj.borrow();
+        let src_data = src_data_obj_b.as_array_buffer().unwrap();
+
+        // 3. Let constructorName be the String value of O.[[TypedArrayName]].
+        // 4. Let elementType be the Element Type value in Table 73 for constructorName.
+        // 10. Let elementSize be the Element Size value specified in Table 73 for constructorName.
+        let constructor_name = o_array.typed_array_name();
+
+        // 5. Let elementLength be srcArray.[[ArrayLength]].
+        let element_length = src_array.array_length();
+
+        // 6. Let srcName be the String value of srcArray.[[TypedArrayName]].
+        // 7. Let srcType be the Element Type value in Table 73 for srcName.
+        // 8. Let srcElementSize be the Element Size value specified in Table 73 for srcName.
+        let src_name = src_array.typed_array_name();
+
+        // 9. Let srcByteOffset be srcArray.[[ByteOffset]].
+        let src_byte_offset = src_array.byte_offset();
+
+        // 11. Let byteLength be elementSize × elementLength.
+        let byte_length = constructor_name.element_size() * element_length;
+
+        // 12. If IsSharedArrayBuffer(srcData) is false, then
+        // a. Let bufferConstructor be ? SpeciesConstructor(srcData, %ArrayBuffer%).
+        // TODO: Shared Array Buffer
+        // 13. Else,
+        // a. Let bufferConstructor be %ArrayBuffer%.
+        let buffer_constructor = src_data_obj
+            .species_constructor(context.global_object().get(Self::NAME, context)?, context)?;
+
+        // 14. If elementType is the same as srcType, then
+        let data = if constructor_name == src_name {
+            // a. Let data be ? CloneArrayBuffer(srcData, srcByteOffset, byteLength, bufferConstructor).
+            src_data.clone_array_buffer(
+                src_byte_offset,
+                byte_length,
+                &buffer_constructor,
+                context,
+            )?
+        // 15. Else,
+        } else {
+            // a. Let data be ? AllocateArrayBuffer(bufferConstructor, byteLength).
+            let data_obj = ArrayBuffer::allocate(&buffer_constructor, byte_length, context)?;
+            let mut data_obj_b = data_obj.borrow_mut();
+            let data = data_obj_b
+                .as_array_buffer_mut()
+                .expect("Must be ArrayBuffer");
+
+            // b. If IsDetachedBuffer(srcData) is true, throw a TypeError exception.
+            if src_data.is_detached_buffer() {
+                return Err(context
+                    .construct_type_error("Cannot initialize typed array from detached buffer"));
+            }
+
+            // c. If srcArray.[[ContentType]] ≠ O.[[ContentType]], throw a TypeError exception.
+            if src_name.content_type() != constructor_name.content_type() {
+                return Err(context.construct_type_error(
+                    "Cannot initialize typed array from different content type",
+                ));
+            }
+
+            // d. Let srcByteIndex be srcByteOffset.
+            let mut src_byte_index = src_byte_offset;
+            // e. Let targetByteIndex be 0.
+            let mut target_byte_index = 0;
+            // f. Let count be elementLength.
+            let mut count = element_length;
+            // g. Repeat, while count > 0,
+            while count > 0 {
+                // i. Let value be GetValueFromBuffer(srcData, srcByteIndex, srcType, true, Unordered).
+                let value = src_data.get_value_from_buffer(
+                    src_byte_index,
+                    src_name,
+                    true,
+                    SharedMemoryOrder::Unordered,
+                    None,
+                );
+
+                // ii. Perform SetValueInBuffer(data, targetByteIndex, elementType, value, true, Unordered).
+                data.set_value_in_buffer(
+                    target_byte_index,
+                    constructor_name,
+                    value,
+                    SharedMemoryOrder::Unordered,
+                    None,
+                    context,
+                )?;
+
+                // iii. Set srcByteIndex to srcByteIndex + srcElementSize.
+                src_byte_index += src_name.element_size();
+
+                // iv. Set targetByteIndex to targetByteIndex + elementSize.
+                target_byte_index += constructor_name.element_size();
+
+                // v. Set count to count - 1.
+                count -= 1;
+            }
+            drop(data_obj_b);
+            data_obj
+        };
+
+        // 16. Set O.[[ViewedArrayBuffer]] to data.
+        // 17. Set O.[[ByteLength]] to byteLength.
+        // 18. Set O.[[ByteOffset]] to 0.
+        // 19. Set O.[[ArrayLength]] to elementLength.
+        drop(o_obj);
+        o.borrow_mut().data = ObjectData::integer_indexed(IntegerIndexed {
+            viewed_array_buffer: Some(data),
+            typed_array_name: constructor_name,
+            byte_offset: 0,
+            byte_length,
+            array_length: element_length,
+        });
+
+        Ok(())
     }
 
-    /// InitializeTypedArrayFromArrayBuffer
+    /// `23.2.5.1.3 InitializeTypedArrayFromArrayBuffer ( O, buffer, byteOffset, length )`
     ///
-    /// <https://tc39.es/ecma262/#sec-initializetypedarrayfromarraybuffery>
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-initializetypedarrayfromarraybuffer
     fn initialize_from_array_buffer(
         o: &JsObject,
         buffer: JsObject,
@@ -411,18 +547,117 @@ impl TypedArray {
         length: &JsValue,
         context: &mut Context,
     ) -> JsResult<()> {
-        todo!("InitializeTypedArrayFromArrayBuffer");
+        let mut o_obj_b = o.borrow_mut();
+        let o = o_obj_b
+            .as_typed_array_mut()
+            .expect("This must be an ArrayBuffer");
+        let buffer_obj_b = buffer.borrow();
+        let buffer_array = buffer_obj_b
+            .as_array_buffer()
+            .expect("This must be an ArrayBuffer");
+
+        // 1. Let constructorName be the String value of O.[[TypedArrayName]].
+        // 2. Let elementSize be the Element Size value specified in Table 73 for constructorName.
+        let constructor_name = o.typed_array_name();
+
+        // 3. Let offset be ? ToIndex(byteOffset).
+        let offset = byte_offset.to_index(context)?;
+
+        // 4. If offset modulo elementSize ≠ 0, throw a RangeError exception.
+        if offset & constructor_name.element_size() != 0 {
+            return Err(context.construct_range_error("Invalid length for typed array"));
+        }
+
+        // 6. If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
+        if buffer_array.is_detached_buffer() {
+            return Err(
+                context.construct_type_error("Cannot construct typed array from detached buffer")
+            );
+        }
+
+        // 7. Let bufferByteLength be buffer.[[ArrayBufferByteLength]].
+        let buffer_byte_length = buffer_array.array_buffer_byte_length();
+
+        // 8. If length is undefined, then
+        let new_byte_length = if length.is_undefined() {
+            // a. If bufferByteLength modulo elementSize ≠ 0, throw a RangeError exception.
+            if buffer_byte_length % constructor_name.element_size() != 0 {
+                return Err(context.construct_range_error("Invalid length for typed array"));
+            }
+
+            // b. Let newByteLength be bufferByteLength - offset.
+            let new_byte_length = buffer_byte_length as isize - offset as isize;
+
+            // c. If newByteLength < 0, throw a RangeError exception.
+            if new_byte_length < 0 {
+                return Err(context.construct_range_error("Invalid length for typed array"));
+            }
+
+            new_byte_length as usize
+        // 9. Else,
+        } else {
+            // 5. If length is not undefined, then
+            // a. Let newLength be ? ToIndex(length).
+
+            // a. Let newByteLength be newLength × elementSize.
+            let new_byte_length = length.to_index(context)? * constructor_name.element_size();
+
+            // b. If offset + newByteLength > bufferByteLength, throw a RangeError exception.
+            if offset + new_byte_length > buffer_byte_length {
+                return Err(context.construct_range_error("Invalid length for typed array"));
+            }
+
+            new_byte_length
+        };
+
+        drop(buffer_obj_b);
+
+        // 10. Set O.[[ViewedArrayBuffer]] to buffer.
+        o.viewed_array_buffer = Some(buffer);
+        // 11. Set O.[[ByteLength]] to newByteLength.
+        o.byte_length = new_byte_length;
+        // 12. Set O.[[ByteOffset]] to offset.
+        o.byte_offset = offset;
+        // 13. Set O.[[ArrayLength]] to newByteLength / elementSize.
+        o.array_length = new_byte_length / constructor_name.element_size();
+
+        Ok(())
     }
 
-    /// InitializeTypedArrayFromArrayLike
+    /// `23.2.5.1.5 InitializeTypedArrayFromArrayLike ( O, arrayLike )`
     ///
-    /// <https://tc39.es/ecma262/#sec-initializetypedarrayfromarraylike>
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-initializetypedarrayfromarraylike
     fn initialize_from_array_like(
         o: &JsObject,
-        array_like: JsValue,
+        array_like: &JsObject,
         context: &mut Context,
     ) -> JsResult<()> {
-        todo!("InitializeTypedArrayFromArrayLike");
+        let mut o_obj_mut = o.borrow_mut();
+        let o_array = o_obj_mut.as_typed_array_mut().expect("Must be typed array");
+
+        // 1. Let len be ? LengthOfArrayLike(arrayLike).
+        let len = array_like.length_of_array_like(context)?;
+
+        // 2. Perform ? AllocateTypedArrayBuffer(O, len).
+        TypedArray::allocate_buffer(o_array, len, context)?;
+
+        drop(o_obj_mut);
+
+        // 3. Let k be 0.
+        // 4. Repeat, while k < len,
+        for k in 0..len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ? Get(arrayLike, Pk).
+            let k_value = array_like.get(k, context)?;
+
+            // c. Perform ? Set(O, Pk, kValue, true).
+            o.set(k, k_value, true, context)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -471,14 +706,22 @@ impl TypedArrayName {
     }
 }
 
-typed_array!(Int8Array, "Int8Array");
-typed_array!(Uint8Array, "Uint8Array");
-typed_array!(Uint8ClampedArray, "Uint8ClampedArray");
-typed_array!(Int16Array, "Int16Array");
-typed_array!(Uint16Array, "Uint16Array");
-typed_array!(Int32Array, "Int32Array");
-typed_array!(Uint32Array, "Uint32Array");
-typed_array!(BigInt64Array, "BigInt64Array");
-typed_array!(BigUint64Array, "BigUint64Array");
-typed_array!(Float32Array, "Float32Array");
-typed_array!(Float64Array, "Float64Array");
+typed_array!(Int8Array, "Int8Array", typed_int8_array_object);
+typed_array!(Uint8Array, "Uint8Array", typed_uint8_array_object);
+typed_array!(
+    Uint8ClampedArray,
+    "Uint8ClampedArray",
+    typed_uint8clamped_array_object
+);
+typed_array!(Int16Array, "Int16Array", typed_int16_array_object);
+typed_array!(Uint16Array, "Uint16Array", typed_uint16_array_object);
+typed_array!(Int32Array, "Int32Array", typed_int32_array_object);
+typed_array!(Uint32Array, "Uint32Array", typed_uint32_array_object);
+typed_array!(BigInt64Array, "BigInt64Array", typed_bigint64_array_object);
+typed_array!(
+    BigUint64Array,
+    "BigUint64Array",
+    typed_biguint64_array_object
+);
+typed_array!(Float32Array, "Float32Array", typed_float32_array_object);
+typed_array!(Float64Array, "Float64Array", typed_float64_array_object);

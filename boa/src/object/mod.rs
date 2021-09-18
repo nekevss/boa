@@ -964,7 +964,7 @@ impl Object {
 
     /// Gets the typed array data (integer indexed object) if this is a typed array.
     #[inline]
-    pub fn as_mut_typed_array(&mut self) -> Option<&mut IntegerIndexed> {
+    pub fn as_typed_array_mut(&mut self) -> Option<&mut IntegerIndexed> {
         match self.data {
             ObjectData {
                 kind: ObjectKind::IntegerIndexed(ref mut integer_indexed_object),

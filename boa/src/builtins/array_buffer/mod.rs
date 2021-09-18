@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use crate::{
-    context::{StandardConstructor, StandardObjects},
+    context::StandardObjects,
     gc::{Finalize, Trace},
     object::{
         internal_methods::get_prototype_from_constructor, ConstructorBuilder, FunctionBuilder,
@@ -21,6 +21,12 @@ pub struct ArrayBuffer {
     array_buffer_data: Option<Vec<u8>>,
     array_buffer_byte_length: usize,
     array_buffer_detach_key: JsValue,
+}
+
+impl ArrayBuffer {
+    pub(crate) fn array_buffer_byte_length(&self) -> usize {
+        self.array_buffer_byte_length
+    }
 }
 
 impl BuiltIn for ArrayBuffer {
@@ -331,7 +337,7 @@ impl ArrayBuffer {
     ///  - [ECMAScript reference][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-isdetachedbuffer
-    fn is_detached_buffer(&self) -> bool {
+    pub(crate) fn is_detached_buffer(&self) -> bool {
         // 1. If arrayBuffer.[[ArrayBufferData]] is null, return true.
         // 2. Return false.
         self.array_buffer_data.is_none()
@@ -371,16 +377,13 @@ impl ArrayBuffer {
     ///  - [ECMAScript reference][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-clonearraybuffer
-    fn clone_array_buffer<C>(
+    pub(crate) fn clone_array_buffer(
         &self,
         src_byte_offset: usize,
         src_length: usize,
         clone_constructor: &JsValue,
         context: &mut Context,
-    ) -> JsResult<JsObject>
-    where
-        C: FnOnce(&StandardObjects) -> &StandardConstructor,
-    {
+    ) -> JsResult<JsObject> {
         // 1. Let targetBuffer be ? AllocateArrayBuffer(cloneConstructor, srcLength).
         let target_buffer = Self::allocate(clone_constructor, src_length, context)?;
 
@@ -728,16 +731,15 @@ impl ArrayBuffer {
         let is_little_endian = is_little_endian.unwrap_or(true);
 
         // 7. Let rawBytes be NumericToRawBytes(type, value, isLittleEndian).
-        let mut raw_bytes = Self::numeric_to_raw_bytes(t, value, is_little_endian, context)?;
+        let raw_bytes = Self::numeric_to_raw_bytes(t, value, is_little_endian, context)?;
 
         // TODO: Shared Array Buffer
         // 8. If IsSharedArrayBuffer(arrayBuffer) is true, then
 
         // 9. Else, store the individual bytes of rawBytes into block, starting at block[byteIndex].
-        block
-            .split_at_mut(byte_index)
-            .1
-            .swap_with_slice(&mut raw_bytes);
+        for (i, raw_byte) in raw_bytes.iter().enumerate() {
+            block[byte_index + i] = *raw_byte;
+        }
 
         // 10. Return NormalCompletion(undefined).
         Ok(JsValue::undefined())

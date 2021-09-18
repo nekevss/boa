@@ -94,6 +94,17 @@ pub struct StandardObjects {
     map: StandardConstructor,
     set: StandardConstructor,
     typed_array: StandardConstructor,
+    typed_int8_array: StandardConstructor,
+    typed_uint8_array: StandardConstructor,
+    typed_uint8clamped_array: StandardConstructor,
+    typed_int16_array: StandardConstructor,
+    typed_uint16_array: StandardConstructor,
+    typed_int32_array: StandardConstructor,
+    typed_uint32_array: StandardConstructor,
+    typed_bigint64_array: StandardConstructor,
+    typed_biguint64_array: StandardConstructor,
+    typed_float32_array: StandardConstructor,
+    typed_float64_array: StandardConstructor,
     array_buffer: StandardConstructor,
 }
 
@@ -119,6 +130,17 @@ impl Default for StandardObjects {
             map: StandardConstructor::default(),
             set: StandardConstructor::default(),
             typed_array: StandardConstructor::default(),
+            typed_int8_array: StandardConstructor::default(),
+            typed_uint8_array: StandardConstructor::default(),
+            typed_uint8clamped_array: StandardConstructor::default(),
+            typed_int16_array: StandardConstructor::default(),
+            typed_uint16_array: StandardConstructor::default(),
+            typed_int32_array: StandardConstructor::default(),
+            typed_uint32_array: StandardConstructor::default(),
+            typed_bigint64_array: StandardConstructor::default(),
+            typed_biguint64_array: StandardConstructor::default(),
+            typed_float32_array: StandardConstructor::default(),
+            typed_float64_array: StandardConstructor::default(),
             array_buffer: StandardConstructor::default(),
         }
     }
@@ -218,6 +240,61 @@ impl StandardObjects {
     #[inline]
     pub fn typed_array_object(&self) -> &StandardConstructor {
         &self.typed_array
+    }
+
+    #[inline]
+    pub fn typed_int8_array_object(&self) -> &StandardConstructor {
+        &self.typed_int8_array
+    }
+
+    #[inline]
+    pub fn typed_uint8_array_object(&self) -> &StandardConstructor {
+        &self.typed_uint8_array
+    }
+
+    #[inline]
+    pub fn typed_uint8clamped_array_object(&self) -> &StandardConstructor {
+        &self.typed_uint8clamped_array
+    }
+
+    #[inline]
+    pub fn typed_int16_array_object(&self) -> &StandardConstructor {
+        &self.typed_int16_array
+    }
+
+    #[inline]
+    pub fn typed_uint16_array_object(&self) -> &StandardConstructor {
+        &self.typed_uint16_array
+    }
+
+    #[inline]
+    pub fn typed_uint32_array_object(&self) -> &StandardConstructor {
+        &self.typed_uint32_array
+    }
+
+    #[inline]
+    pub fn typed_int32_array_object(&self) -> &StandardConstructor {
+        &self.typed_int32_array
+    }
+
+    #[inline]
+    pub fn typed_bigint64_array_object(&self) -> &StandardConstructor {
+        &self.typed_bigint64_array
+    }
+
+    #[inline]
+    pub fn typed_biguint64_array_object(&self) -> &StandardConstructor {
+        &self.typed_biguint64_array
+    }
+
+    #[inline]
+    pub fn typed_float32_array_object(&self) -> &StandardConstructor {
+        &self.typed_float32_array
+    }
+
+    #[inline]
+    pub fn typed_float64_array_object(&self) -> &StandardConstructor {
+        &self.typed_float64_array
     }
 
     #[inline]
