@@ -16,6 +16,8 @@ use crate::{
     BoaProfiler, Context, JsBigInt, JsResult, JsString,
 };
 use gc::{Finalize, Trace};
+use num_bigint::BigInt;
+use num_traits::Zero;
 use std::{
     collections::HashSet,
     convert::TryFrom,
@@ -626,6 +628,207 @@ impl JsValue {
         Ok(f64_to_int32(number))
     }
 
+    /// `7.1.10 ToInt8 ( argument )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-toint8
+    pub fn to_int8(&self, context: &mut Context) -> JsResult<i8> {
+        // 1. Let number be ? ToNumber(argument).
+        let number = self.to_number(context)?;
+
+        // 2. If number is NaN, +0𝔽, -0𝔽, +∞𝔽, or -∞𝔽, return +0𝔽.
+        if number.is_nan() || number.is_zero() || number.is_infinite() {
+            return Ok(0);
+        }
+
+        // 3. Let int be the mathematical value whose sign is the sign of number and whose magnitude is floor(abs(ℝ(number))).
+        let int = number.floor() as i64;
+
+        // 4. Let int8bit be int modulo 2^8.
+        let int_8_bit = int % 256;
+
+        // 5. If int8bit ≥ 2^7, return 𝔽(int8bit - 2^8); otherwise return 𝔽(int8bit).
+        if int_8_bit >= 128 {
+            Ok((int_8_bit - 256) as i8)
+        } else {
+            Ok(int_8_bit as i8)
+        }
+    }
+
+    /// `7.1.11 ToUint8 ( argument )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-touint8
+    pub fn to_uint8(&self, context: &mut Context) -> JsResult<u8> {
+        // 1. Let number be ? ToNumber(argument).
+        let number = self.to_number(context)?;
+
+        // 2. If number is NaN, +0𝔽, -0𝔽, +∞𝔽, or -∞𝔽, return +0𝔽.
+        if number.is_nan() || number.is_zero() || number.is_infinite() {
+            return Ok(0);
+        }
+
+        // 3. Let int be the mathematical value whose sign is the sign of number and whose magnitude is floor(abs(ℝ(number))).
+        let int = number.floor() as i64;
+
+        // 4. Let int8bit be int modulo 2^8.
+        let int_8_bit = int % 256;
+
+        // 5. Return 𝔽(int8bit).
+        Ok(int_8_bit as u8)
+    }
+
+    /// `7.1.12 ToUint8Clamp ( argument )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-touint8clamp
+    pub fn to_uint8_clamp(&self, context: &mut Context) -> JsResult<u8> {
+        // 1. Let number be ? ToNumber(argument).
+        let number = self.to_number(context)?;
+
+        // 2. If number is NaN, return +0𝔽.
+        if number.is_nan() {
+            return Ok(0);
+        }
+
+        // 3. If ℝ(number) ≤ 0, return +0𝔽.
+        if number <= 0.0 {
+            return Ok(0);
+        }
+
+        // 4. If ℝ(number) ≥ 255, return 255𝔽.
+        if number >= 255.0 {
+            return Ok(255);
+        }
+
+        // 5. Let f be floor(ℝ(number)).
+        let f = number.floor();
+
+        // 6. If f + 0.5 < ℝ(number), return 𝔽(f + 1).
+        if f + 0.5 < number {
+            return Ok(f as u8 + 1);
+        }
+
+        // 7. If ℝ(number) < f + 0.5, return 𝔽(f).
+        if number < f + 0.5 {
+            return Ok(f as u8);
+        }
+
+        // 8. If f is odd, return 𝔽(f + 1).
+        if f as u8 % 2 != 0 {
+            return Ok(f as u8 + 1);
+        }
+
+        // 9. Return 𝔽(f).
+        Ok(f as u8)
+    }
+
+    /// `7.1.8 ToInt16 ( argument )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-toint16
+    pub fn to_int16(&self, context: &mut Context) -> JsResult<i16> {
+        // 1. Let number be ? ToNumber(argument).
+        let number = self.to_number(context)?;
+
+        // 2. If number is NaN, +0𝔽, -0𝔽, +∞𝔽, or -∞𝔽, return +0𝔽.
+        if number.is_nan() || number.is_zero() || number.is_infinite() {
+            return Ok(0);
+        }
+
+        // 3. Let int be the mathematical value whose sign is the sign of number and whose magnitude is floor(abs(ℝ(number))).
+        let int = number.floor() as i64;
+
+        // 4. Let int16bit be int modulo 2^16.
+        let int_16_bit = int % 65536;
+
+        // 5. If int16bit ≥ 2^15, return 𝔽(int16bit - 2^16); otherwise return 𝔽(int16bit).
+        if int_16_bit >= 32768 {
+            Ok((int_16_bit - 65536) as i16)
+        } else {
+            Ok(int_16_bit as i16)
+        }
+    }
+
+    /// `7.1.9 ToUint16 ( argument )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-touint16
+    pub fn to_uint16(&self, context: &mut Context) -> JsResult<u16> {
+        // 1. Let number be ? ToNumber(argument).
+        let number = self.to_number(context)?;
+
+        // 2. If number is NaN, +0𝔽, -0𝔽, +∞𝔽, or -∞𝔽, return +0𝔽.
+        if number.is_nan() || number.is_zero() || number.is_infinite() {
+            return Ok(0);
+        }
+
+        // 3. Let int be the mathematical value whose sign is the sign of number and whose magnitude is floor(abs(ℝ(number))).
+        let int = number.floor() as i64;
+
+        // 4. Let int16bit be int modulo 2^16.
+        let int_16_bit = int % 65536;
+
+        // 5. Return 𝔽(int16bit).
+        Ok(int_16_bit as u16)
+    }
+
+    /// `7.1.15 ToBigInt64 ( argument )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-tobigint64
+    pub fn to_big_int64(&self, context: &mut Context) -> JsResult<BigInt> {
+        let two_e_64: u128 = 18446744073709551616;
+        let two_e_64 = BigInt::from(two_e_64);
+        let two_e_63: u128 = 9223372036854775808;
+        let two_e_63 = BigInt::from(two_e_63);
+
+        // 1. Let n be ? ToBigInt(argument).
+        let n = self.to_bigint(context)?;
+
+        // 2. Let int64bit be ℝ(n) modulo 2^64.
+        let int64_bit = n.as_inner() % &two_e_64;
+
+        // 3. If int64bit ≥ 2^63, return ℤ(int64bit - 2^64); otherwise return ℤ(int64bit).
+        if int64_bit >= two_e_63 {
+            Ok(int64_bit - two_e_64)
+        } else {
+            Ok(int64_bit)
+        }
+    }
+
+    /// `7.1.16 ToBigUint64 ( argument )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-tobiguint64
+    pub fn to_big_uint64(&self, context: &mut Context) -> JsResult<BigInt> {
+        let two_e_64: u128 = 18446744073709551616;
+        let two_e_64 = BigInt::from(two_e_64);
+
+        // 1. Let n be ? ToBigInt(argument).
+        let n = self.to_bigint(context)?;
+
+        // 2. Let int64bit be ℝ(n) modulo 2^64.
+        let int64_bit = n.as_inner() % two_e_64;
+
+        // 3. If int64bit ≥ 2^63, return ℤ(int64bit - 2^64); otherwise return ℤ(int64bit).
+        Ok(int64_bit)
+    }
+
     /// Converts a value to a non-negative integer if it is a valid integer index value.
     ///
     /// See: <https://tc39.es/ecma262/#sec-toindex>
@@ -950,6 +1153,20 @@ impl From<f64> for Numeric {
     }
 }
 
+impl From<f32> for Numeric {
+    #[inline]
+    fn from(value: f32) -> Self {
+        Self::Number(value.into())
+    }
+}
+
+impl From<i64> for Numeric {
+    #[inline]
+    fn from(value: i64) -> Self {
+        Self::BigInt(value.into())
+    }
+}
+
 impl From<i32> for Numeric {
     #[inline]
     fn from(value: i32) -> Self {
@@ -968,6 +1185,13 @@ impl From<i8> for Numeric {
     #[inline]
     fn from(value: i8) -> Self {
         Self::Number(value.into())
+    }
+}
+
+impl From<u64> for Numeric {
+    #[inline]
+    fn from(value: u64) -> Self {
+        Self::BigInt(value.into())
     }
 }
 

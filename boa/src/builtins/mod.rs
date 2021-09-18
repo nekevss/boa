@@ -29,6 +29,7 @@ pub mod symbol;
 pub mod typed_array;
 pub mod undefined;
 
+use self::array_buffer::ArrayBuffer;
 pub(crate) use self::{
     array::{array_iterator::ArrayIterator, Array},
     bigint::BigInt,
@@ -85,6 +86,7 @@ pub fn init(context: &mut Context) {
         Math::init,
         Json::init,
         Array::init,
+        ArrayBuffer::init,
         BigInt::init,
         Boolean::init,
         Date::init,

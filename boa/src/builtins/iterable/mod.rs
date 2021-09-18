@@ -150,7 +150,7 @@ impl JsValue {
         };
 
         // 3. Let iterator be ? Call(method, obj).
-        let iterator = context.call(&method, &self, &[])?;
+        let iterator = context.call(&method, self, &[])?;
 
         // 4. If Type(iterator) is not Object, throw a TypeError exception.
         if !iterator.is_object() {

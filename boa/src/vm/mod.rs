@@ -196,31 +196,28 @@ impl<'a> Vm<'a> {
                 self.push(has_property);
             }
             Opcode::InstanceOf => {
-                let y = self.pop();
-                let x = self.pop();
-                let value = if let Some(object) = y.as_object() {
-                    let key = WellKnownSymbols::has_instance();
-
-                    match object.get_method(self.context, key)? {
-                        Some(instance_of_handler) => instance_of_handler
-                            .call(&y, &[x], self.context)?
-                            .to_boolean(),
-                        None if object.is_callable() => {
-                            object.ordinary_has_instance(self.context, &x)?
-                        }
-                        None => {
-                            return Err(self.context.construct_type_error(
-                                "right-hand side of 'instanceof' is not callable",
-                            ));
-                        }
-                    }
-                } else {
+                let target = self.pop();
+                let v = self.pop();
+                if !target.is_object() {
                     return Err(self.context.construct_type_error(format!(
                         "right-hand side of 'instanceof' should be an object, got {}",
-                        y.type_of()
+                        target.type_of()
                     )));
                 };
-
+                let handler = target.get_method(self.context, WellKnownSymbols::has_instance())?;
+                if !handler.is_undefined() {
+                    let value = self
+                        .context
+                        .call(&handler, &target, &[v.clone()])?
+                        .to_boolean();
+                    self.push(value);
+                }
+                if !target.is_callable() {
+                    return Err(self
+                        .context
+                        .construct_type_error("right-hand side of 'instanceof' is not callable"));
+                }
+                let value = target.ordinary_has_instance(self.context, &v)?;
                 self.push(value);
             }
             Opcode::Void => {

@@ -13,7 +13,7 @@ pub(super) enum ContentType {
 }
 
 unsafe impl Trace for ContentType {
-    // safe beacuase `ContentType` is `Copy`
+    // safe because `ContentType` is `Copy`
     empty_trace!();
 }
 

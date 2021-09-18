@@ -36,6 +36,11 @@ macro_rules! typed_array {
             fn init(context: &mut Context) -> (&'static str, JsValue, Attribute) {
                 let _timer = BoaProfiler::global().start_event(Self::NAME, "init");
 
+                let get_species = FunctionBuilder::native(context, TypedArray::get_species)
+                    .name("get [Symbol.species]")
+                    .constructable(false)
+                    .build();
+
                 let typed_array = ConstructorBuilder::with_standard_object(
                     context,
                     Self::constructor,
@@ -43,7 +48,18 @@ macro_rules! typed_array {
                 )
                 .name(Self::NAME)
                 .length(Self::LENGTH)
+                .static_accessor(
+                    WellKnownSymbols::species(),
+                    Some(get_species),
+                    None,
+                    Attribute::CONFIGURABLE,
+                )
                 .property(
+                    "BYTES_PER_ELEMENT",
+                    TypedArrayName::$ty.element_size(),
+                    Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::PERMANENT,
+                )
+                .static_property(
                     "BYTES_PER_ELEMENT",
                     TypedArrayName::$ty.element_size(),
                     Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::PERMANENT,
@@ -57,7 +73,12 @@ macro_rules! typed_array {
         impl $ty {
             const LENGTH: usize = 3;
 
-            /// <https://tc39.es/ecma262/#sec-typedarray>
+            /// `23.2.5.1 TypedArray ( ...args )`
+            ///
+            /// More information:
+            ///  - [ECMAScript reference][spec]
+            ///
+            /// [spec]: https://tc39.es/ecma262/#sec-typedarray
             fn constructor(
                 new_target: &JsValue,
                 args: &[JsValue],
@@ -253,7 +274,7 @@ impl TypedArray {
     }
 
     /// <https://tc39.es/ecma262/#sec-allocatetypedarraybuffer>
-    fn allocate_buffer(o: JsValue, length: usize, context: &Context) -> JsResult<JsValue> {
+    fn allocate_buffer(o: JsValue, length: usize, context: &mut Context) -> JsResult<JsValue> {
         {
             let o = o.as_object().expect("expected an object");
             let mut o = o.borrow_mut();
@@ -273,8 +294,15 @@ impl TypedArray {
             let byte_length = element_size * length;
 
             // 5. Let data be ? AllocateArrayBuffer(%ArrayBuffer%, byteLength).
-            let data =
-                ArrayBuffer::allocate(StandardObjects::array_buffer_object, byte_length, context)?;
+            let data = ArrayBuffer::allocate(
+                &context
+                    .standard_objects()
+                    .array_buffer_object()
+                    .constructor()
+                    .into(),
+                byte_length,
+                context,
+            )?;
 
             // 6. Set O.[[ViewedArrayBuffer]] to data.
             o_inner.viewed_array_buffer = Some(data);
@@ -422,8 +450,8 @@ impl TypedArray {
 }
 
 /// Names of all the typed arrays.
-#[derive(Debug, Clone, Copy, Finalize)]
-enum TypedArrayName {
+#[derive(Debug, Clone, Copy, Finalize, PartialEq)]
+pub(crate) enum TypedArrayName {
     Int8Array,
     Uint8Array,
     Uint8ClampedArray,
@@ -447,7 +475,7 @@ impl TypedArrayName {
     ///
     /// [spec]: https://tc39.es/ecma262/#table-the-typedarray-constructors
     #[inline]
-    const fn element_size(self) -> usize {
+    pub(crate) const fn element_size(self) -> usize {
         match self {
             Self::Int8Array | Self::Uint8Array | Self::Uint8ClampedArray => 1,
             Self::Int16Array | Self::Uint16Array => 2,
@@ -458,7 +486,7 @@ impl TypedArrayName {
 }
 
 typed_array!(Int8Array, "Int8Array");
-typed_array!(Uint8Array, "UInt8Array");
+typed_array!(Uint8Array, "Uint8Array");
 typed_array!(Uint8ClampedArray, "Uint8ClampedArray");
 typed_array!(Int16Array, "Int16Array");
 typed_array!(Uint16Array, "Uint16Array");

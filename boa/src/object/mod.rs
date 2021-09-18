@@ -3,6 +3,7 @@
 use crate::{
     builtins::{
         array::array_iterator::ArrayIterator,
+        array_buffer::ArrayBuffer,
         function::{Function, NativeFunction},
         map::map_iterator::MapIterator,
         map::ordered_map::OrderedMap,
@@ -93,7 +94,7 @@ pub struct ObjectData {
 pub enum ObjectKind {
     Array,
     ArrayIterator(ArrayIterator),
-    ArrayBuffer,
+    ArrayBuffer(ArrayBuffer),
     Map(OrderedMap<JsValue>),
     MapIterator(MapIterator),
     RegExp(Box<RegExp>),
@@ -129,6 +130,14 @@ impl ObjectData {
     pub fn array_iterator(array_iterator: ArrayIterator) -> Self {
         Self {
             kind: ObjectKind::ArrayIterator(array_iterator),
+            internal_methods: &ORDINARY_INTERNAL_METHODS,
+        }
+    }
+
+    /// Create the `ArrayBuffer` object data
+    pub fn array_buffer(array_buffer: ArrayBuffer) -> Self {
+        Self {
+            kind: ObjectKind::ArrayBuffer(array_buffer),
             internal_methods: &ORDINARY_INTERNAL_METHODS,
         }
     }
@@ -299,7 +308,7 @@ impl Display for ObjectKind {
         f.write_str(match self {
             Self::Array => "Array",
             Self::ArrayIterator(_) => "ArrayIterator",
-            Self::ArrayBuffer => "ArrayBuffer",
+            Self::ArrayBuffer(_) => "ArrayBuffer",
             Self::ForInIterator(_) => "ForInIterator",
             Self::Function(_) => "Function",
             Self::RegExp(_) => "RegExp",
@@ -528,10 +537,32 @@ impl Object {
         matches!(
             self.data,
             ObjectData {
-                kind: ObjectKind::ArrayBuffer,
+                kind: ObjectKind::ArrayBuffer(_),
                 ..
             }
         )
+    }
+
+    #[inline]
+    pub fn as_array_buffer(&self) -> Option<&ArrayBuffer> {
+        match &self.data {
+            ObjectData {
+                kind: ObjectKind::ArrayBuffer(buffer),
+                ..
+            } => Some(buffer),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn as_array_buffer_mut(&mut self) -> Option<&mut ArrayBuffer> {
+        match &mut self.data {
+            ObjectData {
+                kind: ObjectKind::ArrayBuffer(buffer),
+                ..
+            } => Some(buffer),
+            _ => None,
+        }
     }
 
     #[inline]
