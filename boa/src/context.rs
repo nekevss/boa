@@ -403,8 +403,8 @@ impl Context {
         args: &[JsValue],
     ) -> JsResult<JsValue> {
         match *f {
-            JsValue::Object(ref object) => object.call(this, args, self),
-            _ => self.throw_type_error("not a function"),
+            JsValue::Object(ref object) if object.is_callable() => object.call(this, args, self),
+            _ => self.throw_type_error("Value is not callable"),
         }
     }
 

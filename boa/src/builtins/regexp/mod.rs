@@ -136,7 +136,7 @@ impl BuiltIn for RegExp {
         .method(Self::to_string, "toString", 0)
         .method(
             Self::r#match,
-            (WellKnownSymbols::match_(), "[Symbol.match]"),
+            (WellKnownSymbols::r#match(), "[Symbol.match]"),
             1,
         )
         .method(

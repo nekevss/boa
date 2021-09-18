@@ -1086,7 +1086,7 @@ impl JsValue {
         let o = self.to_object(context)?;
 
         // 2. Return ? O.[[Get]](P, V).
-        o.get(key, context)
+        o.__get__(&key.into(), self.clone(), context)
     }
 
     /// It determines if the value is a callable function with a `[[Call]]` internal method.

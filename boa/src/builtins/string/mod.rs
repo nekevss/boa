@@ -1097,7 +1097,7 @@ impl String {
         let regexp = args.get_or_undefined(0);
         if !regexp.is_null_or_undefined() {
             // a. Let matcher be ? GetMethod(regexp, @@match).
-            let matcher = regexp.get_method(context, WellKnownSymbols::match_())?;
+            let matcher = regexp.get_method(context, WellKnownSymbols::r#match())?;
             // b. If matcher is not undefined, then
             if !matcher.is_undefined() {
                 // i. Return ? Call(matcher, regexp, « O »).
@@ -1112,9 +1112,9 @@ impl String {
         let rx = RegExp::create(regexp.clone(), JsValue::undefined(), context)?;
 
         // 5. Return ? Invoke(rx, @@match, « S »).
-        let obj = rx.as_object().expect("RegExpCreate must return Object");
-        let func = obj.get(WellKnownSymbols::match_(), context)?;
-        obj.call(&func, &[JsValue::new(s)], context)
+        let obj = rx.to_object(context)?;
+        let func = obj.get(WellKnownSymbols::r#match(), context)?;
+        context.call(&func, &obj.into(), &[JsValue::new(s)])
     }
 
     /// Abstract method `StringPad`.

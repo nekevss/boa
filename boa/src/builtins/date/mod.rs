@@ -1714,7 +1714,7 @@ impl Date {
 
         // 4. Return ? Invoke(O, "toISOString").
         let func = o.get("toISOString", context)?;
-        o.call(&func, &[], context)
+        context.call(&func, &o.into(), &[])
     }
 
     /// `Date.prototype.toString()`

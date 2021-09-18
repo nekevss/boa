@@ -1262,9 +1262,9 @@ fn not_a_function() {
 
     check_output(&[
         TestAction::Execute(init),
-        TestAction::TestEq(scenario1, "\"TypeError: not a function\""),
-        TestAction::TestEq(scenario2, "\"TypeError: not a function\""),
-        TestAction::TestEq(scenario3, "\"TypeError: not a function\""),
+        TestAction::TestEq(scenario1, "\"TypeError: Value is not callable\""),
+        TestAction::TestEq(scenario2, "\"TypeError: Value is not callable\""),
+        TestAction::TestEq(scenario3, "\"TypeError: Value is not callable\""),
     ]);
 }
 
