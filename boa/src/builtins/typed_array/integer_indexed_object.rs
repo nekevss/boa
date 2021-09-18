@@ -6,8 +6,8 @@ use crate::{
 };
 
 /// Type of the array content.
-#[derive(Debug, Clone, Copy, Finalize)]
-pub(super) enum ContentType {
+#[derive(Debug, Clone, Copy, Finalize, PartialEq)]
+pub(crate) enum ContentType {
     Number,
     BigInt,
 }
@@ -18,24 +18,26 @@ unsafe impl Trace for ContentType {
 }
 
 /// <https://tc39.es/ecma262/#integer-indexed-exotic-object>
-#[derive(Debug, Default, Clone, Trace, Finalize)]
-pub struct IntegerIndexedObject {
+#[derive(Debug, Clone, Trace, Finalize)]
+pub struct IntegerIndexed {
     pub(super) viewed_array_buffer: Option<JsObject>,
-    pub(super) typed_array_name: Option<TypedArrayName>,
-    pub(super) content_type: Option<ContentType>,
+    pub(super) typed_array_name: TypedArrayName,
     pub(super) byte_offset: usize,
     pub(super) byte_length: usize,
     pub(super) array_length: usize,
 }
 
-impl IntegerIndexedObject {
+impl IntegerIndexed {
     /// `IntegerIndexedObjectCreate ( prototype )`
     ///
-    /// <https://tc39.es/ecma262/#sec-integerindexedobjectcreate>
-    pub(super) fn create(prototype: JsObject, context: &Context) -> JsObject {
+    /// Create a new `JsObject from a prototype and a `IntergetIndexedObject`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-integerindexedobjectcreate
+    pub(super) fn create(prototype: JsObject, data: Self, context: &Context) -> JsObject {
         // 1. Let internalSlotsList be « [[Prototype]], [[Extensible]], [[ViewedArrayBuffer]], [[TypedArrayName]], [[ContentType]], [[ByteLength]], [[ByteOffset]], [[ArrayLength]] ».
-        let internal_slots_list = Self::default();
-
         // 2. Let A be ! MakeBasicObject(internalSlotsList).
         let a = context.construct_object();
 
@@ -46,7 +48,7 @@ impl IntegerIndexedObject {
         // 7. Set A.[[Set]] as specified in 10.4.5.5.
         // 8. Set A.[[Delete]] as specified in 10.4.5.6.
         // 9. Set A.[[OwnPropertyKeys]] as specified in 10.4.5.7.
-        a.borrow_mut().data = ObjectData::typed_array(internal_slots_list);
+        a.borrow_mut().data = ObjectData::integer_indexed(data);
 
         // 10. Set A.[[Prototype]] to prototype.
         a.set_prototype_instance(prototype.into());
@@ -80,6 +82,38 @@ impl IntegerIndexedObject {
     //         })
     //     }
     // }
+
+    /// Abstract operation `IsDetachedBuffer ( arrayBuffer )`.
+    ///
+    /// Check if `[[ArrayBufferData]]` is null.
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-isdetachedbuffer
+    pub(crate) fn is_detached(&self) -> bool {
+        self.viewed_array_buffer.is_none()
+    }
+
+    /// Get a reference to the integer indexed object's byte offset.
+    pub(crate) fn byte_offset(&self) -> usize {
+        self.byte_offset
+    }
+
+    /// Get a reference to the integer indexed object's typed array name.
+    pub(crate) fn typed_array_name(&self) -> TypedArrayName {
+        self.typed_array_name
+    }
+
+    /// Get a reference to the integer indexed object's viewed array buffer.
+    pub fn viewed_array_buffer(&self) -> Option<&JsObject> {
+        self.viewed_array_buffer.as_ref()
+    }
+
+    /// Get a reference to the integer indexed object's array length.
+    pub fn array_length(&self) -> usize {
+        self.array_length
+    }
 }
 
 /// A Data Block

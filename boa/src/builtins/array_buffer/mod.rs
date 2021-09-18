@@ -346,7 +346,7 @@ impl ArrayBuffer {
     fn detach_array_buffer(&mut self, key: Option<JsValue>, context: &mut Context) -> JsResult<()> {
         // 1. Assert: IsSharedArrayBuffer(arrayBuffer) is false.
         // 2. If key is not present, set key to undefined.
-        let key = key.unwrap_or(JsValue::undefined());
+        let key = key.unwrap_or(JsValue::Undefined);
 
         // 3. If SameValue(arrayBuffer.[[ArrayBufferDetachKey]], key) is false, throw a TypeError exception.
         if !JsValue::same_value(&self.array_buffer_detach_key, &key) {
@@ -601,7 +601,7 @@ impl ArrayBuffer {
     ///  - [ECMAScript reference][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-getvaluefrombuffer
-    fn get_value_from_buffer(
+    pub(crate) fn get_value_from_buffer(
         &self,
         byte_index: usize,
         t: TypedArrayName,
@@ -703,7 +703,7 @@ impl ArrayBuffer {
     ///  - [ECMAScript reference][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-setvalueinbuffer
-    fn set_value_in_buffer(
+    pub(crate) fn set_value_in_buffer(
         &mut self,
         byte_index: usize,
         t: TypedArrayName,
@@ -794,7 +794,7 @@ fn copy_data_block_bytes(
 }
 
 #[derive(Debug, PartialEq)]
-enum SharedMemoryOrder {
+pub(crate) enum SharedMemoryOrder {
     Init,
     SeqCst,
     Unordered,

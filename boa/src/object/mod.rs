@@ -11,7 +11,7 @@ use crate::{
         set::ordered_set::OrderedSet,
         set::set_iterator::SetIterator,
         string::string_iterator::StringIterator,
-        typed_array::IntegerIndexedObject,
+        typed_array::IntegerIndexed,
         Date, RegExp,
     },
     context::StandardConstructor,
@@ -40,8 +40,8 @@ pub use operations::IntegrityLevel;
 pub use property_map::*;
 
 use self::internal_methods::{
-    array::ARRAY_EXOTIC_INTERNAL_METHODS, string::STRING_EXOTIC_INTERNAL_METHODS,
-    ORDINARY_INTERNAL_METHODS,
+    array::ARRAY_EXOTIC_INTERNAL_METHODS, integer_indexed::INTEGER_INDEXED_EXOTIC_INTERNAL_METHODS,
+    string::STRING_EXOTIC_INTERNAL_METHODS, ORDINARY_INTERNAL_METHODS,
 };
 
 /// Static `prototype`, usually set on constructors as a key to point to their respective prototype object.
@@ -114,7 +114,7 @@ pub enum ObjectKind {
     Date(Date),
     Global,
     NativeObject(Box<dyn NativeObject>),
-    TypedArray(IntegerIndexedObject),
+    IntegerIndexed(IntegerIndexed),
 }
 
 impl ObjectData {
@@ -294,11 +294,11 @@ impl ObjectData {
         }
     }
 
-    /// Creates the `TypedArray` object data
-    pub fn typed_array(integer_indexed_object: IntegerIndexedObject) -> Self {
+    /// Creates the `IntegerIndexed` object data
+    pub fn integer_indexed(integer_indexed: IntegerIndexed) -> Self {
         Self {
-            kind: ObjectKind::TypedArray(integer_indexed_object),
-            internal_methods: &ORDINARY_INTERNAL_METHODS,
+            kind: ObjectKind::IntegerIndexed(integer_indexed),
+            internal_methods: &INTEGER_INDEXED_EXOTIC_INTERNAL_METHODS,
         }
     }
 }
@@ -328,7 +328,7 @@ impl Display for ObjectKind {
             Self::Date(_) => "Date",
             Self::Global => "Global",
             Self::NativeObject(_) => "NativeObject",
-            Self::TypedArray(_) => "TypedArray",
+            Self::IntegerIndexed(_) => "TypedArray",
         })
     }
 }
@@ -944,7 +944,7 @@ impl Object {
         matches!(
             self.data,
             ObjectData {
-                kind: ObjectKind::TypedArray(_),
+                kind: ObjectKind::IntegerIndexed(_),
                 ..
             }
         )
@@ -952,10 +952,10 @@ impl Object {
 
     /// Gets the typed array data (integer indexed object) if this is a typed array.
     #[inline]
-    pub fn as_typed_array(&self) -> Option<&IntegerIndexedObject> {
+    pub fn as_typed_array(&self) -> Option<&IntegerIndexed> {
         match self.data {
             ObjectData {
-                kind: ObjectKind::TypedArray(ref integer_indexed_object),
+                kind: ObjectKind::IntegerIndexed(ref integer_indexed_object),
                 ..
             } => Some(integer_indexed_object),
             _ => None,
@@ -964,10 +964,10 @@ impl Object {
 
     /// Gets the typed array data (integer indexed object) if this is a typed array.
     #[inline]
-    pub fn as_mut_typed_array(&mut self) -> Option<&mut IntegerIndexedObject> {
+    pub fn as_mut_typed_array(&mut self) -> Option<&mut IntegerIndexed> {
         match self.data {
             ObjectData {
-                kind: ObjectKind::TypedArray(ref mut integer_indexed_object),
+                kind: ObjectKind::IntegerIndexed(ref mut integer_indexed_object),
                 ..
             } => Some(integer_indexed_object),
             _ => None,

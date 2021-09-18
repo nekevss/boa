@@ -1,6 +1,6 @@
 //! <https://tc39.es/ecma262/#sec-typedarray-objects>
 
-pub use self::integer_indexed_object::IntegerIndexedObject;
+pub use self::integer_indexed_object::IntegerIndexed;
 use crate::{
     builtins::{
         array_buffer::ArrayBuffer, iterable::iterable_to_list,
@@ -104,13 +104,14 @@ macro_rules! typed_array {
                 // 5. If numberOfArgs = 0, then
                 if number_of_args == 0 {
                     // a. Return ? AllocateTypedArray(constructorName, NewTarget, proto, 0).
-                    return TypedArray::allocate(
+                    return Ok(TypedArray::allocate(
                         constructor_name,
                         new_target,
                         proto,
                         Some(0),
                         context,
-                    );
+                    )?
+                    .into());
                 }
                 // 6. Else,
 
@@ -126,11 +127,7 @@ macro_rules! typed_array {
                     // ii. If firstArgument has a [[TypedArrayName]] internal slot, then
                     if first_argument.is_typed_array() {
                         // 1. Perform ? InitializeTypedArrayFromTypedArray(O, firstArgument).
-                        TypedArray::initialize_from_typed_array(
-                            o.clone(),
-                            first_argument,
-                            context,
-                        )?;
+                        TypedArray::initialize_from_typed_array(&o, first_argument, context)?;
                     } else if first_argument.is_array_buffer() {
                         // iii. Else if firstArgument has an [[ArrayBufferData]] internal slot, then
 
@@ -142,7 +139,7 @@ macro_rules! typed_array {
 
                         // 3. Perform ? InitializeTypedArrayFromArrayBuffer(O, firstArgument, byteOffset, length).
                         TypedArray::initialize_from_array_buffer(
-                            o.clone(),
+                            &o,
                             first_argument,
                             byte_offset,
                             length,
@@ -166,22 +163,18 @@ macro_rules! typed_array {
                                 iterable_to_list(context, first_argument, Some(using_iterator))?;
 
                             // b. Perform ? InitializeTypedArrayFromList(O, values).
-                            TypedArray::initialize_from_list(o.clone(), values, context)?;
+                            TypedArray::initialize_from_list(&o, values, context)?;
                         } else {
                             // 4. Else,
 
                             // a. NOTE: firstArgument is not an Iterable so assume it is already an array-like object.
                             // b. Perform ? InitializeTypedArrayFromArrayLike(O, firstArgument).
-                            TypedArray::initialize_from_array_like(
-                                o.clone(),
-                                first_argument,
-                                context,
-                            )?;
+                            TypedArray::initialize_from_array_like(&o, first_argument, context)?;
                         }
                     }
 
                     // v. Return O.
-                    Ok(o)
+                    Ok(o.into())
                 } else {
                     // c. Else,
 
@@ -192,13 +185,14 @@ macro_rules! typed_array {
                     let element_length = first_argument.to_index(context)?;
 
                     // iii. Return ? AllocateTypedArray(constructorName, NewTarget, proto, elementLength).
-                    TypedArray::allocate(
+                    Ok(TypedArray::allocate(
                         constructor_name,
                         new_target,
                         proto,
                         Some(element_length),
                         context,
-                    )
+                    )?
+                    .into())
                 }
             }
         }
@@ -274,62 +268,60 @@ impl TypedArray {
     }
 
     /// <https://tc39.es/ecma262/#sec-allocatetypedarraybuffer>
-    fn allocate_buffer(o: JsValue, length: usize, context: &mut Context) -> JsResult<JsValue> {
-        {
-            let o = o.as_object().expect("expected an object");
-            let mut o = o.borrow_mut();
-            let o_inner = o.as_mut_typed_array().expect("expected a TypedArray");
+    fn allocate_buffer(
+        indexed: &mut IntegerIndexed,
+        length: usize,
+        context: &mut Context,
+    ) -> JsResult<()> {
+        // 1. Assert: O.[[ViewedArrayBuffer]] is undefined.
+        assert!(indexed.viewed_array_buffer.is_none());
 
-            // 1. Assert: O.[[ViewedArrayBuffer]] is undefined.
-            assert!(o_inner.viewed_array_buffer.is_none());
+        // 2. Let constructorName be the String value of O.[[TypedArrayName]].
+        // 3. Let elementSize be the Element Size value specified in Table 73 for constructorName.
+        let element_size = indexed.typed_array_name.element_size();
 
-            // 2. Let constructorName be the String value of O.[[TypedArrayName]].
-            // 3. Let elementSize be the Element Size value specified in Table 73 for constructorName.
-            let element_size = o_inner
-                .typed_array_name
-                .expect("typed array name not found")
-                .element_size();
+        // 4. Let byteLength be elementSize × length.
+        let byte_length = element_size * length;
 
-            // 4. Let byteLength be elementSize × length.
-            let byte_length = element_size * length;
+        // 5. Let data be ? AllocateArrayBuffer(%ArrayBuffer%, byteLength).
+        let data = ArrayBuffer::allocate(
+            &context
+                .standard_objects()
+                .array_buffer_object()
+                .constructor()
+                .into(),
+            byte_length,
+            context,
+        )?;
 
-            // 5. Let data be ? AllocateArrayBuffer(%ArrayBuffer%, byteLength).
-            let data = ArrayBuffer::allocate(
-                &context
-                    .standard_objects()
-                    .array_buffer_object()
-                    .constructor()
-                    .into(),
-                byte_length,
-                context,
-            )?;
-
-            // 6. Set O.[[ViewedArrayBuffer]] to data.
-            o_inner.viewed_array_buffer = Some(data);
-
-            // 7. Set O.[[ByteLength]] to byteLength.
-            o_inner.byte_length = byte_length;
-            // 8. Set O.[[ByteOffset]] to 0.
-            o_inner.byte_offset = 0;
-            // 9. Set O.[[ArrayLength]] to length.
-            o_inner.array_length = length;
-        }
+        // 6. Set O.[[ViewedArrayBuffer]] to data.
+        indexed.viewed_array_buffer = Some(data);
+        // 7. Set O.[[ByteLength]] to byteLength.
+        indexed.byte_length = byte_length;
+        // 8. Set O.[[ByteOffset]] to 0.
+        indexed.byte_offset = 0;
+        // 9. Set O.[[ArrayLength]] to length.
+        indexed.array_length = length;
 
         // 10. Return O.
-        Ok(o)
+        Ok(())
     }
 
     /// <https://tc39.es/ecma262/#sec-initializetypedarrayfromlist>
     fn initialize_from_list(
-        o: JsValue,
+        o: &JsObject,
         values: Vec<JsValue>,
         context: &mut Context,
     ) -> JsResult<()> {
         // 1. Let len be the number of elements in values.
         let len = values.len();
+        {
+            let mut o = o.borrow_mut();
+            let mut o_inner = o.as_mut_typed_array().expect("expected a TypedArray");
 
-        // 2. Perform ? AllocateTypedArrayBuffer(O, len).
-        TypedArray::allocate_buffer(o, len, context)?;
+            // 2. Perform ? AllocateTypedArrayBuffer(O, len).
+            TypedArray::allocate_buffer(&mut o_inner, len, context)?;
+        }
 
         // 3. Let k be 0.
         // 4. Repeat, while k < len,
@@ -337,7 +329,7 @@ impl TypedArray {
             // a. Let Pk be ! ToString(𝔽(k)).
             // b. Let kValue be the first element of values and remove that element from values.
             // c. Perform ? Set(O, Pk, kValue, true).
-            todo!("Set");
+            o.set(k, k_value, true, context)?;
             // d. Set k to k + 1.
         }
 
@@ -362,62 +354,47 @@ impl TypedArray {
         default_proto: P,
         length: Option<usize>,
         context: &mut Context,
-    ) -> JsResult<JsValue>
+    ) -> JsResult<JsObject>
     where
         P: FnOnce(&StandardObjects) -> &StandardConstructor,
     {
         // 1. Let proto be ? GetPrototypeFromConstructor(newTarget, defaultProto).
         let proto = get_prototype_from_constructor(new_target, default_proto, context)?;
 
-        // 2. Let obj be ! IntegerIndexedObjectCreate(proto).
-        let obj = IntegerIndexedObject::create(proto, context);
-
-        {
-            let mut obj = obj.borrow_mut();
-            let obj_inner = obj.as_mut_typed_array().expect("obj was not a typed array");
-
+        let mut indexed = IntegerIndexed {
             // 3. Assert: obj.[[ViewedArrayBuffer]] is undefined.
-            assert!(obj_inner.viewed_array_buffer.is_none());
-
+            viewed_array_buffer: None,
             // 4. Set obj.[[TypedArrayName]] to constructorName.
-            obj_inner.typed_array_name = Some(constructor_name);
+            // 5. If constructorName is "BigInt64Array" or "BigUint64Array", set obj.[[ContentType]] to BigInt.
+            // 6. Otherwise, set obj.[[ContentType]] to Number.
+            typed_array_name: constructor_name,
+            // 7. If length is not present, then
+            // a. Set obj.[[ByteLength]] to 0.
+            byte_length: 0,
+            // b. Set obj.[[ByteOffset]] to 0.
+            byte_offset: 0,
+            // c. Set obj.[[ArrayLength]] to 0.
+            array_length: 0,
+        };
 
-            obj_inner.content_type = Some(match constructor_name {
-                // 5. If constructorName is "BigInt64Array" or "BigUint64Array", set obj.[[ContentType]] to BigInt.
-                TypedArrayName::BigInt64Array | TypedArrayName::BigUint64Array => {
-                    ContentType::BigInt
-                }
-                // 6. Otherwise, set obj.[[ContentType]] to Number.
-                _ => ContentType::Number,
-            });
-
-            if length.is_none() {
-                // 7. If length is not present, then
-
-                // a. Set obj.[[ByteLength]] to 0.
-                obj_inner.byte_length = 0;
-                // b. Set obj.[[ByteOffset]] to 0.
-                obj_inner.byte_offset = 0;
-                // c. Set obj.[[ArrayLength]] to 0.
-                obj_inner.array_length = 0;
-            }
-        }
-
+        // 8. Else,
         if let Some(length) = length {
-            // 8. Else,
             // a. Perform ? AllocateTypedArrayBuffer(obj, length).
-            TypedArray::allocate_buffer(obj.clone().into(), length, context)?;
+            TypedArray::allocate_buffer(&mut indexed, length, context)?;
         }
+
+        // 2. Let obj be ! IntegerIndexedObjectCreate(proto).
+        let obj = IntegerIndexed::create(proto, indexed, context);
 
         // 9. Return obj.
-        Ok(obj.into())
+        Ok(obj)
     }
 
     /// InitializeTypedArrayFromTypedArray
     ///
     /// <https://tc39.es/ecma262/#sec-initializetypedarrayfromtypedarray>
     fn initialize_from_typed_array(
-        o: JsValue,
+        o: &JsObject,
         src_array: JsObject,
         context: &mut Context,
     ) -> JsResult<()> {
@@ -428,7 +405,7 @@ impl TypedArray {
     ///
     /// <https://tc39.es/ecma262/#sec-initializetypedarrayfromarraybuffery>
     fn initialize_from_array_buffer(
-        o: JsValue,
+        o: &JsObject,
         buffer: JsObject,
         byte_offset: &JsValue,
         length: &JsValue,
@@ -441,7 +418,7 @@ impl TypedArray {
     ///
     /// <https://tc39.es/ecma262/#sec-initializetypedarrayfromarraylike>
     fn initialize_from_array_like(
-        o: JsValue,
+        o: &JsObject,
         array_like: JsValue,
         context: &mut Context,
     ) -> JsResult<()> {
@@ -481,6 +458,15 @@ impl TypedArrayName {
             Self::Int16Array | Self::Uint16Array => 2,
             Self::Int32Array | Self::Uint32Array | Self::Float32Array => 4,
             Self::BigInt64Array | Self::BigUint64Array | Self::Float64Array => 8,
+        }
+    }
+
+    /// Gets the content type of this typed array name.
+    #[inline]
+    pub(crate) const fn content_type(self) -> ContentType {
+        match self {
+            Self::BigInt64Array | Self::BigUint64Array => ContentType::BigInt,
+            _ => ContentType::Number,
         }
     }
 }
