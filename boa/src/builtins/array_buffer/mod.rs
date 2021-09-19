@@ -628,7 +628,7 @@ impl ArrayBuffer {
 
         // 6. Else, let rawValue be a List whose elements are bytes from block at indices byteIndex (inclusive) through byteIndex + elementSize (exclusive).
         // 7. Assert: The number of elements in rawValue is elementSize.
-        let raw_value = &block[byte_index..element_size];
+        let raw_value = &block[byte_index..byte_index + element_size];
 
         // TODO: Agent Record [[LittleEndian]] filed
         // 8. If isLittleEndian is not present, set isLittleEndian to the value of the [[LittleEndian]] field of the surrounding agent's Agent Record.
