@@ -18,9 +18,9 @@ use super::{typed_array::TypedArrayName, BuiltIn, JsArgs};
 
 #[derive(Debug, Clone, Trace, Finalize)]
 pub struct ArrayBuffer {
-    array_buffer_data: Option<Vec<u8>>,
-    array_buffer_byte_length: usize,
-    array_buffer_detach_key: JsValue,
+    pub array_buffer_data: Option<Vec<u8>>,
+    pub array_buffer_byte_length: usize,
+    pub array_buffer_detach_key: JsValue,
 }
 
 impl ArrayBuffer {
