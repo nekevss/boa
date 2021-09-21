@@ -608,8 +608,8 @@ impl ArrayBuffer {
         &self,
         byte_index: usize,
         t: TypedArrayName,
-        is_typed_array: bool,
-        order: SharedMemoryOrder,
+        _is_typed_array: bool,
+        _order: SharedMemoryOrder,
         is_little_endian: Option<bool>,
     ) -> JsValue {
         // 1. Assert: IsDetachedBuffer(arrayBuffer) is false.

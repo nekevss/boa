@@ -16,8 +16,8 @@ use crate::{
     },
     property::Attribute,
     symbol::WellKnownSymbols,
-    value::JsValue,
-    BoaProfiler, Context, JsResult,
+    value::{IntegerOrInfinity, JsValue},
+    BoaProfiler, Context, JsResult, JsString,
 };
 
 pub mod integer_indexed_object;
@@ -37,6 +37,10 @@ macro_rules! typed_array {
 
             fn init(context: &mut Context) -> (&'static str, JsValue, Attribute) {
                 let _timer = BoaProfiler::global().start_event(Self::NAME, "init");
+
+                let typed_array_constructor = TypedArray::init(context);
+                let typed_array_constructor_proto =
+                    typed_array_constructor.get("prototype", context).unwrap();
 
                 let get_species = FunctionBuilder::native(context, TypedArray::get_species)
                     .name("get [Symbol.species]")
@@ -66,6 +70,8 @@ macro_rules! typed_array {
                     TypedArrayName::$ty.element_size(),
                     Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::PERMANENT,
                 )
+                .custom_prototype(typed_array_constructor.into())
+                .inherit(typed_array_constructor_proto)
                 .build();
 
                 (Self::NAME, typed_array.into(), Self::attribute())
@@ -206,24 +212,48 @@ macro_rules! typed_array {
 ///
 /// <https://tc39.es/ecma262/#sec-%typedarray%-intrinsic-object>
 #[derive(Debug, Clone, Copy)]
-struct TypedArray;
+pub(crate) struct TypedArray;
 
 impl TypedArray {
     const NAME: &'static str = "TypedArray";
+
     const LENGTH: usize = 0;
 
     fn init(context: &mut Context) -> JsObject {
-        let _timer = BoaProfiler::global().start_event(Self::NAME, "init");
-
         let get_species = FunctionBuilder::native(context, Self::get_species)
             .name("get [Symbol.species]")
             .constructable(false)
             .build();
 
-        ConstructorBuilder::with_standard_object(
+        let get_buffer = FunctionBuilder::native(context, Self::buffer)
+            .name("get buffer")
+            .constructable(false)
+            .build();
+
+        let get_byte_length = FunctionBuilder::native(context, Self::byte_length)
+            .name("get byteLength")
+            .constructable(false)
+            .build();
+
+        let get_byte_offset = FunctionBuilder::native(context, Self::byte_offset)
+            .name("get byteOffset")
+            .constructable(false)
+            .build();
+
+        let get_length = FunctionBuilder::native(context, Self::length)
+            .name("get length")
+            .constructable(false)
+            .build();
+
+        let get_to_string_tag = FunctionBuilder::native(context, Self::to_string_tag)
+            .name("get [Symbol.toStringTag]")
+            .constructable(false)
+            .build();
+
+        let object = ConstructorBuilder::with_standard_object(
             context,
             Self::constructor,
-            context.standard_objects().function_object().clone(),
+            context.standard_objects().typed_array_object().clone(),
         )
         .name(Self::NAME)
         .length(Self::LENGTH)
@@ -238,14 +268,69 @@ impl TypedArray {
             0,
             Attribute::WRITABLE | Attribute::NON_ENUMERABLE | Attribute::PERMANENT,
         )
+        .accessor(
+            "buffer",
+            Some(get_buffer),
+            None,
+            Attribute::CONFIGURABLE | Attribute::NON_ENUMERABLE,
+        )
+        .accessor(
+            "byteLength",
+            Some(get_byte_length),
+            None,
+            Attribute::CONFIGURABLE | Attribute::NON_ENUMERABLE,
+        )
+        .accessor(
+            "byteOffset",
+            Some(get_byte_offset),
+            None,
+            Attribute::CONFIGURABLE | Attribute::NON_ENUMERABLE,
+        )
+        .accessor(
+            "length",
+            Some(get_length),
+            None,
+            Attribute::CONFIGURABLE | Attribute::NON_ENUMERABLE,
+        )
+        .accessor(
+            WellKnownSymbols::to_string_tag(),
+            Some(get_to_string_tag),
+            None,
+            Attribute::CONFIGURABLE | Attribute::NON_ENUMERABLE,
+        )
+        .method(Self::at, "at", 1)
+        .method(Self::every, "every", 2)
+        .method(Self::fill, "fill", 3)
+        .method(Self::filter, "filter", 2)
+        .method(Self::find, "find", 2)
+        .method(Self::findindex, "findindex", 2)
+        .method(Self::foreach, "foreach", 2)
+        .method(Self::includes, "includes", 2)
+        .method(Self::index_of, "indexOf", 2)
+        .method(Self::join, "join", 1)
+        .method(Self::last_index_of, "lastIndexOf", 2)
+        .method(Self::map, "map", 2)
+        .method(Self::reduce, "reduce", 2)
+        .method(Self::reduceright, "reduceright", 2)
+        .method(Self::reverse, "reverse", 0)
+        .method(Self::slice, "slice", 2)
+        .method(Self::some, "some", 2)
+        .method(Self::subarray, "subarray", 2)
         // 23.2.3.29 %TypedArray%.prototype.toString ( )
         // The initial value of the %TypedArray%.prototype.toString data property is the same
         // built-in function object as the Array.prototype.toString method defined in 23.1.3.30.
         .method(Array::to_string, "toString", 0)
-        .build()
+        .build();
+
+        object
     }
 
-    /// <https://tc39.es/ecma262/#sec-%typedarray%>
+    /// `23.2.1.1 %TypedArray% ( )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%
     fn constructor(
         _new_target: &JsValue,
         _args: &[JsValue],
@@ -268,6 +353,1564 @@ impl TypedArray {
     fn get_species(this: &JsValue, _: &[JsValue], _: &mut Context) -> JsResult<JsValue> {
         // 1. Return the this value.
         Ok(this.clone())
+    }
+
+    /// `23.2.3.1 %TypedArray%.prototype.at ( index )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.at
+    fn at(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length() as i64;
+
+        // 4. Let relativeIndex be ? ToIntegerOrInfinity(index).
+        let relative_index = args.get_or_undefined(0).to_integer_or_infinity(context)?;
+
+        let k = match relative_index {
+            // Note: Early undefined return on infinity.
+            IntegerOrInfinity::PositiveInfinity | IntegerOrInfinity::NegativeInfinity => {
+                return Ok(JsValue::undefined())
+            }
+            // 5. If relativeIndex ≥ 0, then
+            // a. Let k be relativeIndex.
+            IntegerOrInfinity::Integer(i) if i >= 0 => i,
+            // 6. Else,
+            // a. Let k be len + relativeIndex.
+            IntegerOrInfinity::Integer(i) => len + i,
+        };
+
+        // 7. If k < 0 or k ≥ len, return undefined.
+        if k < 0 || k >= len {
+            return Ok(JsValue::undefined());
+        }
+
+        // 8. Return ! Get(O, ! ToString(𝔽(k))).
+        Ok(obj.get(k, context).expect("Get cannot fail here"))
+    }
+
+    /// `23.2.3.2 get %TypedArray%.prototype.buffer`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-get-%typedarray%.prototype.buffer
+    fn buffer(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? RequireInternalSlot(O, [[TypedArrayName]]).
+        // 3. Assert: O has a [[ViewedArrayBuffer]] internal slot.
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let typed_array = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+
+        // 4. Let buffer be O.[[ViewedArrayBuffer]].
+        // 5. Return buffer.
+        Ok(typed_array
+            .viewed_array_buffer()
+            .map(|buffer| buffer.clone().into())
+            .unwrap_or_else(JsValue::undefined))
+    }
+
+    /// `23.2.3.3 get %TypedArray%.prototype.byteLength`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-get-%typedarray%.prototype.bytelength
+    fn byte_length(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? RequireInternalSlot(O, [[TypedArrayName]]).
+        // 3. Assert: O has a [[ViewedArrayBuffer]] internal slot.
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let typed_array = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+
+        // 4. Let buffer be O.[[ViewedArrayBuffer]].
+        // 5. If IsDetachedBuffer(buffer) is true, return +0𝔽.
+        // 6. Let size be O.[[ByteLength]].
+        // 7. Return 𝔽(size).
+        if typed_array.viewed_array_buffer().is_some() {
+            Ok(typed_array.byte_length.into())
+        } else {
+            Ok(0.into())
+        }
+    }
+
+    /// `23.2.3.4 get %TypedArray%.prototype.byteOffset`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-get-%typedarray%.prototype.byteoffset
+    fn byte_offset(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? RequireInternalSlot(O, [[TypedArrayName]]).
+        // 3. Assert: O has a [[ViewedArrayBuffer]] internal slot.
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let typed_array = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+
+        // 4. Let buffer be O.[[ViewedArrayBuffer]].
+        // 5. If IsDetachedBuffer(buffer) is true, return +0𝔽.
+        // 6. Let offset be O.[[ByteOffset]].
+        // 7. Return 𝔽(offset).
+        if typed_array.viewed_array_buffer().is_some() {
+            Ok(typed_array.byte_offset().into())
+        } else {
+            Ok(0.into())
+        }
+    }
+
+    // TODO: 23.2.3.6 %TypedArray%.prototype.copyWithin ( target, start [ , end ] )
+    // TODO: 23.2.3.7 %TypedArray%.prototype.entries ( )
+
+    /// `23.2.3.8 %TypedArray%.prototype.every ( callbackfn [ , thisArg ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.every
+    fn every(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length();
+
+        // 4. If IsCallable(callbackfn) is false, throw a TypeError exception.
+        let callback_fn = match args.get_or_undefined(0).as_object() {
+            Some(obj) if obj.is_callable() => obj,
+            _ => {
+                return context.throw_type_error(
+                    "TypedArray.prototype.every called with non-callable callback function",
+                )
+            }
+        };
+
+        // 5. Let k be 0.
+        // 6. Repeat, while k < len,
+        for k in 0..len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ! Get(O, Pk).
+            let k_value = obj.get(k, context)?;
+
+            // c. Let testResult be ! ToBoolean(? Call(callbackfn, thisArg, « kValue, 𝔽(k), O »)).
+            let test_result = callback_fn
+                .call(
+                    args.get_or_undefined(1),
+                    &[k_value, k.into(), this.clone()],
+                    context,
+                )?
+                .to_boolean();
+
+            // d. If testResult is false, return false.
+            if !test_result {
+                return Ok(false.into());
+            }
+        }
+
+        // 7. Return true.
+        Ok(true.into())
+    }
+
+    /// `23.2.3.9 %TypedArray%.prototype.fill ( value [ , start [ , end ] ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.fill
+    fn fill(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length() as i64;
+
+        // 4. If O.[[ContentType]] is BigInt, set value to ? ToBigInt(value).
+        let value: JsValue = if o.typed_array_name().content_type() == ContentType::BigInt {
+            args.get_or_undefined(0).to_bigint(context)?.into()
+        // 5. Otherwise, set value to ? ToNumber(value).
+        } else {
+            args.get_or_undefined(0).to_number(context)?.into()
+        };
+
+        // 6. Let relativeStart be ? ToIntegerOrInfinity(start).
+        let mut k = match args.get_or_undefined(1).to_integer_or_infinity(context)? {
+            // 7. If relativeStart is -∞, let k be 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            // 8. Else if relativeStart < 0, let k be max(len + relativeStart, 0).
+            IntegerOrInfinity::Integer(i) if i < 0 => std::cmp::max(len + i, 0),
+            // 9. Else, let k be min(relativeStart, len).
+            IntegerOrInfinity::Integer(i) => std::cmp::min(i, len),
+            IntegerOrInfinity::PositiveInfinity => len,
+        };
+
+        // 10. If end is undefined, let relativeEnd be len; else let relativeEnd be ? ToIntegerOrInfinity(end).
+        let end = args.get_or_undefined(2);
+        let relative_end = if end.is_undefined() {
+            IntegerOrInfinity::Integer(len)
+        } else {
+            end.to_integer_or_infinity(context)?
+        };
+
+        let r#final = match relative_end {
+            // 11. If relativeEnd is -∞, let final be 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            // 12. Else if relativeEnd < 0, let final be max(len + relativeEnd, 0).
+            IntegerOrInfinity::Integer(i) if i < 0 => std::cmp::max(len + i, 0),
+            // 13. Else, let final be min(relativeEnd, len).
+            IntegerOrInfinity::Integer(i) => std::cmp::min(i, len),
+            IntegerOrInfinity::PositiveInfinity => len,
+        };
+
+        // 14. If IsDetachedBuffer(O.[[ViewedArrayBuffer]]) is true, throw a TypeError exception.
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 15. Repeat, while k < final,
+        while k < r#final {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Perform ! Set(O, Pk, value, true).
+            obj.set(k, value.clone(), true, context)
+                .expect("Set cannot fail here");
+
+            // c. Set k to k + 1.
+            k += 1;
+        }
+
+        // 16. Return O.
+        Ok(this.clone())
+    }
+
+    /// `23.2.3.10 %TypedArray%.prototype.filter ( callbackfn [ , thisArg ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.filter
+    fn filter(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length();
+
+        // 4. If IsCallable(callbackfn) is false, throw a TypeError exception.
+        let callback_fn = match args.get_or_undefined(0).as_object() {
+            Some(obj) if obj.is_callable() => obj,
+            _ => {
+                return context.throw_type_error(
+                    "TypedArray.prototype.filter called with non-callable callback function",
+                )
+            }
+        };
+
+        // 5. Let kept be a new empty List.
+        let mut kept = Vec::new();
+
+        // 6. Let k be 0.
+        // 7. Let captured be 0.
+        let mut captured = 0;
+
+        // 8. Repeat, while k < len,
+        for k in 0..len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ! Get(O, Pk).
+            let k_value = obj.get(k, context).expect("Get cannot fail here");
+
+            // c. Let selected be ! ToBoolean(? Call(callbackfn, thisArg, « kValue, 𝔽(k), O »)).#
+            let selected = callback_fn
+                .call(
+                    args.get_or_undefined(1),
+                    &[k_value.clone(), k.into(), this.clone()],
+                    context,
+                )?
+                .to_boolean();
+
+            // d. If selected is true, then
+            if selected {
+                // i. Append kValue to the end of kept.
+                kept.push(k_value);
+
+                // ii. Set captured to captured + 1.
+                captured += 1;
+            }
+        }
+
+        // 9. Let A be ? TypedArraySpeciesCreate(O, « 𝔽(captured) »).
+        let a = Self::species_create(&obj, o.typed_array_name(), &[captured.into()], context)?;
+
+        // 10. Let n be 0.
+        // 11. For each element e of kept, do
+        for (n, e) in kept.iter().enumerate() {
+            // a. Perform ! Set(A, ! ToString(𝔽(n)), e, true).
+            a.set(n, e.clone(), true, context)
+                .expect("Set cannot fail here");
+            // b. Set n to n + 1.
+        }
+
+        // 12. Return A.
+        Ok(a.into())
+    }
+
+    /// `23.2.3.11 %TypedArray%.prototype.find ( predicate [ , thisArg ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.find
+    fn find(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length();
+
+        // 4. If IsCallable(predicate) is false, throw a TypeError exception.
+        let predicate = match args.get_or_undefined(0).as_object() {
+            Some(obj) if obj.is_callable() => obj,
+            _ => {
+                return context.throw_type_error(
+                    "TypedArray.prototype.find called with non-callable predicate function",
+                )
+            }
+        };
+
+        // 5. Let k be 0.
+        // 6. Repeat, while k < len,
+        for k in 0..len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ! Get(O, Pk).
+            let k_value = obj.get(k, context).expect("Get cannot fail here");
+
+            // c. Let testResult be ! ToBoolean(? Call(predicate, thisArg, « kValue, 𝔽(k), O »)).
+            // d. If testResult is true, return kValue.
+            if predicate
+                .call(
+                    args.get_or_undefined(1),
+                    &[k_value.clone(), k.into(), this.clone()],
+                    context,
+                )?
+                .to_boolean()
+            {
+                return Ok(k_value);
+            }
+        }
+
+        // 7. Return undefined.
+        Ok(JsValue::undefined())
+    }
+
+    /// `23.2.3.12 %TypedArray%.prototype.findIndex ( predicate [ , thisArg ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.findindex
+    fn findindex(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length();
+
+        // 4. If IsCallable(predicate) is false, throw a TypeError exception.
+        let predicate =
+            match args.get_or_undefined(0).as_object() {
+                Some(obj) if obj.is_callable() => obj,
+                _ => return context.throw_type_error(
+                    "TypedArray.prototype.findindex called with non-callable predicate function",
+                ),
+            };
+
+        // 5. Let k be 0.
+        // 6. Repeat, while k < len,
+        for k in 0..len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ! Get(O, Pk).
+            let k_value = obj.get(k, context).expect("Get cannot fail here");
+
+            // c. Let testResult be ! ToBoolean(? Call(predicate, thisArg, « kValue, 𝔽(k), O »)).
+            // d. If testResult is true, return 𝔽(k).
+            if predicate
+                .call(
+                    args.get_or_undefined(1),
+                    &[k_value.clone(), k.into(), this.clone()],
+                    context,
+                )?
+                .to_boolean()
+            {
+                return Ok(k.into());
+            }
+        }
+
+        // 7. Return -1𝔽.
+        Ok((-1).into())
+    }
+
+    /// `23.2.3.13 %TypedArray%.prototype.forEach ( callbackfn [ , thisArg ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.foreach
+    fn foreach(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length();
+
+        // 4. If IsCallable(callbackfn) is false, throw a TypeError exception.
+        let callback_fn = match args.get_or_undefined(0).as_object() {
+            Some(obj) if obj.is_callable() => obj,
+            _ => {
+                return context.throw_type_error(
+                    "TypedArray.prototype.foreach called with non-callable callback function",
+                )
+            }
+        };
+
+        // 5. Let k be 0.
+        // 6. Repeat, while k < len,
+        for k in 0..len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ! Get(O, Pk).
+            let k_value = obj.get(k, context).expect("Get cannot fail here");
+
+            // c. Perform ? Call(callbackfn, thisArg, « kValue, 𝔽(k), O »).
+            callback_fn.call(
+                args.get_or_undefined(1),
+                &[k_value, k.into(), this.clone()],
+                context,
+            )?;
+        }
+
+        // 7. Return undefined.
+        Ok(JsValue::undefined())
+    }
+
+    /// `23.2.3.14 %TypedArray%.prototype.includes ( searchElement [ , fromIndex ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.includes
+    fn includes(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length() as i64;
+
+        // 4. If len is 0, return false.
+        if len == 0 {
+            return Ok(false.into());
+        }
+
+        // 5. Let n be ? ToIntegerOrInfinity(fromIndex).
+        // 6. Assert: If fromIndex is undefined, then n is 0.
+        let n = args.get_or_undefined(1).to_integer_or_infinity(context)?;
+
+        let n = match n {
+            // 7. If n is +∞, return false.
+            IntegerOrInfinity::PositiveInfinity => return Ok(false.into()),
+            // 8. Else if n is -∞, set n to 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            IntegerOrInfinity::Integer(i) => i,
+        };
+
+        // 9. If n ≥ 0, then
+        let mut k = if n >= 0 {
+            // a. Let k be n.
+            n
+        // 10. Else,
+        } else {
+            // a. Let k be len + n.
+            // b. If k < 0, set k to 0.
+            if len + n < 0 {
+                0
+            } else {
+                len + n
+            }
+        };
+
+        // 11. Repeat, while k < len,
+        while k < len {
+            // a. Let elementK be ! Get(O, ! ToString(𝔽(k))).
+            let element_k = obj.get(k, context).expect("Get cannot fail here");
+
+            // b. If SameValueZero(searchElement, elementK) is true, return true.
+            if JsValue::same_value_zero(args.get_or_undefined(0), &element_k) {
+                return Ok(true.into());
+            }
+
+            // c. Set k to k + 1.
+            k += 1;
+        }
+
+        // 12. Return false.
+        Ok(false.into())
+    }
+
+    /// `23.2.3.15 %TypedArray%.prototype.indexOf ( searchElement [ , fromIndex ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.indexof
+    fn index_of(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length() as i64;
+
+        // 4. If len is 0, return -1𝔽.
+        if len == 0 {
+            return Ok((-1).into());
+        }
+
+        // 5. Let n be ? ToIntegerOrInfinity(fromIndex).
+        // 6. Assert: If fromIndex is undefined, then n is 0.
+        let n = args.get_or_undefined(1).to_integer_or_infinity(context)?;
+
+        let n = match n {
+            // 7. If n is +∞, return -1𝔽.
+            IntegerOrInfinity::PositiveInfinity => return Ok((-1).into()),
+            // 8. Else if n is -∞, set n to 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            IntegerOrInfinity::Integer(i) => i,
+        };
+
+        // 9. If n ≥ 0, then
+        let mut k = if n >= 0 {
+            // a. Let k be n.
+            n
+        // 10. Else,
+        } else {
+            // a. Let k be len + n.
+            // b. If k < 0, set k to 0.
+            if len + n < 0 {
+                0
+            } else {
+                len + n
+            }
+        };
+
+        // 11. Repeat, while k < len,
+        while k < len {
+            // a. Let kPresent be ! HasProperty(O, ! ToString(𝔽(k))).
+            let k_present = obj
+                .has_property(k, context)
+                .expect("HasProperty cannot fail here");
+
+            // b. If kPresent is true, then
+            if k_present {
+                // i. Let elementK be ! Get(O, ! ToString(𝔽(k))).
+                let element_k = obj.get(k, context).expect("Get cannot fail here");
+
+                // ii. Let same be IsStrictlyEqual(searchElement, elementK).
+                // iii. If same is true, return 𝔽(k).
+                if args.get_or_undefined(1).strict_equals(&element_k) {
+                    return Ok(k.into());
+                }
+            }
+
+            // c. Set k to k + 1.
+            k += 1;
+        }
+
+        // 12. Return -1𝔽.
+        Ok((-1).into())
+    }
+
+    /// `23.2.3.16 %TypedArray%.prototype.join ( separator )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.join
+    fn join(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length();
+
+        // 4. If separator is undefined, let sep be the single-element String ",".
+        let separator = args.get_or_undefined(0);
+        let sep = if separator.is_undefined() {
+            JsString::new(",")
+        // 5. Else, let sep be ? ToString(separator).
+        } else {
+            separator.to_string(context)?
+        };
+
+        // 6. Let R be the empty String.
+        let mut r = JsString::new("");
+
+        // 7. Let k be 0.
+        // 8. Repeat, while k < len,
+        for k in 0..len {
+            // a. If k > 0, set R to the string-concatenation of R and sep.
+            if k > 0 {
+                r = JsString::concat(r, sep.clone());
+            }
+
+            // b. Let element be ! Get(O, ! ToString(𝔽(k))).
+            let element = obj.get(k, context).expect("Get cannot fail here");
+
+            // c. If element is undefined, let next be the empty String; otherwise, let next be ! ToString(element).
+            // d. Set R to the string-concatenation of R and next.
+            if !element.is_undefined() {
+                r = JsString::concat(r, element.to_string(context)?);
+            }
+        }
+
+        // 9. Return R.
+        Ok(r.into())
+    }
+
+    // TODO: 23.2.3.17 %TypedArray%.prototype.keys ( )
+
+    /// `23.2.3.18 %TypedArray%.prototype.lastIndexOf ( searchElement [ , fromIndex ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.lastindexof
+    fn last_index_of(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length() as i64;
+
+        // 4. If len is 0, return -1𝔽.
+        if len == 0 {
+            return Ok((-1).into());
+        }
+
+        // 5. If fromIndex is present, let n be ? ToIntegerOrInfinity(fromIndex); else let n be len - 1.
+        let n = if let Some(n) = args.get(0) {
+            n.to_integer_or_infinity(context)?
+        } else {
+            IntegerOrInfinity::Integer(len - 1)
+        };
+
+        let mut k = match n {
+            // 6. If n is -∞, return -1𝔽.
+            IntegerOrInfinity::NegativeInfinity => return Ok((-1).into()),
+            // 7. If n ≥ 0, then
+            // a. Let k be min(n, len - 1).
+            IntegerOrInfinity::Integer(i) if i >= 0 => std::cmp::min(i, len - 1),
+            IntegerOrInfinity::PositiveInfinity => len - 1,
+            // 8. Else,
+            // a. Let k be len + n.
+            IntegerOrInfinity::Integer(i) => len + i,
+        };
+
+        // 9. Repeat, while k ≥ 0,
+        while k >= 0 {
+            // a. Let kPresent be ! HasProperty(O, ! ToString(𝔽(k))).
+            let k_present = obj
+                .has_property(k, context)
+                .expect("HasProperty cannot fail here");
+
+            // b. If kPresent is true, then
+            if k_present {
+                // i. Let elementK be ! Get(O, ! ToString(𝔽(k))).
+                let element_k = obj.get(k, context).expect("Get cannot fail here");
+
+                // ii. Let same be IsStrictlyEqual(searchElement, elementK).
+                // iii. If same is true, return 𝔽(k).
+                if args.get_or_undefined(0).strict_equals(&element_k) {
+                    return Ok(k.into());
+                }
+            }
+
+            // c. Set k to k - 1.
+            k -= 1;
+        }
+
+        // 10. Return -1𝔽.
+        Ok((-1).into())
+    }
+
+    /// `23.2.3.19 get %TypedArray%.prototype.length`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-get-%typedarray%.prototype.length
+    fn length(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? RequireInternalSlot(O, [[TypedArrayName]]).
+        // 3. Assert: O has [[ViewedArrayBuffer]] and [[ArrayLength]] internal slots.
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let typed_array = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+
+        // 4. Let buffer be O.[[ViewedArrayBuffer]].
+        // 5. If IsDetachedBuffer(buffer) is true, return +0𝔽.
+        // 6. Let length be O.[[ArrayLength]].
+        // 7. Return 𝔽(length).
+        if typed_array.viewed_array_buffer().is_none() {
+            Ok(0.into())
+        } else {
+            Ok(typed_array.array_length().into())
+        }
+    }
+
+    /// `23.2.3.20 %TypedArray%.prototype.map ( callbackfn [ , thisArg ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.map
+    fn map(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length();
+
+        // 4. If IsCallable(callbackfn) is false, throw a TypeError exception.
+        let callback_fn = match args.get_or_undefined(0).as_object() {
+            Some(obj) if obj.is_callable() => obj,
+            _ => {
+                return context.throw_type_error(
+                    "TypedArray.prototype.map called with non-callable callback function",
+                )
+            }
+        };
+
+        // 5. Let A be ? TypedArraySpeciesCreate(O, « 𝔽(len) »).
+        let a = Self::species_create(&obj, o.typed_array_name(), &[len.into()], context)?;
+
+        // 6. Let k be 0.
+        // 7. Repeat, while k < len,
+        for k in 0..len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ! Get(O, Pk).
+            let k_value = obj.get(k, context).expect("Get cannot fail here");
+
+            // c. Let mappedValue be ? Call(callbackfn, thisArg, « kValue, 𝔽(k), O »).
+            let mapped_value = callback_fn.call(
+                args.get_or_undefined(1),
+                &[k_value, k.into(), this.clone()],
+                context,
+            )?;
+
+            // d. Perform ? Set(A, Pk, mappedValue, true).
+            a.set(k, mapped_value, true, context)?;
+        }
+
+        // 8. Return A.
+        Ok(a.into())
+    }
+
+    /// `23.2.3.21 %TypedArray%.prototype.reduce ( callbackfn [ , initialValue ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.reduce
+    fn reduce(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length();
+
+        // 4. If IsCallable(callbackfn) is false, throw a TypeError exception.
+        let callback_fn = match args.get_or_undefined(0).as_object() {
+            Some(obj) if obj.is_callable() => obj,
+            _ => {
+                return context.throw_type_error(
+                    "TypedArray.prototype.reduce called with non-callable callback function",
+                )
+            }
+        };
+
+        // 5. If len = 0 and initialValue is not present, throw a TypeError exception.
+        if len == 0 && args.get(1).is_none() {
+            return context
+                .throw_type_error("Typed array length is 0 and initial value is not present");
+        }
+
+        // 6. Let k be 0.
+        let mut k = 0;
+
+        // 7. Let accumulator be undefined.
+        // 8. If initialValue is present, then
+        let mut accumulator = if let Some(initial_value) = args.get(1) {
+            // a. Set accumulator to initialValue.
+            initial_value.clone()
+        // 9. Else,
+        } else {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Set accumulator to ! Get(O, Pk).
+            // c. Set k to k + 1.
+            k += 1;
+            obj.get(0, context).expect("Get cannot fail here")
+        };
+
+        // 10. Repeat, while k < len,
+        while k < len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ! Get(O, Pk).
+            let k_value = obj.get(k, context).expect("Get cannot fail here");
+
+            // c. Set accumulator to ? Call(callbackfn, undefined, « accumulator, kValue, 𝔽(k), O »).
+            accumulator = callback_fn.call(
+                &JsValue::undefined(),
+                &[accumulator, k_value, k.into(), this.clone()],
+                context,
+            )?;
+
+            // d. Set k to k + 1.
+            k += 1;
+        }
+
+        // 11. Return accumulator.
+        Ok(accumulator)
+    }
+
+    /// `23.2.3.22 %TypedArray%.prototype.reduceRight ( callbackfn [ , initialValue ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.reduceright
+    fn reduceright(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length() as i64;
+
+        // 4. If IsCallable(callbackfn) is false, throw a TypeError exception.
+        let callback_fn =
+            match args.get_or_undefined(0).as_object() {
+                Some(obj) if obj.is_callable() => obj,
+                _ => return context.throw_type_error(
+                    "TypedArray.prototype.reduceright called with non-callable callback function",
+                ),
+            };
+
+        // 5. If len = 0 and initialValue is not present, throw a TypeError exception.
+        if len == 0 && args.get(1).is_none() {
+            return context
+                .throw_type_error("Typed array length is 0 and initial value is not present");
+        }
+
+        // 6. Let k be len - 1.
+        let mut k = len - 1;
+
+        // 7. Let accumulator be undefined.
+        // 8. If initialValue is present, then
+        let mut accumulator = if let Some(initial_value) = args.get(1) {
+            // a. Set accumulator to initialValue.
+            initial_value.clone()
+        // 9. Else,
+        } else {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Set accumulator to ! Get(O, Pk).
+            // c. Set k to k + 1.
+            k += 1;
+            obj.get(0, context).expect("Get cannot fail here")
+        };
+
+        // 10. Repeat, while k ≥ 0,
+        while k >= 0 {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ! Get(O, Pk).
+            let k_value = obj.get(k, context).expect("Get cannot fail here");
+
+            // c. Set accumulator to ? Call(callbackfn, undefined, « accumulator, kValue, 𝔽(k), O »).
+            accumulator = callback_fn.call(
+                &JsValue::undefined(),
+                &[accumulator, k_value, k.into(), this.clone()],
+                context,
+            )?;
+
+            // d. Set k to k - 1.
+            k -= 1;
+        }
+
+        // 11. Return accumulator.
+        Ok(accumulator)
+    }
+
+    /// `23.2.3.23 %TypedArray%.prototype.reverse ( )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.reverse
+    #[allow(clippy::float_cmp)]
+    fn reverse(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length() as f64;
+
+        // 4. Let middle be floor(len / 2).
+        let middle = (len / 2.0).floor();
+
+        // 5. Let lower be 0.
+        let mut lower = 0.0;
+        // 6. Repeat, while lower ≠ middle,
+        while lower != middle {
+            // a. Let upper be len - lower - 1.
+            let upper = len - lower - 1.0;
+
+            // b. Let upperP be ! ToString(𝔽(upper)).
+            // c. Let lowerP be ! ToString(𝔽(lower)).
+            // d. Let lowerValue be ! Get(O, lowerP).
+            let lower_value = obj.get(lower, context).expect("Get cannot fail here");
+            // e. Let upperValue be ! Get(O, upperP).
+            let upper_value = obj.get(upper, context).expect("Get cannot fail here");
+
+            // f. Perform ! Set(O, lowerP, upperValue, true).
+            obj.set(lower, upper_value, true, context)
+                .expect("Set cannot fail here");
+            // g. Perform ! Set(O, upperP, lowerValue, true).
+            obj.set(upper, lower_value, true, context)
+                .expect("Set cannot fail here");
+
+            // h. Set lower to lower + 1.
+            lower += 1.0;
+        }
+
+        // 7. Return O.
+        Ok(this.clone())
+    }
+
+    // TODO: 23.2.3.24 %TypedArray%.prototype.set ( source [ , offset ] )
+
+    /// `23.2.3.25 %TypedArray%.prototype.slice ( start, end )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.slice
+    fn slice(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length() as i64;
+
+        // 4. Let relativeStart be ? ToIntegerOrInfinity(start).
+        let mut k = match args.get_or_undefined(0).to_integer_or_infinity(context)? {
+            // 5. If relativeStart is -∞, let k be 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            // 6. Else if relativeStart < 0, let k be max(len + relativeStart, 0).
+            IntegerOrInfinity::Integer(i) if i < 0 => std::cmp::max(len + i, 0),
+            // 7. Else, let k be min(relativeStart, len).
+            IntegerOrInfinity::Integer(i) => std::cmp::min(i, len),
+            IntegerOrInfinity::PositiveInfinity => len,
+        };
+
+        // 8. If end is undefined, let relativeEnd be len; else let relativeEnd be ? ToIntegerOrInfinity(end).
+        let end = args.get_or_undefined(1);
+        let relative_end = if end.is_undefined() {
+            IntegerOrInfinity::Integer(len)
+        } else {
+            end.to_integer_or_infinity(context)?
+        };
+
+        let r#final = match relative_end {
+            // 9. If relativeEnd is -∞, let final be 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            // 10. Else if relativeEnd < 0, let final be max(len + relativeEnd, 0).
+            IntegerOrInfinity::Integer(i) if i < 0 => std::cmp::max(len + i, 0),
+            // 11. Else, let final be min(relativeEnd, len).
+            IntegerOrInfinity::Integer(i) => std::cmp::min(i, len),
+            IntegerOrInfinity::PositiveInfinity => len,
+        };
+
+        // 12. Let count be max(final - k, 0).
+        let count = std::cmp::max(r#final - k, 0) as usize;
+
+        // 13. Let A be ? TypedArraySpeciesCreate(O, « 𝔽(count) »).
+        let a = Self::species_create(&obj, o.typed_array_name(), &[count.into()], context)?;
+        let a_borrow = a.borrow();
+        let a_array = a_borrow
+            .as_typed_array()
+            .expect("This must be a typed array");
+
+        // 14. If count > 0, then
+        if count > 0 {
+            // a. If IsDetachedBuffer(O.[[ViewedArrayBuffer]]) is true, throw a TypeError exception.
+            if o.is_detached() {
+                return Err(context.construct_type_error("Buffer of the typed array is detached"));
+            }
+
+            // b. Let srcName be the String value of O.[[TypedArrayName]].
+            // c. Let srcType be the Element Type value in Table 73 for srcName.
+            // d. Let targetName be the String value of A.[[TypedArrayName]].
+            // e. Let targetType be the Element Type value in Table 73 for targetName.
+            // f. If srcType is different from targetType, then
+            if o.typed_array_name() != a_array.typed_array_name() {
+                // i. Let n be 0.
+                let mut n = 0;
+                // ii. Repeat, while k < final,
+                while k < r#final {
+                    // 1. Let Pk be ! ToString(𝔽(k)).
+                    // 2. Let kValue be ! Get(O, Pk).
+                    let k_value = obj.get(k, context).expect("Get cannot fail here");
+
+                    // 3. Perform ! Set(A, ! ToString(𝔽(n)), kValue, true).
+                    a.set(n, k_value, true, context)
+                        .expect("Set cannot fail here");
+
+                    // 4. Set k to k + 1.
+                    k += 1;
+
+                    // 5. Set n to n + 1.
+                    n += 1;
+                }
+            // g. Else,
+            } else {
+                // i. Let srcBuffer be O.[[ViewedArrayBuffer]].
+                let src_buffer_obj = o.viewed_array_buffer().expect("Cannot be detached here");
+                let src_buffer_obj_borrow = src_buffer_obj.borrow();
+                let src_buffer = src_buffer_obj_borrow
+                    .as_array_buffer()
+                    .expect("Cannot be detached here");
+
+                // ii. Let targetBuffer be A.[[ViewedArrayBuffer]].
+                let target_buffer_obj = a_array
+                    .viewed_array_buffer()
+                    .expect("Cannot be detached here");
+                let mut target_buffer_obj_borrow = target_buffer_obj.borrow_mut();
+                let target_buffer = target_buffer_obj_borrow
+                    .as_array_buffer_mut()
+                    .expect("Cannot be detached here");
+
+                // iii. Let elementSize be the Element Size value specified in Table 73 for Element Type srcType.
+                let element_size = o.typed_array_name().element_size();
+
+                // iv. NOTE: If srcType and targetType are the same, the transfer must be performed in a manner that preserves the bit-level encoding of the source data.
+
+                // v. Let srcByteOffset be O.[[ByteOffset]].
+                let src_byte_offset = o.byte_offset();
+
+                // vi. Let targetByteIndex be A.[[ByteOffset]].
+                let mut target_byte_index = a_array.byte_offset();
+
+                // vii. Let srcByteIndex be (k × elementSize) + srcByteOffset.
+                let mut src_byte_index = k as usize * element_size + src_byte_offset;
+
+                // viii. Let limit be targetByteIndex + count × elementSize.
+                let limit = target_byte_index + count * element_size;
+
+                // ix. Repeat, while targetByteIndex < limit,
+                while target_byte_index < limit {
+                    // 1. Let value be GetValueFromBuffer(srcBuffer, srcByteIndex, Uint8, true, Unordered).
+                    let value = src_buffer.get_value_from_buffer(
+                        src_byte_index,
+                        TypedArrayName::Uint8Array,
+                        true,
+                        SharedMemoryOrder::Unordered,
+                        None,
+                    );
+
+                    // 2. Perform SetValueInBuffer(targetBuffer, targetByteIndex, Uint8, value, true, Unordered).
+                    target_buffer.set_value_in_buffer(
+                        target_byte_index,
+                        TypedArrayName::Uint8Array,
+                        value,
+                        SharedMemoryOrder::Unordered,
+                        None,
+                        context,
+                    )?;
+
+                    // 3. Set srcByteIndex to srcByteIndex + 1.
+                    src_byte_index += 1;
+
+                    // 4. Set targetByteIndex to targetByteIndex + 1.
+                    target_byte_index += 1;
+                }
+            }
+        }
+
+        drop(a_borrow);
+
+        // 15. Return A.
+        Ok(a.into())
+    }
+
+    /// `23.2.3.26 %TypedArray%.prototype.some ( callbackfn [ , thisArg ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.some
+    fn some(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length();
+
+        // 4. If IsCallable(callbackfn) is false, throw a TypeError exception.
+        let callback_fn = match args.get_or_undefined(0).as_object() {
+            Some(obj) if obj.is_callable() => obj,
+            _ => {
+                return context.throw_type_error(
+                    "TypedArray.prototype.some called with non-callable callback function",
+                )
+            }
+        };
+
+        // 5. Let k be 0.
+        // 6. Repeat, while k < len,
+        for k in 0..len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ! Get(O, Pk).
+            let k_value = obj.get(k, context).expect("Get cannot fail here");
+
+            // c. Let testResult be ! ToBoolean(? Call(callbackfn, thisArg, « kValue, 𝔽(k), O »)).
+            // d. If testResult is true, return true.
+            if callback_fn
+                .call(
+                    args.get_or_undefined(1),
+                    &[k_value, k.into(), this.clone()],
+                    context,
+                )?
+                .to_boolean()
+            {
+                return Ok(true.into());
+            }
+        }
+
+        // 7. Return false.
+        Ok(false.into())
+    }
+
+    // TODO: 23.2.3.27 %TypedArray%.prototype.sort ( comparefn )
+
+    /// `23.2.3.28 %TypedArray%.prototype.subarray ( begin, end )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.subarray
+    fn subarray(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? RequireInternalSlot(O, [[TypedArrayName]]).
+        // 3. Assert: O has a [[ViewedArrayBuffer]] internal slot.
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+
+        // 4. Let buffer be O.[[ViewedArrayBuffer]].
+        let buffer = o
+            .viewed_array_buffer()
+            .expect("Buffer cannot be detached here");
+
+        // 5. Let srcLength be O.[[ArrayLength]].
+        let src_length = o.array_length() as i64;
+
+        // 6. Let relativeBegin be ? ToIntegerOrInfinity(begin).
+        let begin_index = match args.get_or_undefined(0).to_integer_or_infinity(context)? {
+            // 7. If relativeBegin is -∞, let beginIndex be 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            // 8. Else if relativeBegin < 0, let beginIndex be max(srcLength + relativeBegin, 0).
+            IntegerOrInfinity::Integer(i) if i < 0 => std::cmp::max(src_length + i, 0),
+            // 9. Else, let beginIndex be min(relativeBegin, srcLength).
+            IntegerOrInfinity::Integer(i) => std::cmp::min(i, src_length),
+            IntegerOrInfinity::PositiveInfinity => src_length,
+        };
+
+        // 10. If end is undefined, let relativeEnd be srcLength; else let relativeEnd be ? ToIntegerOrInfinity(end).
+        let end = args.get_or_undefined(1);
+        let relative_end = if end.is_undefined() {
+            IntegerOrInfinity::Integer(src_length)
+        } else {
+            end.to_integer_or_infinity(context)?
+        };
+
+        let end_index = match relative_end {
+            // 11. If relativeEnd is -∞, let endIndex be 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            // 12. Else if relativeEnd < 0, let endIndex be max(srcLength + relativeEnd, 0).
+            IntegerOrInfinity::Integer(i) if i < 0 => std::cmp::max(src_length + i, 0),
+            // 13. Else, let endIndex be min(relativeEnd, srcLength).
+            IntegerOrInfinity::Integer(i) => std::cmp::min(i, src_length),
+            IntegerOrInfinity::PositiveInfinity => src_length,
+        };
+
+        // 14. Let newLength be max(endIndex - beginIndex, 0).
+        let new_length = std::cmp::max(end_index - begin_index, 0);
+
+        // 15. Let constructorName be the String value of O.[[TypedArrayName]].
+        // 16. Let elementSize be the Element Size value specified in Table 73 for constructorName.
+        let element_size = o.typed_array_name().element_size();
+
+        // 17. Let srcByteOffset be O.[[ByteOffset]].
+        let src_byte_offset = o.byte_offset();
+
+        // 18. Let beginByteOffset be srcByteOffset + beginIndex × elementSize.
+        let begin_byte_offset = src_byte_offset + begin_index as usize * element_size;
+
+        // 19. Let argumentsList be « buffer, 𝔽(beginByteOffset), 𝔽(newLength) ».
+        // 20. Return ? TypedArraySpeciesCreate(O, argumentsList).
+        Ok(Self::species_create(
+            &obj,
+            o.typed_array_name(),
+            &[
+                buffer.clone().into(),
+                begin_byte_offset.into(),
+                new_length.into(),
+            ],
+            context,
+        )?
+        .into())
+    }
+
+    // TODO: 23.2.3.29 %TypedArray%.prototype.toLocaleString ( [ reserved1 [ , reserved2 ] ] )
+
+    // TODO: 23.2.3.31 %TypedArray%.prototype.values ( )
+
+    // TODO: 23.2.3.32 %TypedArray%.prototype [ @@iterator ] ( )
+
+    /// `23.2.3.33 get %TypedArray%.prototype [ @@toStringTag ]`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-get-%typedarray%.prototype-@@tostringtag
+    fn to_string_tag(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. If Type(O) is not Object, return undefined.
+        // 3. If O does not have a [[TypedArrayName]] internal slot, return undefined.
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+
+        // 4. Let name be O.[[TypedArrayName]].
+        // 5. Assert: Type(name) is String.
+        // 6. Return name.
+        Ok(o.typed_array_name().name().into())
+    }
+
+    /// `23.2.4.1 TypedArraySpeciesCreate ( exemplar, argumentList )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#typedarray-species-create
+    fn species_create(
+        exemplar: &JsObject,
+        typed_array_name: TypedArrayName,
+        args: &[JsValue],
+        context: &mut Context,
+    ) -> JsResult<JsObject> {
+        // 1. Let defaultConstructor be the intrinsic object listed in column one of Table 73 for exemplar.[[TypedArrayName]].
+        let default_constructor = match typed_array_name {
+            TypedArrayName::Int8Array => context
+                .standard_objects()
+                .typed_int8_array_object()
+                .constructor(),
+            TypedArrayName::Uint8Array => context
+                .standard_objects()
+                .typed_uint8_array_object()
+                .constructor(),
+            TypedArrayName::Uint8ClampedArray => context
+                .standard_objects()
+                .typed_uint8clamped_array_object()
+                .constructor(),
+            TypedArrayName::Int16Array => context
+                .standard_objects()
+                .typed_int16_array_object()
+                .constructor(),
+            TypedArrayName::Uint16Array => context
+                .standard_objects()
+                .typed_uint16_array_object()
+                .constructor(),
+            TypedArrayName::Int32Array => context
+                .standard_objects()
+                .typed_int32_array_object()
+                .constructor(),
+            TypedArrayName::Uint32Array => context
+                .standard_objects()
+                .typed_uint32_array_object()
+                .constructor(),
+            TypedArrayName::BigInt64Array => context
+                .standard_objects()
+                .typed_bigint64_array_object()
+                .constructor(),
+            TypedArrayName::BigUint64Array => context
+                .standard_objects()
+                .typed_biguint64_array_object()
+                .constructor(),
+            TypedArrayName::Float32Array => context
+                .standard_objects()
+                .typed_float32_array_object()
+                .constructor(),
+            TypedArrayName::Float64Array => context
+                .standard_objects()
+                .typed_float64_array_object()
+                .constructor(),
+        };
+
+        // 2. Let constructor be ? SpeciesConstructor(exemplar, defaultConstructor).
+        let constructor = exemplar.species_constructor(default_constructor.into(), context)?;
+
+        // 3. Let result be ? TypedArrayCreate(constructor, argumentList).
+        let result = Self::constructor(&constructor, args, context)?;
+
+        // 4. Assert: result has [[TypedArrayName]] and [[ContentType]] internal slots.
+        let result_obj = result
+            .as_object()
+            .expect("This can only be a typed array object");
+        let result_obj_borrow = result_obj.borrow();
+        let result_array = result_obj_borrow
+            .as_typed_array()
+            .expect("This can only be a typed array object");
+
+        // 5. If result.[[ContentType]] ≠ exemplar.[[ContentType]], throw a TypeError exception.
+        if result_array.typed_array_name().content_type() != typed_array_name.content_type() {
+            return Err(context
+                .construct_type_error("New typed array has different context type than exemplar"));
+        }
+
+        drop(result_obj_borrow);
+
+        // 6. Return result.
+        Ok(result_obj)
+    }
+
+    /// `23.2.4.3 ValidateTypedArray ( O )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-validatetypedarray
+    fn validate_typed_array(o: &JsValue, context: &mut Context) -> JsResult<()> {
+        // 1. Perform ? RequireInternalSlot(O, [[TypedArrayName]]).
+        // 2. Assert: O has a [[ViewedArrayBuffer]] internal slot.
+        // 3. Let buffer be O.[[ViewedArrayBuffer]].
+        let obj = o
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let typed_array = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+
+        // 4. If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
+        if typed_array.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        Ok(())
     }
 
     /// <https://tc39.es/ecma262/#sec-allocatetypedarraybuffer>
@@ -702,6 +2345,24 @@ impl TypedArrayName {
         match self {
             Self::BigInt64Array | Self::BigUint64Array => ContentType::BigInt,
             _ => ContentType::Number,
+        }
+    }
+
+    /// Gets the name of this typed array name.
+    #[inline]
+    pub(crate) const fn name(&self) -> &str {
+        match self {
+            TypedArrayName::Int8Array => "Int8Array",
+            TypedArrayName::Uint8Array => "Uint8Array",
+            TypedArrayName::Uint8ClampedArray => "Uint8ClampedArray",
+            TypedArrayName::Int16Array => "Int16Array",
+            TypedArrayName::Uint16Array => "Uint16Array",
+            TypedArrayName::Int32Array => "Int32Array",
+            TypedArrayName::Uint32Array => "Uint32Array",
+            TypedArrayName::BigInt64Array => "BigInt64Array",
+            TypedArrayName::BigUint64Array => "BigUint64Array",
+            TypedArrayName::Float32Array => "Float32Array",
+            TypedArrayName::Float64Array => "Float64Array",
         }
     }
 }

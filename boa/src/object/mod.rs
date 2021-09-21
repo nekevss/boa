@@ -1445,6 +1445,7 @@ pub struct ConstructorBuilder<'context> {
     callable: bool,
     constructable: bool,
     inherit: Option<JsValue>,
+    custom_prototype: Option<JsValue>,
 }
 
 impl Debug for ConstructorBuilder<'_> {
@@ -1475,6 +1476,7 @@ impl<'context> ConstructorBuilder<'context> {
             callable: true,
             constructable: true,
             inherit: None,
+            custom_prototype: None,
         }
     }
 
@@ -1494,6 +1496,7 @@ impl<'context> ConstructorBuilder<'context> {
             callable: true,
             constructable: true,
             inherit: None,
+            custom_prototype: None,
         }
     }
 
@@ -1697,6 +1700,15 @@ impl<'context> ConstructorBuilder<'context> {
         self
     }
 
+    /// Specify the __proto__ for this constructor.
+    ///
+    /// Default is `Function.prototype`
+    #[inline]
+    pub fn custom_prototype(&mut self, prototype: JsValue) -> &mut Self {
+        self.custom_prototype = Some(prototype);
+        self
+    }
+
     /// Return the current context.
     #[inline]
     pub fn context(&mut self) -> &'_ mut Context {
@@ -1728,14 +1740,17 @@ impl<'context> ConstructorBuilder<'context> {
             constructor.insert("length", length);
             constructor.insert("name", name);
 
-            constructor.set_prototype_instance(
-                self.context
-                    .standard_objects()
-                    .function_object()
-                    .prototype()
-                    .into(),
-            );
-
+            if let Some(proto) = &self.custom_prototype {
+                constructor.set_prototype_instance(proto.clone());
+            } else {
+                constructor.set_prototype_instance(
+                    self.context
+                        .standard_objects()
+                        .function_object()
+                        .prototype()
+                        .into(),
+                );
+            }
             constructor.insert_property(
                 PROTOTYPE,
                 PropertyDescriptor::builder()
