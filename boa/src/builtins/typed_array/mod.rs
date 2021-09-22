@@ -6,7 +6,7 @@ use crate::{
         array_buffer::{ArrayBuffer, SharedMemoryOrder},
         iterable::iterable_to_list,
         typed_array::integer_indexed_object::ContentType,
-        Array, BuiltIn, JsArgs,
+        Array, ArrayIterator, BuiltIn, JsArgs,
     },
     context::{StandardConstructor, StandardObjects},
     gc::{empty_trace, Finalize, Trace},
@@ -14,7 +14,7 @@ use crate::{
         internal_methods::get_prototype_from_constructor, ConstructorBuilder, FunctionBuilder,
         JsObject, ObjectData,
     },
-    property::Attribute,
+    property::{Attribute, PropertyNameKind},
     symbol::WellKnownSymbols,
     value::{IntegerOrInfinity, JsValue},
     BoaProfiler, Context, JsResult, JsString,
@@ -250,6 +250,12 @@ impl TypedArray {
             .constructable(false)
             .build();
 
+        let values_function = FunctionBuilder::native(context, Self::values)
+            .name("values")
+            .length(0)
+            .constructable(false)
+            .build();
+
         let object = ConstructorBuilder::with_standard_object(
             context,
             Self::constructor,
@@ -267,6 +273,11 @@ impl TypedArray {
             "length",
             0,
             Attribute::WRITABLE | Attribute::NON_ENUMERABLE | Attribute::PERMANENT,
+        )
+        .property(
+            WellKnownSymbols::iterator(),
+            values_function,
+            Attribute::WRITABLE | Attribute::NON_ENUMERABLE | Attribute::CONFIGURABLE,
         )
         .accessor(
             "buffer",
@@ -302,6 +313,7 @@ impl TypedArray {
         .static_method(Self::of, "of", 0)
         .method(Self::at, "at", 1)
         .method(Self::copy_within, "copyWithin", 2)
+        .method(Self::entries, "entries", 0)
         .method(Self::every, "every", 1)
         .method(Self::fill, "fill", 1)
         .method(Self::filter, "filter", 1)
@@ -311,6 +323,7 @@ impl TypedArray {
         .method(Self::includes, "includes", 1)
         .method(Self::index_of, "indexOf", 1)
         .method(Self::join, "join", 1)
+        .method(Self::keys, "keys", 0)
         .method(Self::last_index_of, "lastIndexOf", 1)
         .method(Self::map, "map", 1)
         .method(Self::reduce, "reduce", 1)
@@ -319,6 +332,7 @@ impl TypedArray {
         .method(Self::slice, "slice", 2)
         .method(Self::some, "some", 1)
         .method(Self::subarray, "subarray", 2)
+        .method(Self::values, "values", 0)
         // 23.2.3.29 %TypedArray%.prototype.toString ( )
         // The initial value of the %TypedArray%.prototype.toString data property is the same
         // built-in function object as the Array.prototype.toString method defined in 23.1.3.30.
@@ -788,7 +802,33 @@ impl TypedArray {
         Ok(this.clone())
     }
 
-    // TODO: 23.2.3.7 %TypedArray%.prototype.entries ( )
+    /// `23.2.3.7 %TypedArray%.prototype.entries ( )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.entries
+    fn entries(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let o = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.borrow()
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?
+            .is_detached()
+        {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Return CreateArrayIterator(O, key+value).
+        Ok(ArrayIterator::create_array_iterator(
+            o,
+            PropertyNameKind::KeyAndValue,
+            context,
+        ))
+    }
 
     /// `23.2.3.8 %TypedArray%.prototype.every ( callbackfn [ , thisArg ] )`
     ///
@@ -1389,7 +1429,33 @@ impl TypedArray {
         Ok(r.into())
     }
 
-    // TODO: 23.2.3.17 %TypedArray%.prototype.keys ( )
+    /// `23.2.3.17 %TypedArray%.prototype.keys ( )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.keys
+    fn keys(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let o = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.borrow()
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?
+            .is_detached()
+        {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Return CreateArrayIterator(O, key).
+        Ok(ArrayIterator::create_array_iterator(
+            o,
+            PropertyNameKind::Key,
+            context,
+        ))
+    }
 
     /// `23.2.3.18 %TypedArray%.prototype.lastIndexOf ( searchElement [ , fromIndex ] )`
     ///
@@ -2072,9 +2138,33 @@ impl TypedArray {
 
     // TODO: 23.2.3.29 %TypedArray%.prototype.toLocaleString ( [ reserved1 [ , reserved2 ] ] )
 
-    // TODO: 23.2.3.31 %TypedArray%.prototype.values ( )
+    /// `23.2.3.31 %TypedArray%.prototype.values ( )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.values
+    fn values(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let o = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.borrow()
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?
+            .is_detached()
+        {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
 
-    // TODO: 23.2.3.32 %TypedArray%.prototype [ @@iterator ] ( )
+        // 3. Return CreateArrayIterator(O, value).
+        Ok(ArrayIterator::create_array_iterator(
+            o,
+            PropertyNameKind::Value,
+            context,
+        ))
+    }
 
     /// `23.2.3.33 get %TypedArray%.prototype [ @@toStringTag ]`
     ///
@@ -2553,7 +2643,7 @@ impl TypedArray {
         let offset = byte_offset.to_index(context)?;
 
         // 4. If offset modulo elementSize ≠ 0, throw a RangeError exception.
-        if offset & constructor_name.element_size() != 0 {
+        if offset % constructor_name.element_size() != 0 {
             return Err(context.construct_range_error("Invalid length for typed array"));
         }
 
