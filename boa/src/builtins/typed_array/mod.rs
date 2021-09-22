@@ -298,23 +298,26 @@ impl TypedArray {
             None,
             Attribute::CONFIGURABLE | Attribute::NON_ENUMERABLE,
         )
+        .static_method(Self::from, "from", 1)
+        .static_method(Self::of, "of", 0)
         .method(Self::at, "at", 1)
-        .method(Self::every, "every", 2)
-        .method(Self::fill, "fill", 3)
-        .method(Self::filter, "filter", 2)
-        .method(Self::find, "find", 2)
-        .method(Self::findindex, "findindex", 2)
-        .method(Self::foreach, "foreach", 2)
-        .method(Self::includes, "includes", 2)
-        .method(Self::index_of, "indexOf", 2)
+        .method(Self::copy_within, "copyWithin", 2)
+        .method(Self::every, "every", 1)
+        .method(Self::fill, "fill", 1)
+        .method(Self::filter, "filter", 1)
+        .method(Self::find, "find", 1)
+        .method(Self::findindex, "findIndex", 1)
+        .method(Self::foreach, "forEach", 1)
+        .method(Self::includes, "includes", 1)
+        .method(Self::index_of, "indexOf", 1)
         .method(Self::join, "join", 1)
-        .method(Self::last_index_of, "lastIndexOf", 2)
-        .method(Self::map, "map", 2)
-        .method(Self::reduce, "reduce", 2)
-        .method(Self::reduceright, "reduceright", 2)
+        .method(Self::last_index_of, "lastIndexOf", 1)
+        .method(Self::map, "map", 1)
+        .method(Self::reduce, "reduce", 1)
+        .method(Self::reduceright, "reduceRight", 1)
         .method(Self::reverse, "reverse", 0)
         .method(Self::slice, "slice", 2)
-        .method(Self::some, "some", 2)
+        .method(Self::some, "some", 1)
         .method(Self::subarray, "subarray", 2)
         // 23.2.3.29 %TypedArray%.prototype.toString ( )
         // The initial value of the %TypedArray%.prototype.toString data property is the same
@@ -340,16 +343,154 @@ impl TypedArray {
         context.throw_type_error("the TypedArray constructor should never be called directly")
     }
 
-    /// `get %TypedArray% [ @@species ]`
-    ///
-    /// The `%TypedArray% [ @@species ]` accessor property returns the constructor of a typed array.
+    /// `23.2.2.1 %TypedArray%.from ( source [ , mapfn [ , thisArg ] ] )`
     ///
     /// More information:
     ///  - [ECMAScript reference][spec]
-    ///  - [MDN documentation][mdn]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.from
+    fn from(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let C be the this value.
+        // 2. If IsConstructor(C) is false, throw a TypeError exception.
+        let constructor = match this.as_object() {
+            Some(obj) if obj.is_constructable() => obj,
+            _ => {
+                return context
+                    .throw_type_error("TypedArray.from called on non-constructable value")
+            }
+        };
+
+        let mapping = match args.get(1) {
+            // 3. If mapfn is undefined, let mapping be false.
+            None | Some(JsValue::Undefined) => None,
+            // 4. Else,
+            Some(v) => match v.as_object() {
+                // b. Let mapping be true.
+                Some(obj) if obj.is_callable() => Some(obj),
+                // a. If IsCallable(mapfn) is false, throw a TypeError exception.
+                _ => {
+                    return context
+                        .throw_type_error("TypedArray.from called with non-callable mapfn")
+                }
+            },
+        };
+
+        // 5. Let usingIterator be ? GetMethod(source, @@iterator).
+        let source = args.get_or_undefined(0);
+        let using_iterator = source.get_method(WellKnownSymbols::iterator(), context)?;
+
+        let this_arg = args.get_or_undefined(2);
+
+        // 6. If usingIterator is not undefined, then
+        if !using_iterator.is_undefined() {
+            // a. Let values be ? IterableToList(source, usingIterator).
+            let values = iterable_to_list(context, source.clone(), Some(using_iterator))?;
+
+            // b. Let len be the number of elements in values.
+            // c. Let targetObj be ? TypedArrayCreate(C, « 𝔽(len) »).
+            let target_obj = Self::create(&constructor, &[values.len().into()], context)?;
+
+            // d. Let k be 0.
+            // e. Repeat, while k < len,
+            for (k, k_value) in values.iter().enumerate() {
+                // i. Let Pk be ! ToString(𝔽(k)).
+                // ii. Let kValue be the first element of values and remove that element from values.
+                // iii. If mapping is true, then
+                let mapped_value = if let Some(map_fn) = &mapping {
+                    // 1. Let mappedValue be ? Call(mapfn, thisArg, « kValue, 𝔽(k) »).
+                    map_fn.call(this_arg, &[k_value.clone(), k.into()], context)?
+                }
+                // iv. Else, let mappedValue be kValue.
+                else {
+                    k_value.clone()
+                };
+
+                // v. Perform ? Set(targetObj, Pk, mappedValue, true).
+                target_obj.set(k, mapped_value, true, context)?;
+            }
+
+            // f. Assert: values is now an empty List.
+            // g. Return targetObj.
+            return Ok(target_obj.into());
+        }
+
+        // 7. NOTE: source is not an Iterable so assume it is already an array-like object.
+        // 8. Let arrayLike be ! ToObject(source).
+        let array_like = source
+            .to_object(context)
+            .expect("ToObject cannot fail here");
+
+        // 9. Let len be ? LengthOfArrayLike(arrayLike).
+        let len = array_like.length_of_array_like(context)?;
+
+        // 10. Let targetObj be ? TypedArrayCreate(C, « 𝔽(len) »).
+        let target_obj = Self::create(&constructor, &[len.into()], context)?;
+
+        // 11. Let k be 0.
+        // 12. Repeat, while k < len,
+        for k in 0..len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kValue be ? Get(arrayLike, Pk).
+            let k_value = array_like.get(k, context)?;
+
+            // c. If mapping is true, then
+            let mapped_value = if let Some(map_fn) = &mapping {
+                // i. Let mappedValue be ? Call(mapfn, thisArg, « kValue, 𝔽(k) »).
+                map_fn.call(this_arg, &[k_value, k.into()], context)?
+            }
+            // d. Else, let mappedValue be kValue.
+            else {
+                k_value
+            };
+
+            // e. Perform ? Set(targetObj, Pk, mappedValue, true).
+            target_obj.set(k, mapped_value, true, context)?;
+        }
+
+        // 13. Return targetObj.
+        Ok(target_obj.into())
+    }
+
+    /// `23.2.2.2 %TypedArray%.of ( ...items )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.of
+    fn of(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let len be the number of elements in items.
+
+        // 2. Let C be the this value.
+        // 3. If IsConstructor(C) is false, throw a TypeError exception.
+        let constructor = match this.as_object() {
+            Some(obj) if obj.is_constructable() => obj,
+            _ => {
+                return context.throw_type_error("TypedArray.of called on non-constructable value")
+            }
+        };
+
+        // 4. Let newObj be ? TypedArrayCreate(C, « 𝔽(len) »).
+        let new_obj = Self::create(&constructor, &[args.len().into()], context)?;
+
+        // 5. Let k be 0.
+        // 6. Repeat, while k < len,
+        for (k, k_value) in args.iter().enumerate() {
+            // a. Let kValue be items[k].
+            // b. Let Pk be ! ToString(𝔽(k)).
+            // c. Perform ? Set(newObj, Pk, kValue, true).
+            new_obj.set(k, k_value, true, context)?;
+        }
+
+        // 7. Return newObj.
+        Ok(new_obj.into())
+    }
+
+    /// `23.2.2.4 get %TypedArray% [ @@species ]`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-get-%typedarray%-@@species
-    /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray/@@species
     fn get_species(this: &JsValue, _: &[JsValue], _: &mut Context) -> JsResult<JsValue> {
         // 1. Return the this value.
         Ok(this.clone())
@@ -487,7 +628,166 @@ impl TypedArray {
         }
     }
 
-    // TODO: 23.2.3.6 %TypedArray%.prototype.copyWithin ( target, start [ , end ] )
+    /// `23.2.3.6 %TypedArray%.prototype.copyWithin ( target, start [ , end ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.copywithin
+    fn copy_within(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        let obj = this
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let len be O.[[ArrayLength]].
+        let len = o.array_length() as i64;
+
+        // 4. Let relativeTarget be ? ToIntegerOrInfinity(target).
+        let relative_target = args.get_or_undefined(0).to_integer_or_infinity(context)?;
+
+        let to = match relative_target {
+            // 5. If relativeTarget is -∞, let to be 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            // 6. Else if relativeTarget < 0, let to be max(len + relativeTarget, 0).
+            IntegerOrInfinity::Integer(i) if i < 0 => std::cmp::max(len + i, 0),
+            // 7. Else, let to be min(relativeTarget, len).
+            IntegerOrInfinity::Integer(i) => std::cmp::min(i, len),
+            IntegerOrInfinity::PositiveInfinity => len,
+        };
+
+        // 8. Let relativeStart be ? ToIntegerOrInfinity(start).
+        let relative_start = args.get_or_undefined(1).to_integer_or_infinity(context)?;
+
+        let from = match relative_start {
+            // 9. If relativeStart is -∞, let from be 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            // 10. Else if relativeStart < 0, let from be max(len + relativeStart, 0).
+            IntegerOrInfinity::Integer(i) if i < 0 => std::cmp::max(len + i, 0),
+            // 11. Else, let from be min(relativeStart, len).
+            IntegerOrInfinity::Integer(i) => std::cmp::min(i, len),
+            IntegerOrInfinity::PositiveInfinity => len,
+        };
+
+        // 12. If end is undefined, let relativeEnd be len; else let relativeEnd be ? ToIntegerOrInfinity(end).
+        let end = args.get_or_undefined(2);
+        let relative_end = if end.is_undefined() {
+            IntegerOrInfinity::Integer(len)
+        } else {
+            end.to_integer_or_infinity(context)?
+        };
+
+        let r#final = match relative_end {
+            // 13. If relativeEnd is -∞, let final be 0.
+            IntegerOrInfinity::NegativeInfinity => 0,
+            // 14. Else if relativeEnd < 0, let final be max(len + relativeEnd, 0).
+            IntegerOrInfinity::Integer(i) if i < 0 => std::cmp::max(len + i, 0),
+            // 15. Else, let final be min(relativeEnd, len).
+            IntegerOrInfinity::Integer(i) => std::cmp::min(i, len),
+            IntegerOrInfinity::PositiveInfinity => len,
+        };
+
+        // 16. Let count be min(final - from, len - to).
+        let count = std::cmp::min(r#final - from, len - to);
+
+        // 17. If count > 0, then
+        if count > 0 {
+            // a. NOTE: The copying must be performed in a manner that preserves the bit-level encoding of the source data.
+            // b. Let buffer be O.[[ViewedArrayBuffer]].
+            // c. If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
+            let buffer_obj = if let Some(obj) = o.viewed_array_buffer() {
+                obj
+            } else {
+                return Err(context.construct_type_error("Buffer of the typed array is detached"));
+            };
+            let mut buffer_obj_borrow = buffer_obj.borrow_mut();
+            let buffer = if let Some(buffer) = buffer_obj_borrow.as_array_buffer_mut() {
+                buffer
+            } else {
+                return Err(context.construct_type_error("Buffer of the typed array is detached"));
+            };
+
+            // d. Let typedArrayName be the String value of O.[[TypedArrayName]].
+            let typed_array_name = o.typed_array_name();
+
+            // e. Let elementSize be the Element Size value specified in Table 73 for typedArrayName.
+            let element_size = typed_array_name.element_size() as i64;
+
+            // f. Let byteOffset be O.[[ByteOffset]].
+            let byte_offset = o.byte_offset() as i64;
+
+            // g. Let toByteIndex be to × elementSize + byteOffset.
+            let mut to_byte_index = to * element_size + byte_offset;
+
+            // h. Let fromByteIndex be from × elementSize + byteOffset.
+            let mut from_byte_index = from * element_size + byte_offset;
+
+            // i. Let countBytes be count × elementSize.
+            let mut count_bytes = count * element_size;
+
+            // j. If fromByteIndex < toByteIndex and toByteIndex < fromByteIndex + countBytes, then
+            let direction = if from_byte_index < to_byte_index
+                && to_byte_index < from_byte_index + count_bytes
+            {
+                // ii. Set fromByteIndex to fromByteIndex + countBytes - 1.
+                from_byte_index = from_byte_index + count_bytes - 1;
+
+                // iii. Set toByteIndex to toByteIndex + countBytes - 1.
+                to_byte_index = to_byte_index + count_bytes - 1;
+
+                // i. Let direction be -1.
+                -1
+            }
+            // k. Else,
+            else {
+                // i. Let direction be 1.
+                1
+            };
+
+            // l. Repeat, while countBytes > 0,
+            while count_bytes > 0 {
+                // i. Let value be GetValueFromBuffer(buffer, fromByteIndex, Uint8, true, Unordered).
+                let value = buffer.get_value_from_buffer(
+                    from_byte_index as usize,
+                    TypedArrayName::Uint8Array,
+                    true,
+                    SharedMemoryOrder::Unordered,
+                    None,
+                );
+
+                // ii. Perform SetValueInBuffer(buffer, toByteIndex, Uint8, value, true, Unordered).
+                buffer.set_value_in_buffer(
+                    to_byte_index as usize,
+                    TypedArrayName::Uint8Array,
+                    value,
+                    SharedMemoryOrder::Unordered,
+                    None,
+                    context,
+                )?;
+
+                // iii. Set fromByteIndex to fromByteIndex + direction.
+                from_byte_index += direction;
+
+                // iv. Set toByteIndex to toByteIndex + direction.
+                to_byte_index += direction;
+
+                // v. Set countBytes to countBytes - 1.
+                count_bytes -= 1;
+            }
+        }
+
+        // 18. Return O.
+        Ok(this.clone())
+    }
+
     // TODO: 23.2.3.7 %TypedArray%.prototype.entries ( )
 
     /// `23.2.3.8 %TypedArray%.prototype.every ( callbackfn [ , thisArg ] )`
@@ -1864,14 +2164,17 @@ impl TypedArray {
         let constructor = exemplar.species_constructor(default_constructor.into(), context)?;
 
         // 3. Let result be ? TypedArrayCreate(constructor, argumentList).
-        let result = Self::constructor(&constructor, args, context)?;
+        let result = Self::create(
+            &constructor
+                .as_object()
+                .expect("Constructor must be an object"),
+            args,
+            context,
+        )?;
 
         // 4. Assert: result has [[TypedArrayName]] and [[ContentType]] internal slots.
-        let result_obj = result
-            .as_object()
-            .expect("This can only be a typed array object");
-        let result_obj_borrow = result_obj.borrow();
-        let result_array = result_obj_borrow
+        let result_borrow = result.borrow();
+        let result_array = result_borrow
             .as_typed_array()
             .expect("This can only be a typed array object");
 
@@ -1881,10 +2184,53 @@ impl TypedArray {
                 .construct_type_error("New typed array has different context type than exemplar"));
         }
 
-        drop(result_obj_borrow);
+        drop(result_borrow);
 
         // 6. Return result.
-        Ok(result_obj)
+        Ok(result)
+    }
+
+    /// `23.2.4.2 TypedArrayCreate ( constructor, argumentList )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#typedarray-create
+    fn create(
+        constructor: &JsObject,
+        args: &[JsValue],
+        context: &mut Context,
+    ) -> JsResult<JsObject> {
+        // 1. Let newTypedArray be ? Construct(constructor, argumentList).
+        let new_typed_array = constructor.construct(args, &constructor.clone().into(), context)?;
+
+        // 2. Perform ? ValidateTypedArray(newTypedArray).
+        let obj = new_typed_array
+            .as_object()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+        if o.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. If argumentList is a List of a single Number, then
+        if args.len() == 1 {
+            if let Some(number) = args[0].as_number() {
+                // a. If newTypedArray.[[ArrayLength]] < ℝ(argumentList[0]), throw a TypeError exception.
+                if (o.array_length() as f64) < number {
+                    return Err(context
+                        .construct_type_error("New typed array length is smaller than expected"));
+                }
+            }
+        }
+
+        drop(obj_borrow);
+
+        // 4. Return newTypedArray.
+        Ok(obj)
     }
 
     /// `23.2.4.3 ValidateTypedArray ( O )`
