@@ -92,7 +92,14 @@ impl IntegerIndexed {
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-isdetachedbuffer
     pub(crate) fn is_detached(&self) -> bool {
-        self.viewed_array_buffer.is_none()
+        if let Some(obj) = &self.viewed_array_buffer {
+            obj.borrow()
+                .as_array_buffer()
+                .expect("Typed array must have internal array buffer object")
+                .is_detached_buffer()
+        } else {
+            false
+        }
     }
 
     /// Get a reference to the integer indexed object's byte offset.

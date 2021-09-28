@@ -1,11 +1,12 @@
 //! <https://tc39.es/ecma262/#sec-typedarray-objects>
 
-pub use self::integer_indexed_object::IntegerIndexed;
+use std::cmp::Ordering;
+
 use crate::{
     builtins::{
         array_buffer::{ArrayBuffer, SharedMemoryOrder},
         iterable::iterable_to_list,
-        typed_array::integer_indexed_object::ContentType,
+        typed_array::integer_indexed_object::{ContentType, IntegerIndexed},
         Array, ArrayIterator, BuiltIn, JsArgs,
     },
     context::{StandardConstructor, StandardObjects},
@@ -329,8 +330,10 @@ impl TypedArray {
         .method(Self::reduce, "reduce", 1)
         .method(Self::reduceright, "reduceRight", 1)
         .method(Self::reverse, "reverse", 0)
+        .method(Self::set, "set", 1)
         .method(Self::slice, "slice", 2)
         .method(Self::some, "some", 1)
+        .method(Self::sort, "sort", 1)
         .method(Self::subarray, "subarray", 2)
         .method(Self::values, "values", 0)
         // 23.2.3.29 %TypedArray%.prototype.toString ( )
@@ -606,10 +609,10 @@ impl TypedArray {
         // 5. If IsDetachedBuffer(buffer) is true, return +0𝔽.
         // 6. Let size be O.[[ByteLength]].
         // 7. Return 𝔽(size).
-        if typed_array.viewed_array_buffer().is_some() {
-            Ok(typed_array.byte_length.into())
-        } else {
+        if typed_array.is_detached() {
             Ok(0.into())
+        } else {
+            Ok(typed_array.byte_length.into())
         }
     }
 
@@ -635,10 +638,10 @@ impl TypedArray {
         // 5. If IsDetachedBuffer(buffer) is true, return +0𝔽.
         // 6. Let offset be O.[[ByteOffset]].
         // 7. Return 𝔽(offset).
-        if typed_array.viewed_array_buffer().is_some() {
-            Ok(typed_array.byte_offset().into())
-        } else {
+        if typed_array.is_detached() {
             Ok(0.into())
+        } else {
+            Ok(typed_array.byte_offset().into())
         }
     }
 
@@ -650,20 +653,24 @@ impl TypedArray {
     /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.copywithin
     fn copy_within(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
         // 1. Let O be the this value.
-        // 2. Perform ? ValidateTypedArray(O).
         let obj = this
             .as_object()
             .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
-        let obj_borrow = obj.borrow();
-        let o = obj_borrow
-            .as_typed_array()
-            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
-        if o.is_detached() {
-            return Err(context.construct_type_error("Buffer of the typed array is detached"));
-        }
 
-        // 3. Let len be O.[[ArrayLength]].
-        let len = o.array_length() as i64;
+        let len = {
+            let obj_borrow = obj.borrow();
+            let o = obj_borrow
+                .as_typed_array()
+                .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+
+            // 2. Perform ? ValidateTypedArray(O).
+            if o.is_detached() {
+                return Err(context.construct_type_error("Buffer of the typed array is detached"));
+            }
+
+            // 3. Let len be O.[[ArrayLength]].
+            o.array_length() as i64
+        };
 
         // 4. Let relativeTarget be ? ToIntegerOrInfinity(target).
         let relative_target = args.get_or_undefined(0).to_integer_or_infinity(context)?;
@@ -712,22 +719,19 @@ impl TypedArray {
         // 16. Let count be min(final - from, len - to).
         let count = std::cmp::min(r#final - from, len - to);
 
+        let obj_borrow = obj.borrow();
+        let o = obj_borrow
+            .as_typed_array()
+            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
+
         // 17. If count > 0, then
         if count > 0 {
             // a. NOTE: The copying must be performed in a manner that preserves the bit-level encoding of the source data.
             // b. Let buffer be O.[[ViewedArrayBuffer]].
             // c. If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
-            let buffer_obj = if let Some(obj) = o.viewed_array_buffer() {
-                obj
-            } else {
+            if o.is_detached() {
                 return Err(context.construct_type_error("Buffer of the typed array is detached"));
-            };
-            let mut buffer_obj_borrow = buffer_obj.borrow_mut();
-            let buffer = if let Some(buffer) = buffer_obj_borrow.as_array_buffer_mut() {
-                buffer
-            } else {
-                return Err(context.construct_type_error("Buffer of the typed array is detached"));
-            };
+            }
 
             // d. Let typedArrayName be the String value of O.[[TypedArrayName]].
             let typed_array_name = o.typed_array_name();
@@ -765,6 +769,14 @@ impl TypedArray {
                 // i. Let direction be 1.
                 1
             };
+
+            let buffer_obj = o
+                .viewed_array_buffer()
+                .expect("Already checked for detached buffer");
+            let mut buffer_obj_borrow = buffer_obj.borrow_mut();
+            let buffer = buffer_obj_borrow
+                .as_array_buffer_mut()
+                .expect("Already checked for detached buffer");
 
             // l. Repeat, while countBytes > 0,
             while count_bytes > 0 {
@@ -1553,7 +1565,7 @@ impl TypedArray {
         // 5. If IsDetachedBuffer(buffer) is true, return +0𝔽.
         // 6. Let length be O.[[ArrayLength]].
         // 7. Return 𝔽(length).
-        if typed_array.viewed_array_buffer().is_none() {
+        if typed_array.is_detached() {
             Ok(0.into())
         } else {
             Ok(typed_array.array_length().into())
@@ -1827,7 +1839,384 @@ impl TypedArray {
         Ok(this.clone())
     }
 
-    // TODO: 23.2.3.24 %TypedArray%.prototype.set ( source [ , offset ] )
+    /// `23.2.3.24 %TypedArray%.prototype.set ( source [ , offset ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.set
+    fn set(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. Let target be the this value.
+        // 2. Perform ? RequireInternalSlot(target, [[TypedArrayName]]).
+        // 3. Assert: target has a [[ViewedArrayBuffer]] internal slot.
+        let target = this.as_object().ok_or_else(|| {
+            context.construct_type_error("TypedArray.set must be called on typed array object")
+        })?;
+        if !target.is_typed_array() {
+            return context.throw_type_error("TypedArray.set must be called on typed array object");
+        }
+
+        // 4. Let targetOffset be ? ToIntegerOrInfinity(offset).
+        let target_offset = args.get_or_undefined(1).to_integer_or_infinity(context)?;
+
+        // 5. If targetOffset < 0, throw a RangeError exception.
+        match target_offset {
+            IntegerOrInfinity::Integer(i) if i < 0 => {
+                return context.throw_type_error("TypedArray.set called with negative offset")
+            }
+            IntegerOrInfinity::NegativeInfinity => {
+                return context.throw_type_error("TypedArray.set called with negative offset")
+            }
+            _ => {}
+        }
+
+        let source = args.get_or_undefined(0);
+        match source {
+            // 6. If source is an Object that has a [[TypedArrayName]] internal slot, then
+            JsValue::Object(source) if source.is_typed_array() => {
+                // a. Perform ? SetTypedArrayFromTypedArray(target, targetOffset, source).
+                Self::set_typed_array_from_typed_array(&target, target_offset, source, context)?;
+            }
+            // 7. Else,
+            _ => {
+                // a. Perform ? SetTypedArrayFromArrayLike(target, targetOffset, source).
+                Self::set_typed_array_from_array_like(&target, target_offset, source, context)?;
+            }
+        }
+
+        // 8. Return undefined.
+        Ok(JsValue::undefined())
+    }
+
+    /// `3.2.3.24.1 SetTypedArrayFromTypedArray ( target, targetOffset, source )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-settypedarrayfromtypedarray
+    fn set_typed_array_from_typed_array(
+        target: &JsObject,
+        target_offset: IntegerOrInfinity,
+        source: &JsObject,
+        context: &mut Context,
+    ) -> JsResult<()> {
+        let target_borrow = target.borrow();
+        let target_array = target_borrow
+            .as_typed_array()
+            .expect("Target must be a typed array");
+
+        let source_borrow = source.borrow();
+        let source_array = source_borrow
+            .as_typed_array()
+            .expect("Source must be a typed array");
+
+        // 1. Let targetBuffer be target.[[ViewedArrayBuffer]].
+        // 2. If IsDetachedBuffer(targetBuffer) is true, throw a TypeError exception.
+        if target_array.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+        let target_buffer_obj = target_array
+            .viewed_array_buffer()
+            .expect("Already checked for detached buffer");
+
+        // 3. Let targetLength be target.[[ArrayLength]].
+        let target_length = target_array.array_length();
+
+        // 4. Let srcBuffer be source.[[ViewedArrayBuffer]].
+        // 5. If IsDetachedBuffer(srcBuffer) is true, throw a TypeError exception.
+        if source_array.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+        let mut src_buffer_obj = source_array
+            .viewed_array_buffer()
+            .expect("Already checked for detached buffer")
+            .clone();
+
+        // 6. Let targetName be the String value of target.[[TypedArrayName]].
+        // 7. Let targetType be the Element Type value in Table 73 for targetName.
+        let target_name = target_array.typed_array_name();
+
+        // 8. Let targetElementSize be the Element Size value specified in Table 73 for targetName.
+        let target_element_size = target_name.element_size();
+
+        // 9. Let targetByteOffset be target.[[ByteOffset]].
+        let target_byte_offset = target_array.byte_offset();
+
+        // 10. Let srcName be the String value of source.[[TypedArrayName]].
+        // 11. Let srcType be the Element Type value in Table 73 for srcName.
+        let src_name = source_array.typed_array_name();
+
+        // 12. Let srcElementSize be the Element Size value specified in Table 73 for srcName.
+        let src_element_size = src_name.element_size();
+
+        // 13. Let srcLength be source.[[ArrayLength]].
+        let src_length = source_array.array_length();
+
+        // 14. Let srcByteOffset be source.[[ByteOffset]].
+        let src_byte_offset = source_array.byte_offset();
+
+        // 15. If targetOffset is +∞, throw a RangeError exception.
+        let target_offset = match target_offset {
+            IntegerOrInfinity::Integer(i) if i >= 0 => i as usize,
+            IntegerOrInfinity::PositiveInfinity => {
+                return Err(context.construct_range_error("Target offset cannot be Infinity"))
+            }
+            _ => unreachable!(),
+        };
+
+        // 16. If srcLength + targetOffset > targetLength, throw a RangeError exception.
+        if src_length + target_offset > target_length {
+            return Err(context.construct_range_error(
+                "Source typed array and target offset longer than target typed array",
+            ));
+        }
+
+        // 17. If target.[[ContentType]] ≠ source.[[ContentType]], throw a TypeError exception.
+        if target_name.content_type() != src_name.content_type() {
+            return Err(context.construct_type_error(
+                "Source typed array and target typed array have different content types",
+            ));
+        }
+
+        // TODO: Shared Array Buffer
+        // 18. If both IsSharedArrayBuffer(srcBuffer) and IsSharedArrayBuffer(targetBuffer) are true, then
+
+        // a. If srcBuffer.[[ArrayBufferData]] and targetBuffer.[[ArrayBufferData]] are the same Shared Data Block values, let same be true; else let same be false.
+
+        // 19. Else, let same be SameValue(srcBuffer, targetBuffer).
+        let same = JsObject::equals(&src_buffer_obj, target_buffer_obj);
+
+        // 20. If same is true, then
+        let mut src_byte_index = if same {
+            // a. Let srcByteLength be source.[[ByteLength]].
+            let src_byte_length = source_array.byte_length;
+
+            // b. Set srcBuffer to ? CloneArrayBuffer(srcBuffer, srcByteOffset, srcByteLength, %ArrayBuffer%).
+            // c. NOTE: %ArrayBuffer% is used to clone srcBuffer because is it known to not have any observable side-effects.
+            let array_buffer_constructor = context
+                .standard_objects()
+                .array_buffer_object()
+                .constructor()
+                .into();
+            let s = src_buffer_obj
+                .borrow()
+                .as_array_buffer()
+                .expect("Already checked for detached buffer")
+                .clone_array_buffer(
+                    src_byte_offset,
+                    src_byte_length,
+                    &array_buffer_constructor,
+                    context,
+                )?;
+            src_buffer_obj = s;
+
+            // d. Let srcByteIndex be 0.
+            0
+        }
+        // 21. Else, let srcByteIndex be srcByteOffset.
+        else {
+            src_byte_offset
+        };
+
+        // 22. Let targetByteIndex be targetOffset × targetElementSize + targetByteOffset.
+        let mut target_byte_index = target_offset * target_element_size + target_byte_offset;
+
+        // 23. Let limit be targetByteIndex + targetElementSize × srcLength.
+        let limit = target_byte_index + target_element_size * src_length;
+
+        let src_buffer_obj_borrow = src_buffer_obj.borrow();
+        let src_buffer = src_buffer_obj_borrow
+            .as_array_buffer()
+            .expect("Must be an array buffer");
+
+        // 24. If srcType is the same as targetType, then
+        if src_name == target_name {
+            // a. NOTE: If srcType and targetType are the same, the transfer must be performed in a manner that preserves the bit-level encoding of the source data.
+            // b. Repeat, while targetByteIndex < limit,
+            while target_byte_index < limit {
+                // i. Let value be GetValueFromBuffer(srcBuffer, srcByteIndex, Uint8, true, Unordered).
+                let value = src_buffer.get_value_from_buffer(
+                    src_byte_index,
+                    TypedArrayName::Uint8Array,
+                    true,
+                    SharedMemoryOrder::Unordered,
+                    None,
+                );
+
+                // ii. Perform SetValueInBuffer(targetBuffer, targetByteIndex, Uint8, value, true, Unordered).
+                target_buffer_obj
+                    .borrow_mut()
+                    .as_array_buffer_mut()
+                    .expect("Must be an array buffer")
+                    .set_value_in_buffer(
+                        target_byte_index,
+                        TypedArrayName::Uint8Array,
+                        value,
+                        SharedMemoryOrder::Unordered,
+                        None,
+                        context,
+                    )?;
+
+                // iii. Set srcByteIndex to srcByteIndex + 1.
+                src_byte_index += 1;
+
+                // iv. Set targetByteIndex to targetByteIndex + 1.
+                target_byte_index += 1;
+            }
+        }
+        // 25. Else,
+        else {
+            // a. Repeat, while targetByteIndex < limit,
+            while target_byte_index < limit {
+                // i. Let value be GetValueFromBuffer(srcBuffer, srcByteIndex, srcType, true, Unordered).
+                let value = src_buffer.get_value_from_buffer(
+                    src_byte_index,
+                    src_name,
+                    true,
+                    SharedMemoryOrder::Unordered,
+                    None,
+                );
+
+                // ii. Perform SetValueInBuffer(targetBuffer, targetByteIndex, targetType, value, true, Unordered).
+                target_buffer_obj
+                    .borrow_mut()
+                    .as_array_buffer_mut()
+                    .expect("Must be an array buffer")
+                    .set_value_in_buffer(
+                        target_byte_index,
+                        target_name,
+                        value,
+                        SharedMemoryOrder::Unordered,
+                        None,
+                        context,
+                    )?;
+
+                // iii. Set srcByteIndex to srcByteIndex + srcElementSize.
+                src_byte_index += src_element_size;
+
+                // iv. Set targetByteIndex to targetByteIndex + targetElementSize.
+                target_byte_index += target_element_size;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// `23.2.3.24.2 SetTypedArrayFromArrayLike ( target, targetOffset, source )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-settypedarrayfromarraylike
+    fn set_typed_array_from_array_like(
+        target: &JsObject,
+        target_offset: IntegerOrInfinity,
+        source: &JsValue,
+        context: &mut Context,
+    ) -> JsResult<()> {
+        let target_borrow = target.borrow();
+        let target_array = target_borrow
+            .as_typed_array()
+            .expect("Target must be a typed array");
+
+        // 1. Let targetBuffer be target.[[ViewedArrayBuffer]].
+        // 2. If IsDetachedBuffer(targetBuffer) is true, throw a TypeError exception.
+        if target_array.is_detached() {
+            return Err(context.construct_type_error("Buffer of the typed array is detached"));
+        }
+
+        // 3. Let targetLength be target.[[ArrayLength]].
+        let target_length = target_array.array_length();
+
+        // 4. Let targetName be the String value of target.[[TypedArrayName]].
+        // 6. Let targetType be the Element Type value in Table 73 for targetName.
+        let target_name = target_array.typed_array_name();
+
+        // 5. Let targetElementSize be the Element Size value specified in Table 73 for targetName.
+        let target_element_size = target_name.element_size();
+
+        // 7. Let targetByteOffset be target.[[ByteOffset]].
+        let target_byte_offset = target_array.byte_offset();
+
+        // 8. Let src be ? ToObject(source).
+        let src = source.to_object(context)?;
+
+        // 9. Let srcLength be ? LengthOfArrayLike(src).
+        let src_length = src.length_of_array_like(context)?;
+
+        let target_offset = match target_offset {
+            // 10. If targetOffset is +∞, throw a RangeError exception.
+            IntegerOrInfinity::PositiveInfinity => {
+                return Err(context.construct_range_error("Target offset cannot be Infinity"))
+            }
+            IntegerOrInfinity::Integer(i) if i >= 0 => i as usize,
+            _ => unreachable!(),
+        };
+
+        // 11. If srcLength + targetOffset > targetLength, throw a RangeError exception.
+        if src_length + target_offset < target_length {
+            return Err(context.construct_range_error(
+                "Source object and target offset longer than target typed array",
+            ));
+        }
+
+        // 12. Let targetByteIndex be targetOffset × targetElementSize + targetByteOffset.
+        let mut target_byte_index = target_offset * target_element_size + target_byte_offset;
+
+        // 13. Let k be 0.
+        let mut k = 0;
+
+        // 14. Let limit be targetByteIndex + targetElementSize × srcLength.
+        let limit = target_byte_index + target_element_size * src_length;
+
+        // 15. Repeat, while targetByteIndex < limit,
+        while target_byte_index < limit {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let value be ? Get(src, Pk).
+            let value = src.get(k, context)?;
+
+            // c. If target.[[ContentType]] is BigInt, set value to ? ToBigInt(value).
+            // d. Otherwise, set value to ? ToNumber(value).
+            let value = if target_name.content_type() == ContentType::BigInt {
+                value.to_bigint(context)?.into()
+            } else {
+                value.to_number(context)?.into()
+            };
+
+            let target_buffer_obj = target_array
+                .viewed_array_buffer()
+                .expect("Already checked for detached buffer");
+            let mut target_buffer_obj_borrow = target_buffer_obj.borrow_mut();
+            let target_buffer = target_buffer_obj_borrow
+                .as_array_buffer_mut()
+                .expect("Already checked for detached buffer");
+
+            // e. If IsDetachedBuffer(targetBuffer) is true, throw a TypeError exception.
+            if target_buffer.is_detached_buffer() {
+                return Err(
+                    context.construct_type_error("Cannot set value on detached array buffer")
+                );
+            }
+
+            // f. Perform SetValueInBuffer(targetBuffer, targetByteIndex, targetType, value, true, Unordered).
+            target_buffer.set_value_in_buffer(
+                target_byte_index,
+                target_name,
+                value,
+                SharedMemoryOrder::Unordered,
+                None,
+                context,
+            )?;
+
+            // g. Set k to k + 1.
+            k += 1;
+
+            // h. Set targetByteIndex to targetByteIndex + targetElementSize.
+            target_byte_index += target_element_size;
+        }
+
+        Ok(())
+    }
 
     /// `23.2.3.25 %TypedArray%.prototype.slice ( start, end )`
     ///
@@ -2051,7 +2440,156 @@ impl TypedArray {
         Ok(false.into())
     }
 
-    // TODO: 23.2.3.27 %TypedArray%.prototype.sort ( comparefn )
+    /// `23.2.3.27 %TypedArray%.prototype.sort ( comparefn )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.sort
+    fn sort(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        // 1. If comparefn is not undefined and IsCallable(comparefn) is false, throw a TypeError exception.
+        let compare_fn = match args.get(0) {
+            None | Some(JsValue::Undefined) => None,
+            Some(JsValue::Object(obj)) if obj.is_callable() => Some(obj),
+            _ => {
+                return context
+                    .throw_type_error("TypedArray.sort called with non-callable comparefn")
+            }
+        };
+
+        // 2. Let obj be the this value.
+        let obj = this.as_object().ok_or_else(|| {
+            context.construct_type_error("TypedArray.sort must be called on typed array object")
+        })?;
+
+        // 4. Let buffer be obj.[[ViewedArrayBuffer]].
+        // 5. Let len be obj.[[ArrayLength]].
+        let (buffer, len) = {
+            // 3. Perform ? ValidateTypedArray(obj).
+            let obj_borrow = obj.borrow();
+            let o = obj_borrow.as_typed_array().ok_or_else(|| {
+                context.construct_type_error("TypedArray.sort must be called on typed array object")
+            })?;
+            if o.is_detached() {
+                return context.throw_type_error(
+                    "TypedArray.sort called on typed array object with detached array buffer",
+                );
+            }
+
+            (
+                o.viewed_array_buffer()
+                    .expect("Already checked for detached buffer")
+                    .clone(),
+                o.array_length(),
+            )
+        };
+
+        // 4. Let items be a new empty List.
+        let mut items = Vec::with_capacity(len);
+
+        // 5. Let k be 0.
+        // 6. Repeat, while k < len,
+        for k in 0..len {
+            // a. Let Pk be ! ToString(𝔽(k)).
+            // b. Let kPresent be ? HasProperty(obj, Pk).
+            // c. If kPresent is true, then
+            if obj.has_property(k, context)? {
+                // i. Let kValue be ? Get(obj, Pk).
+                let k_val = obj.get(k, context)?;
+                // ii. Append kValue to items.
+                items.push(k_val);
+            }
+            // d. Set k to k + 1.
+        }
+
+        // 7. Let itemCount be the number of elements in items.
+        let item_count = items.len();
+
+        let sort_compare = |x: &JsValue,
+                            y: &JsValue,
+                            compare_fn: Option<&JsObject>,
+                            context: &mut Context|
+         -> JsResult<Ordering> {
+            // 1. Assert: Both Type(x) and Type(y) are Number or both are BigInt.
+            // 2. If comparefn is not undefined, then
+            if let Some(obj) = compare_fn {
+                // a. Let v be ? ToNumber(? Call(comparefn, undefined, « x, y »)).
+                let v = obj
+                    .call(&JsValue::undefined(), &[x.clone(), y.clone()], context)?
+                    .to_number(context)?;
+
+                // b. If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
+                if buffer
+                    .borrow()
+                    .as_array_buffer()
+                    .expect("Must be array buffer")
+                    .is_detached_buffer()
+                {
+                    return Err(context
+                        .construct_type_error("Cannot sort typed array with detached buffer"));
+                }
+
+                // c. If v is NaN, return +0𝔽.
+                // d. Return v.
+                return Ok(v.partial_cmp(&0.0).unwrap_or(Ordering::Equal));
+            }
+
+            // 3. If x and y are both NaN, return +0𝔽.
+            // 4. If x is NaN, return 1𝔽.
+            // 5. If y is NaN, return -1𝔽.
+            // 6. If x < y, return -1𝔽.
+            // 7. If x > y, return 1𝔽.
+            // 8. If x is -0𝔽 and y is +0𝔽, return -1𝔽.
+            // 9. If x is +0𝔽 and y is -0𝔽, return 1𝔽.
+            // 10. Return +0𝔽.
+
+            if let (JsValue::BigInt(x), JsValue::BigInt(y)) = (x, y) {
+                Ok(x.cmp(y))
+            } else {
+                let x = x
+                    .as_number()
+                    .expect("Typed array can only contain number or bigint");
+                let y = y
+                    .as_number()
+                    .expect("Typed array can only contain number or bigint");
+                Ok(x.partial_cmp(&y).unwrap_or(Ordering::Equal))
+            }
+        };
+
+        // 8. Sort items using an implementation-defined sequence of calls to SortCompare.
+        // If any such call returns an abrupt completion, stop before performing any further
+        // calls to SortCompare or steps in this algorithm and return that completion.
+        let mut sort_err = Ok(());
+        items.sort_by(|x, y| {
+            if sort_err.is_ok() {
+                sort_compare(x, y, compare_fn, context).unwrap_or_else(|err| {
+                    sort_err = Err(err);
+                    Ordering::Equal
+                })
+            } else {
+                Ordering::Equal
+            }
+        });
+        sort_err?;
+
+        // 9. Let j be 0.
+        // 10. Repeat, while j < itemCount,
+        for (j, item) in items.into_iter().enumerate() {
+            // a. Perform ? Set(obj, ! ToString(𝔽(j)), items[j], true).
+            obj.set(j, item, true, context)?;
+            // b. Set j to j + 1.
+        }
+
+        // 11. Repeat, while j < len,
+        for j in item_count..len {
+            // a. Perform ? DeletePropertyOrThrow(obj, ! ToString(𝔽(j))).
+            obj.delete_property_or_throw(j, context)?;
+            // b. Set j to j + 1.
+        }
+
+        // 12. Return obj.
+        Ok(obj.into())
+    }
 
     /// `23.2.3.28 %TypedArray%.prototype.subarray ( begin, end )`
     ///
@@ -2263,18 +2801,18 @@ impl TypedArray {
         )?;
 
         // 4. Assert: result has [[TypedArrayName]] and [[ContentType]] internal slots.
-        let result_borrow = result.borrow();
-        let result_array = result_borrow
-            .as_typed_array()
-            .expect("This can only be a typed array object");
-
         // 5. If result.[[ContentType]] ≠ exemplar.[[ContentType]], throw a TypeError exception.
-        if result_array.typed_array_name().content_type() != typed_array_name.content_type() {
+        if result
+            .borrow()
+            .as_typed_array()
+            .expect("This can only be a typed array object")
+            .typed_array_name()
+            .content_type()
+            != typed_array_name.content_type()
+        {
             return Err(context
                 .construct_type_error("New typed array has different context type than exemplar"));
         }
-
-        drop(result_borrow);
 
         // 6. Return result.
         Ok(result)
@@ -2321,32 +2859,6 @@ impl TypedArray {
 
         // 4. Return newTypedArray.
         Ok(obj)
-    }
-
-    /// `23.2.4.3 ValidateTypedArray ( O )`
-    ///
-    /// More information:
-    ///  - [ECMAScript reference][spec]
-    ///
-    /// [spec]: https://tc39.es/ecma262/#sec-validatetypedarray
-    fn validate_typed_array(o: &JsValue, context: &mut Context) -> JsResult<()> {
-        // 1. Perform ? RequireInternalSlot(O, [[TypedArrayName]]).
-        // 2. Assert: O has a [[ViewedArrayBuffer]] internal slot.
-        // 3. Let buffer be O.[[ViewedArrayBuffer]].
-        let obj = o
-            .as_object()
-            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
-        let obj_borrow = obj.borrow();
-        let typed_array = obj_borrow
-            .as_typed_array()
-            .ok_or_else(|| context.construct_type_error("Value is not a typed array object"))?;
-
-        // 4. If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
-        if typed_array.is_detached() {
-            return Err(context.construct_type_error("Buffer of the typed array is detached"));
-        }
-
-        Ok(())
     }
 
     /// <https://tc39.es/ecma262/#sec-allocatetypedarraybuffer>
@@ -2493,11 +3005,18 @@ impl TypedArray {
 
         // 1. Let srcData be srcArray.[[ViewedArrayBuffer]].
         // 2. If IsDetachedBuffer(srcData) is true, throw a TypeError exception.
-        let src_data_obj = src_array.viewed_array_buffer().ok_or_else(|| {
-            context.construct_type_error("Cannot initialize typed array from detached buffer")
-        })?;
+        if src_array.is_detached() {
+            return Err(
+                context.construct_type_error("Cannot initialize typed array from detached buffer")
+            );
+        }
+        let src_data_obj = src_array
+            .viewed_array_buffer()
+            .expect("Already checked for detached buffer");
         let src_data_obj_b = src_data_obj.borrow();
-        let src_data = src_data_obj_b.as_array_buffer().unwrap();
+        let src_data = src_data_obj_b
+            .as_array_buffer()
+            .expect("Already checked for detached buffer");
 
         // 3. Let constructorName be the String value of O.[[TypedArrayName]].
         // 4. Let elementType be the Element Type value in Table 73 for constructorName.
@@ -2626,18 +3145,13 @@ impl TypedArray {
         length: &JsValue,
         context: &mut Context,
     ) -> JsResult<()> {
-        let mut o_obj_b = o.borrow_mut();
-        let o = o_obj_b
-            .as_typed_array_mut()
-            .expect("This must be an ArrayBuffer");
-        let buffer_obj_b = buffer.borrow();
-        let buffer_array = buffer_obj_b
-            .as_array_buffer()
-            .expect("This must be an ArrayBuffer");
-
         // 1. Let constructorName be the String value of O.[[TypedArrayName]].
         // 2. Let elementSize be the Element Size value specified in Table 73 for constructorName.
-        let constructor_name = o.typed_array_name();
+        let constructor_name = o
+            .borrow()
+            .as_typed_array()
+            .expect("This must be a typed array")
+            .typed_array_name();
 
         // 3. Let offset be ? ToIndex(byteOffset).
         let offset = byte_offset.to_index(context)?;
@@ -2647,15 +3161,21 @@ impl TypedArray {
             return Err(context.construct_range_error("Invalid length for typed array"));
         }
 
-        // 6. If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
-        if buffer_array.is_detached_buffer() {
-            return Err(
-                context.construct_type_error("Cannot construct typed array from detached buffer")
-            );
-        }
+        let buffer_byte_length = {
+            let buffer_obj_b = buffer.borrow();
+            let buffer_array = buffer_obj_b
+                .as_array_buffer()
+                .expect("This must be an ArrayBuffer");
 
-        // 7. Let bufferByteLength be buffer.[[ArrayBufferByteLength]].
-        let buffer_byte_length = buffer_array.array_buffer_byte_length();
+            // 6. If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
+            if buffer_array.is_detached_buffer() {
+                return Err(context
+                    .construct_type_error("Cannot construct typed array from detached buffer"));
+            }
+
+            // 7. Let bufferByteLength be buffer.[[ArrayBufferByteLength]].
+            buffer_array.array_buffer_byte_length()
+        };
 
         // 8. If length is undefined, then
         let new_byte_length = if length.is_undefined() {
@@ -2689,7 +3209,10 @@ impl TypedArray {
             new_byte_length
         };
 
-        drop(buffer_obj_b);
+        let mut o_obj_borrow = o.borrow_mut();
+        let o = o_obj_borrow
+            .as_typed_array_mut()
+            .expect("This must be an ArrayBuffer");
 
         // 10. Set O.[[ViewedArrayBuffer]] to buffer.
         o.viewed_array_buffer = Some(buffer);
@@ -2714,16 +3237,15 @@ impl TypedArray {
         array_like: &JsObject,
         context: &mut Context,
     ) -> JsResult<()> {
-        let mut o_obj_mut = o.borrow_mut();
-        let o_array = o_obj_mut.as_typed_array_mut().expect("Must be typed array");
-
         // 1. Let len be ? LengthOfArrayLike(arrayLike).
         let len = array_like.length_of_array_like(context)?;
 
         // 2. Perform ? AllocateTypedArrayBuffer(O, len).
-        TypedArray::allocate_buffer(o_array, len, context)?;
-
-        drop(o_obj_mut);
+        {
+            let mut o_borrow = o.borrow_mut();
+            let o = o_borrow.as_typed_array_mut().expect("Must be typed array");
+            TypedArray::allocate_buffer(o, len, context)?;
+        }
 
         // 3. Let k be 0.
         // 4. Repeat, while k < len,

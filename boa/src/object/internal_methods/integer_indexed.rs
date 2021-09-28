@@ -282,44 +282,44 @@ pub(crate) fn is_valid_integer_index(obj: &JsObject, index: usize) -> bool {
 ///
 /// [spec]: https://tc39.es/ecma262/#sec-integerindexedelementget
 fn integer_indexed_element_get(obj: &JsObject, index: usize) -> Option<JsValue> {
-    let obj = obj.borrow();
-    let inner = obj.as_typed_array().expect(
-        "integer indexed exotic method should only be callable from integer indexed objects",
-    );
-
-    if let Some(buffer) = inner.viewed_array_buffer() {
-        if index < inner.array_length() {
-            // 2. Let offset be O.[[ByteOffset]].
-            let offset = inner.byte_offset();
-
-            // 3. Let arrayTypeName be the String value of O.[[TypedArrayName]].
-            // 6. Let elementType be the Element Type value in Table 73 for arrayTypeName.
-            let elem_type = inner.typed_array_name();
-
-            // 4. Let elementSize be the Element Size value specified in Table 73 for arrayTypeName.
-            let size = elem_type.element_size();
-
-            // 5. Let indexedPosition be (ℝ(index) × elementSize) + offset.
-            let indexed_position = (index * size) + offset;
-
-            let buffer = buffer.borrow();
-            let buffer = buffer
-                .as_array_buffer()
-                .expect("object buffer must be an array buffer");
-
-            // 7. Return GetValueFromBuffer(O.[[ViewedArrayBuffer]], indexedPosition, elementType, true, Unordered).
-            return Some(buffer.get_value_from_buffer(
-                indexed_position,
-                elem_type,
-                true,
-                SharedMemoryOrder::Unordered,
-                None,
-            ));
-        }
+    // 1. If ! IsValidIntegerIndex(O, index) is false, return undefined.
+    if !is_valid_integer_index(obj, index) {
+        return None;
     }
 
-    // 1. If ! IsValidIntegerIndex(O, index) is false, return undefined.
-    None
+    let obj = obj.borrow();
+    let inner = obj
+        .as_typed_array()
+        .expect("Already checked for detached buffer");
+    let buffer_obj = inner
+        .viewed_array_buffer()
+        .expect("Already checked for detached buffer");
+    let buffer_obj_borrow = buffer_obj.borrow();
+    let buffer = buffer_obj_borrow
+        .as_array_buffer()
+        .expect("Already checked for detached buffer");
+
+    // 2. Let offset be O.[[ByteOffset]].
+    let offset = inner.byte_offset();
+
+    // 3. Let arrayTypeName be the String value of O.[[TypedArrayName]].
+    // 6. Let elementType be the Element Type value in Table 73 for arrayTypeName.
+    let elem_type = inner.typed_array_name();
+
+    // 4. Let elementSize be the Element Size value specified in Table 73 for arrayTypeName.
+    let size = elem_type.element_size();
+
+    // 5. Let indexedPosition be (ℝ(index) × elementSize) + offset.
+    let indexed_position = (index * size) + offset;
+
+    // 7. Return GetValueFromBuffer(O.[[ViewedArrayBuffer]], indexedPosition, elementType, true, Unordered).
+    Some(buffer.get_value_from_buffer(
+        indexed_position,
+        elem_type,
+        true,
+        SharedMemoryOrder::Unordered,
+        None,
+    ))
 }
 
 /// Abstract operation `IntegerIndexedElementSet ( O, index, value )`.
@@ -334,8 +334,8 @@ fn integer_indexed_element_set(
     value: &JsValue,
     context: &mut Context,
 ) -> JsResult<()> {
-    let obj = obj.borrow();
-    let inner = obj.as_typed_array().expect(
+    let obj_borrow = obj.borrow();
+    let inner = obj_borrow.as_typed_array().expect(
         "integer indexed exotic method should only be callable from integer indexed objects",
     );
 
@@ -348,36 +348,39 @@ fn integer_indexed_element_set(
     };
 
     // 3. If ! IsValidIntegerIndex(O, index) is true, then
-    if let Some(buffer) = inner.viewed_array_buffer() {
-        if index < inner.array_length() {
-            // a. Let offset be O.[[ByteOffset]].
-            let offset = inner.byte_offset();
+    if is_valid_integer_index(obj, index) {
+        // a. Let offset be O.[[ByteOffset]].
+        let offset = inner.byte_offset();
 
-            // b. Let arrayTypeName be the String value of O.[[TypedArrayName]].
-            // e. Let elementType be the Element Type value in Table 73 for arrayTypeName.
-            let elem_type = inner.typed_array_name();
+        // b. Let arrayTypeName be the String value of O.[[TypedArrayName]].
+        // e. Let elementType be the Element Type value in Table 73 for arrayTypeName.
+        let elem_type = inner.typed_array_name();
 
-            // c. Let elementSize be the Element Size value specified in Table 73 for arrayTypeName.
-            let size = elem_type.element_size();
+        // c. Let elementSize be the Element Size value specified in Table 73 for arrayTypeName.
+        let size = elem_type.element_size();
 
-            // d. Let indexedPosition be (ℝ(index) × elementSize) + offset.
-            let indexed_position = (index * size) + offset;
+        // d. Let indexedPosition be (ℝ(index) × elementSize) + offset.
+        let indexed_position = (index * size) + offset;
 
-            let mut buffer = buffer.borrow_mut();
-            let buffer = buffer
-                .as_array_buffer_mut()
-                .expect("object buffer must be an array buffer");
+        let buffer_obj = inner
+            .viewed_array_buffer()
+            .expect("Already checked for detached buffer");
+        let mut buffer_obj_borrow = buffer_obj.borrow_mut();
+        let buffer = buffer_obj_borrow
+            .as_array_buffer_mut()
+            .expect("Already checked for detached buffer");
 
-            // f. Perform SetValueInBuffer(O.[[ViewedArrayBuffer]], indexedPosition, elementType, numValue, true, Unordered).
-            buffer.set_value_in_buffer(
+        // f. Perform SetValueInBuffer(O.[[ViewedArrayBuffer]], indexedPosition, elementType, numValue, true, Unordered).
+        buffer
+            .set_value_in_buffer(
                 indexed_position,
                 elem_type,
                 num_value,
                 SharedMemoryOrder::Unordered,
                 None,
                 context,
-            )?;
-        }
+            )
+            .expect("SetValueInBuffer cannot fail here");
     }
 
     // 4. Return NormalCompletion(undefined).

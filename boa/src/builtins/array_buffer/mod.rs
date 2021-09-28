@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 
 use crate::{
+    builtins::{typed_array::TypedArrayName, BuiltIn, JsArgs},
     context::StandardObjects,
     gc::{Finalize, Trace},
     object::{
@@ -13,8 +14,6 @@ use crate::{
     value::{IntegerOrInfinity, Numeric},
     Context, JsResult, JsValue,
 };
-
-use super::{typed_array::TypedArrayName, BuiltIn, JsArgs};
 
 #[derive(Debug, Clone, Trace, Finalize)]
 pub struct ArrayBuffer {
@@ -324,7 +323,7 @@ impl ArrayBuffer {
         obj.borrow_mut().data = ObjectData::array_buffer(ArrayBuffer {
             array_buffer_data: Some(block),
             array_buffer_byte_length: byte_length,
-            array_buffer_detach_key: JsValue::Null,
+            array_buffer_detach_key: JsValue::Undefined,
         });
 
         // 5. Return obj.
@@ -341,34 +340,6 @@ impl ArrayBuffer {
         // 1. If arrayBuffer.[[ArrayBufferData]] is null, return true.
         // 2. Return false.
         self.array_buffer_data.is_none()
-    }
-
-    /// `25.1.2.3 DetachArrayBuffer ( arrayBuffer [ , key ] )`
-    ///
-    /// More information:
-    ///  - [ECMAScript reference][spec]
-    ///
-    /// [spec]: https://tc39.es/ecma262/#sec-detacharraybuffer
-    fn detach_array_buffer(&mut self, key: Option<JsValue>, context: &mut Context) -> JsResult<()> {
-        // 1. Assert: IsSharedArrayBuffer(arrayBuffer) is false.
-        // 2. If key is not present, set key to undefined.
-        let key = key.unwrap_or(JsValue::Undefined);
-
-        // 3. If SameValue(arrayBuffer.[[ArrayBufferDetachKey]], key) is false, throw a TypeError exception.
-        if !JsValue::same_value(&self.array_buffer_detach_key, &key) {
-            return Err(
-                context.construct_type_error("Cannot detach array buffer with different key")
-            );
-        }
-
-        // 4. Set arrayBuffer.[[ArrayBufferData]] to null.
-        self.array_buffer_data = None;
-
-        // 5. Set arrayBuffer.[[ArrayBufferByteLength]] to 0.
-        self.array_buffer_byte_length = 0;
-
-        // 6. Return NormalCompletion(null).
-        Ok(())
     }
 
     /// `25.1.2.4 CloneArrayBuffer ( srcBuffer, srcByteOffset, srcLength, cloneConstructor )`
@@ -419,25 +390,6 @@ impl ArrayBuffer {
         Ok(target_buffer)
     }
 
-    /// `25.1.2.5 IsUnsignedElementType ( type )`
-    ///
-    /// More information:
-    ///  - [ECMAScript reference][spec]
-    ///
-    /// [spec]: https://tc39.es/ecma262/#sec-isunsignedelementtype
-    fn is_unsigned_element_type(t: TypedArrayName) -> bool {
-        // 1. If type is Uint8, Uint8C, Uint16, Uint32, or BigUint64, return true.
-        // 2. Return false.
-        matches!(
-            t,
-            TypedArrayName::Uint8Array
-                | TypedArrayName::Uint8ClampedArray
-                | TypedArrayName::Uint16Array
-                | TypedArrayName::Uint32Array
-                | TypedArrayName::BigUint64Array
-        )
-    }
-
     /// `25.1.2.6 IsUnclampedIntegerElementType ( type )`
     ///
     /// More information:
@@ -479,6 +431,8 @@ impl ArrayBuffer {
     ///  - [ECMAScript reference][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-isnotearconfiguration
+    // TODO: Allow unused function until shared array buffers are implemented.
+    #[allow(dead_code)]
     fn is_no_tear_configuration(t: TypedArrayName, order: SharedMemoryOrder) -> bool {
         // 1. If ! IsUnclampedIntegerElementType(type) is true, return true.
         if Self::is_unclamped_integer_element_type(t) {
@@ -795,6 +749,8 @@ fn copy_data_block_bytes(
     // 7. Return NormalCompletion(empty).
 }
 
+// TODO: Allow unused variants until shared array buffers are implemented.
+#[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub(crate) enum SharedMemoryOrder {
     Init,

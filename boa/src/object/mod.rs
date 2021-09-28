@@ -11,7 +11,7 @@ use crate::{
         set::ordered_set::OrderedSet,
         set::set_iterator::SetIterator,
         string::string_iterator::StringIterator,
-        typed_array::IntegerIndexed,
+        typed_array::integer_indexed_object::IntegerIndexed,
         Date, RegExp,
     },
     context::StandardConstructor,
