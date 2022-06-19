@@ -15,9 +15,9 @@ use tap::{Conv, Pipe};
 
 #[derive(Debug, Clone, Trace, Finalize)]
 pub struct DataView {
-    viewed_array_buffer: JsObject,
-    byte_length: usize,
-    byte_offset: usize,
+    pub(crate) viewed_array_buffer: JsObject,
+    pub(crate) byte_length: usize,
+    pub(crate) byte_offset: usize,
 }
 
 impl BuiltIn for DataView {
