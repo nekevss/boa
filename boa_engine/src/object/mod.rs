@@ -61,21 +61,21 @@ mod tests;
 
 pub(crate) mod internal_methods;
 mod jsarray;
+mod jsarraybuffer;
+mod jsdataview;
 mod jsfunction;
 mod jsobject;
 mod jsproxy;
 mod jstypedarray;
 mod operations;
 mod property_map;
-mod jsarraybuffer;
-mod jsdataview;
 
 pub use jsarray::*;
+pub use jsarraybuffer::*;
+pub use jsdataview::*;
 pub use jsfunction::*;
 pub use jsproxy::*;
 pub use jstypedarray::*;
-pub use jsarraybuffer::*;
-pub use jsdataview::*;
 
 pub(crate) trait JsObjectType:
     Into<JsValue> + Into<JsObject> + Deref<Target = JsObject>
