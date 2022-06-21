@@ -19,8 +19,17 @@ impl JsArrayBuffer {
     pub fn new(byte_length: &JsValue, context: &mut Context) -> JsResult<Self> {
         let byte_usize = byte_length.to_index(context)?;
 
-        let array_buffer = Self::create_and_allocate_buffer(byte_usize, context)?;
+        let block = create_byte_data_block(byte_usize, context)?;
+        let array_buffer = Self::create_array_buffer(block, Some(byte_usize), context);
 
+        Ok(Self {
+            inner: array_buffer,
+        })
+    }
+
+    #[inline]
+    pub fn from_vec(buffer: Vec<u8>, context: &mut Context) -> JsResult<Self> {
+        let array_buffer = Self::create_array_buffer(buffer, None, context);
         Ok(Self {
             inner: array_buffer,
         })
@@ -36,23 +45,27 @@ impl JsArrayBuffer {
     }
 
     #[inline]
-    fn create_and_allocate_buffer(byte_length: usize, context: &mut Context) -> JsResult<JsObject> {
+    fn create_array_buffer(
+        buffer: Vec<u8>,
+        provided_length: Option<usize>,
+        context: &mut Context,
+    ) -> JsObject {
         let prototype = context
             .intrinsics()
             .constructors()
             .array_buffer()
             .prototype();
 
-        let block = create_byte_data_block(byte_length, context)?;
+        let byte_length = provided_length.unwrap_or(8);
 
-        Ok(JsObject::from_proto_and_data(
+        JsObject::from_proto_and_data(
             prototype,
             ObjectData::array_buffer(ArrayBuffer {
-                array_buffer_data: Some(block),
+                array_buffer_data: Some(buffer),
                 array_buffer_byte_length: byte_length,
                 array_buffer_detach_key: JsValue::Undefined,
             }),
-        ))
+        )
     }
 
     #[inline]
