@@ -1,11 +1,12 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/vm/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script src="../../../crates.js"></script><script defer src="../../../main.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script>
-    <noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/vm/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div>
         </a><h2 class="location"></h2>
     </nav>
     <nav class="sidebar"><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container">
                     <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div>
         </a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><nav class="sub"><div class="theme-picker hidden"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img width="22" height="22" alt="Pick another theme!" src="../../../brush.svg"></button><div id="theme-choices" role="menu"></div></div><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -2611,12 +2612,157 @@
 <span id="2604">2604</span>
 <span id="2605">2605</span>
 <span id="2606">2606</span>
+<span id="2607">2607</span>
+<span id="2608">2608</span>
+<span id="2609">2609</span>
+<span id="2610">2610</span>
+<span id="2611">2611</span>
+<span id="2612">2612</span>
+<span id="2613">2613</span>
+<span id="2614">2614</span>
+<span id="2615">2615</span>
+<span id="2616">2616</span>
+<span id="2617">2617</span>
+<span id="2618">2618</span>
+<span id="2619">2619</span>
+<span id="2620">2620</span>
+<span id="2621">2621</span>
+<span id="2622">2622</span>
+<span id="2623">2623</span>
+<span id="2624">2624</span>
+<span id="2625">2625</span>
+<span id="2626">2626</span>
+<span id="2627">2627</span>
+<span id="2628">2628</span>
+<span id="2629">2629</span>
+<span id="2630">2630</span>
+<span id="2631">2631</span>
+<span id="2632">2632</span>
+<span id="2633">2633</span>
+<span id="2634">2634</span>
+<span id="2635">2635</span>
+<span id="2636">2636</span>
+<span id="2637">2637</span>
+<span id="2638">2638</span>
+<span id="2639">2639</span>
+<span id="2640">2640</span>
+<span id="2641">2641</span>
+<span id="2642">2642</span>
+<span id="2643">2643</span>
+<span id="2644">2644</span>
+<span id="2645">2645</span>
+<span id="2646">2646</span>
+<span id="2647">2647</span>
+<span id="2648">2648</span>
+<span id="2649">2649</span>
+<span id="2650">2650</span>
+<span id="2651">2651</span>
+<span id="2652">2652</span>
+<span id="2653">2653</span>
+<span id="2654">2654</span>
+<span id="2655">2655</span>
+<span id="2656">2656</span>
+<span id="2657">2657</span>
+<span id="2658">2658</span>
+<span id="2659">2659</span>
+<span id="2660">2660</span>
+<span id="2661">2661</span>
+<span id="2662">2662</span>
+<span id="2663">2663</span>
+<span id="2664">2664</span>
+<span id="2665">2665</span>
+<span id="2666">2666</span>
+<span id="2667">2667</span>
+<span id="2668">2668</span>
+<span id="2669">2669</span>
+<span id="2670">2670</span>
+<span id="2671">2671</span>
+<span id="2672">2672</span>
+<span id="2673">2673</span>
+<span id="2674">2674</span>
+<span id="2675">2675</span>
+<span id="2676">2676</span>
+<span id="2677">2677</span>
+<span id="2678">2678</span>
+<span id="2679">2679</span>
+<span id="2680">2680</span>
+<span id="2681">2681</span>
+<span id="2682">2682</span>
+<span id="2683">2683</span>
+<span id="2684">2684</span>
+<span id="2685">2685</span>
+<span id="2686">2686</span>
+<span id="2687">2687</span>
+<span id="2688">2688</span>
+<span id="2689">2689</span>
+<span id="2690">2690</span>
+<span id="2691">2691</span>
+<span id="2692">2692</span>
+<span id="2693">2693</span>
+<span id="2694">2694</span>
+<span id="2695">2695</span>
+<span id="2696">2696</span>
+<span id="2697">2697</span>
+<span id="2698">2698</span>
+<span id="2699">2699</span>
+<span id="2700">2700</span>
+<span id="2701">2701</span>
+<span id="2702">2702</span>
+<span id="2703">2703</span>
+<span id="2704">2704</span>
+<span id="2705">2705</span>
+<span id="2706">2706</span>
+<span id="2707">2707</span>
+<span id="2708">2708</span>
+<span id="2709">2709</span>
+<span id="2710">2710</span>
+<span id="2711">2711</span>
+<span id="2712">2712</span>
+<span id="2713">2713</span>
+<span id="2714">2714</span>
+<span id="2715">2715</span>
+<span id="2716">2716</span>
+<span id="2717">2717</span>
+<span id="2718">2718</span>
+<span id="2719">2719</span>
+<span id="2720">2720</span>
+<span id="2721">2721</span>
+<span id="2722">2722</span>
+<span id="2723">2723</span>
+<span id="2724">2724</span>
+<span id="2725">2725</span>
+<span id="2726">2726</span>
+<span id="2727">2727</span>
+<span id="2728">2728</span>
+<span id="2729">2729</span>
+<span id="2730">2730</span>
+<span id="2731">2731</span>
+<span id="2732">2732</span>
+<span id="2733">2733</span>
+<span id="2734">2734</span>
+<span id="2735">2735</span>
+<span id="2736">2736</span>
+<span id="2737">2737</span>
+<span id="2738">2738</span>
+<span id="2739">2739</span>
+<span id="2740">2740</span>
+<span id="2741">2741</span>
+<span id="2742">2742</span>
+<span id="2743">2743</span>
+<span id="2744">2744</span>
+<span id="2745">2745</span>
+<span id="2746">2746</span>
+<span id="2747">2747</span>
+<span id="2748">2748</span>
+<span id="2749">2749</span>
+<span id="2750">2750</span>
 </pre><pre class="rust"><code><span class="doccomment">//! The Virtual Machine (VM) handles generating instructions, then executing them.</span>
 <span class="doccomment">//! This module will provide an instruction set for the AST to use, various traits,</span>
 <span class="doccomment">//! plus an interpreter to execute those instructions</span>
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">builtins</span>::{
+        <span class="ident">async_generator</span>::{<span class="ident">AsyncGenerator</span>, <span class="ident">AsyncGeneratorState</span>},
         <span class="ident">function</span>::{<span class="ident">ConstructorKind</span>, <span class="ident">Function</span>},
         <span class="ident">iterable::IteratorRecord</span>,
         <span class="ident">Array</span>, <span class="ident">ForInIterator</span>, <span class="ident">JsArgs</span>, <span class="ident">Number</span>, <span class="ident">Promise</span>,
@@ -2627,7 +2773,7 @@
     <span class="ident">value::Numeric</span>,
     <span class="ident">vm</span>::{
         <span class="ident">call_frame::CatchAddresses</span>,
-        <span class="ident">code_block</span>::{<span class="ident">create_generator_function_object</span>, <span class="ident">initialize_instance_elements</span>, <span class="ident">Readable</span>},
+        <span class="ident">code_block</span>::{<span class="ident">initialize_instance_elements</span>, <span class="ident">Readable</span>},
     },
     <span class="ident">Context</span>, <span class="ident">JsBigInt</span>, <span class="ident">JsResult</span>, <span class="ident">JsString</span>, <span class="ident">JsValue</span>,
 };
@@ -2643,7 +2789,7 @@
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use</span> {
     <span class="ident">call_frame</span>::{<span class="ident">FinallyReturn</span>, <span class="ident">GeneratorResumeKind</span>, <span class="ident">TryStackEntry</span>},
-    <span class="ident">code_block::create_function_object</span>,
+    <span class="ident">code_block</span>::{<span class="ident">create_function_object</span>, <span class="ident">create_generator_function_object</span>},
     <span class="ident">opcode::BindingOpcode</span>,
 };
 
@@ -3372,6 +3518,21 @@
 
                 <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">value</span>);
             }
+            <span class="ident">Opcode::GetPropertyByValuePush</span> =&gt; {
+                <span class="kw">let</span> <span class="ident">object</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+                <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+                <span class="kw">let</span> <span class="ident">object</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">object</span>) <span class="op">=</span> <span class="ident">object</span>.<span class="ident">as_object</span>() {
+                    <span class="ident">object</span>.<span class="ident">clone</span>()
+                } <span class="kw">else</span> {
+                    <span class="ident">object</span>.<span class="ident">to_object</span>(<span class="self">self</span>)<span class="question-mark">?</span>
+                };
+
+                <span class="kw">let</span> <span class="ident">property_key</span> <span class="op">=</span> <span class="ident">key</span>.<span class="ident">to_property_key</span>(<span class="self">self</span>)<span class="question-mark">?</span>;
+                <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">object</span>.<span class="ident">get</span>(<span class="ident">property_key</span>, <span class="self">self</span>)<span class="question-mark">?</span>;
+
+                <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">key</span>);
+                <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">value</span>);
+            }
             <span class="ident">Opcode::SetPropertyByName</span> =&gt; {
                 <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
 
@@ -3965,13 +4126,21 @@
             }
             <span class="ident">Opcode::CopyDataProperties</span> =&gt; {
                 <span class="kw">let</span> <span class="ident">excluded_key_count</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
+                <span class="kw">let</span> <span class="ident">excluded_key_count_computed</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">excluded_keys</span> <span class="op">=</span> <span class="ident">Vec::with_capacity</span>(<span class="ident">excluded_key_count</span> <span class="kw">as</span> <span class="ident">usize</span>);
                 <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">excluded_key_count</span> {
-                    <span class="ident">excluded_keys</span>.<span class="ident">push</span>(<span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>().<span class="ident">as_string</span>().<span class="ident">expect</span>(<span class="string">&quot;not a string&quot;</span>).<span class="ident">clone</span>());
+                    <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+                    <span class="ident">excluded_keys</span>
+                        .<span class="ident">push</span>(<span class="ident">key</span>.<span class="ident">to_property_key</span>(<span class="self">self</span>).<span class="ident">expect</span>(<span class="string">&quot;key must be property key&quot;</span>));
                 }
                 <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
                 <span class="kw">let</span> <span class="ident">object</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">as_object</span>().<span class="ident">expect</span>(<span class="string">&quot;not an object&quot;</span>);
                 <span class="kw">let</span> <span class="ident">source</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+                <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">excluded_key_count_computed</span> {
+                    <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+                    <span class="ident">excluded_keys</span>
+                        .<span class="ident">push</span>(<span class="ident">key</span>.<span class="ident">to_property_key</span>(<span class="self">self</span>).<span class="ident">expect</span>(<span class="string">&quot;key must be property key&quot;</span>));
+                }
                 <span class="ident">object</span>.<span class="ident">copy_data_properties</span>(<span class="kw-2">&amp;</span><span class="ident">source</span>, <span class="ident">excluded_keys</span>, <span class="self">self</span>)<span class="question-mark">?</span>;
                 <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">value</span>);
             }
@@ -4173,21 +4342,18 @@
                 }
                 <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">result</span>);
             }
-            <span class="ident">Opcode::SuperCallWithRest</span> =&gt; {
-                <span class="kw">let</span> <span class="ident">argument_count</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
-                <span class="kw">let</span> <span class="ident">rest_argument</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">arguments</span> <span class="op">=</span> <span class="ident">Vec::with_capacity</span>(<span class="ident">argument_count</span> <span class="kw">as</span> <span class="ident">usize</span>);
-                <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..(<span class="ident">argument_count</span> <span class="op">-</span> <span class="number">1</span>) {
-                    <span class="ident">arguments</span>.<span class="ident">push</span>(<span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>());
-                }
-                <span class="ident">arguments</span>.<span class="ident">reverse</span>();
-
-                <span class="kw">let</span> <span class="ident">iterator_record</span> <span class="op">=</span> <span class="ident">rest_argument</span>.<span class="ident">get_iterator</span>(<span class="self">self</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rest_arguments</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-                <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">next</span>) <span class="op">=</span> <span class="ident">iterator_record</span>.<span class="ident">step</span>(<span class="self">self</span>)<span class="question-mark">?</span> {
-                    <span class="ident">rest_arguments</span>.<span class="ident">push</span>(<span class="ident">next</span>.<span class="ident">value</span>(<span class="self">self</span>)<span class="question-mark">?</span>);
-                }
-                <span class="ident">arguments</span>.<span class="ident">append</span>(<span class="kw-2">&amp;mut</span> <span class="ident">rest_arguments</span>);
+            <span class="ident">Opcode::SuperCallSpread</span> =&gt; {
+                <span class="comment">// Get the arguments that are stored as an array object on the stack.</span>
+                <span class="kw">let</span> <span class="ident">arguments_array</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+                <span class="kw">let</span> <span class="ident">arguments_array_object</span> <span class="op">=</span> <span class="ident">arguments_array</span>
+                    .<span class="ident">as_object</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;arguments array in call spread function must be an object&quot;</span>);
+                <span class="kw">let</span> <span class="ident">arguments</span> <span class="op">=</span> <span class="ident">arguments_array_object</span>
+                    .<span class="ident">borrow</span>()
+                    .<span class="ident">properties</span>()
+                    .<span class="ident">dense_indexed_properties</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;arguments array in call spread function must be dense&quot;</span>)
+                    .<span class="ident">clone</span>();
 
                 <span class="kw">let</span> (<span class="ident">new_target</span>, <span class="ident">active_function</span>) <span class="op">=</span> {
                     <span class="kw">let</span> <span class="ident">this_env</span> <span class="op">=</span> <span class="self">self</span>
@@ -4296,19 +4462,25 @@
             <span class="ident">Opcode::GetFunction</span> =&gt; {
                 <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
                 <span class="kw">let</span> <span class="ident">code</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frame</span>().<span class="ident">code</span>.<span class="ident">functions</span>[<span class="ident">index</span> <span class="kw">as</span> <span class="ident">usize</span>].<span class="ident">clone</span>();
-                <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">create_function_object</span>(<span class="ident">code</span>, <span class="bool-val">false</span>, <span class="self">self</span>);
+                <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">create_function_object</span>(<span class="ident">code</span>, <span class="bool-val">false</span>, <span class="prelude-val">None</span>, <span class="self">self</span>);
                 <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">function</span>);
             }
             <span class="ident">Opcode::GetFunctionAsync</span> =&gt; {
                 <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
                 <span class="kw">let</span> <span class="ident">code</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frame</span>().<span class="ident">code</span>.<span class="ident">functions</span>[<span class="ident">index</span> <span class="kw">as</span> <span class="ident">usize</span>].<span class="ident">clone</span>();
-                <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">create_function_object</span>(<span class="ident">code</span>, <span class="bool-val">true</span>, <span class="self">self</span>);
+                <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">create_function_object</span>(<span class="ident">code</span>, <span class="bool-val">true</span>, <span class="prelude-val">None</span>, <span class="self">self</span>);
                 <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">function</span>);
             }
             <span class="ident">Opcode::GetGenerator</span> =&gt; {
                 <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
                 <span class="kw">let</span> <span class="ident">code</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frame</span>().<span class="ident">code</span>.<span class="ident">functions</span>[<span class="ident">index</span> <span class="kw">as</span> <span class="ident">usize</span>].<span class="ident">clone</span>();
-                <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">create_generator_function_object</span>(<span class="ident">code</span>, <span class="self">self</span>);
+                <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">create_generator_function_object</span>(<span class="ident">code</span>, <span class="bool-val">false</span>, <span class="self">self</span>);
+                <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">function</span>);
+            }
+            <span class="ident">Opcode::GetGeneratorAsync</span> =&gt; {
+                <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
+                <span class="kw">let</span> <span class="ident">code</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frame</span>().<span class="ident">code</span>.<span class="ident">functions</span>[<span class="ident">index</span> <span class="kw">as</span> <span class="ident">usize</span>].<span class="ident">clone</span>();
+                <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">create_generator_function_object</span>(<span class="ident">code</span>, <span class="bool-val">true</span>, <span class="self">self</span>);
                 <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">function</span>);
             }
             <span class="ident">Opcode::CallEval</span> =&gt; {
@@ -4348,26 +4520,25 @@
                     <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">result</span>);
                 }
             }
-            <span class="ident">Opcode::CallEvalWithRest</span> =&gt; {
+            <span class="ident">Opcode::CallEvalSpread</span> =&gt; {
                 <span class="kw">if</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">stack_size_limit</span> <span class="op">&lt;</span><span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">stack</span>.<span class="ident">len</span>() {
                     <span class="kw">return</span> <span class="self">self</span>.<span class="ident">throw_range_error</span>(<span class="string">&quot;Maximum call stack size exceeded&quot;</span>);
                 }
-                <span class="kw">let</span> <span class="ident">argument_count</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
-                <span class="kw">let</span> <span class="ident">rest_argument</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">arguments</span> <span class="op">=</span> <span class="ident">Vec::with_capacity</span>(<span class="ident">argument_count</span> <span class="kw">as</span> <span class="ident">usize</span>);
-                <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..(<span class="ident">argument_count</span> <span class="op">-</span> <span class="number">1</span>) {
-                    <span class="ident">arguments</span>.<span class="ident">push</span>(<span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>());
-                }
-                <span class="ident">arguments</span>.<span class="ident">reverse</span>();
+
+                <span class="comment">// Get the arguments that are stored as an array object on the stack.</span>
+                <span class="kw">let</span> <span class="ident">arguments_array</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+                <span class="kw">let</span> <span class="ident">arguments_array_object</span> <span class="op">=</span> <span class="ident">arguments_array</span>
+                    .<span class="ident">as_object</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;arguments array in call spread function must be an object&quot;</span>);
+                <span class="kw">let</span> <span class="ident">arguments</span> <span class="op">=</span> <span class="ident">arguments_array_object</span>
+                    .<span class="ident">borrow</span>()
+                    .<span class="ident">properties</span>()
+                    .<span class="ident">dense_indexed_properties</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;arguments array in call spread function must be dense&quot;</span>)
+                    .<span class="ident">clone</span>();
+
                 <span class="kw">let</span> <span class="ident">func</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
                 <span class="kw">let</span> <span class="ident">this</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
-
-                <span class="kw">let</span> <span class="ident">iterator_record</span> <span class="op">=</span> <span class="ident">rest_argument</span>.<span class="ident">get_iterator</span>(<span class="self">self</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rest_arguments</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-                <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">next</span>) <span class="op">=</span> <span class="ident">iterator_record</span>.<span class="ident">step</span>(<span class="self">self</span>)<span class="question-mark">?</span> {
-                    <span class="ident">rest_arguments</span>.<span class="ident">push</span>(<span class="ident">next</span>.<span class="ident">value</span>(<span class="self">self</span>)<span class="question-mark">?</span>);
-                }
-                <span class="ident">arguments</span>.<span class="ident">append</span>(<span class="kw-2">&amp;mut</span> <span class="ident">rest_arguments</span>);
 
                 <span class="kw">let</span> <span class="ident">object</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">func</span> {
                     <span class="ident">JsValue::Object</span>(<span class="kw-2">ref</span> <span class="ident">object</span>) <span class="kw">if</span> <span class="ident">object</span>.<span class="ident">is_callable</span>() =&gt; <span class="ident">object</span>.<span class="ident">clone</span>(),
@@ -4415,26 +4586,25 @@
 
                 <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">result</span>);
             }
-            <span class="ident">Opcode::CallWithRest</span> =&gt; {
+            <span class="ident">Opcode::CallSpread</span> =&gt; {
                 <span class="kw">if</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">stack_size_limit</span> <span class="op">&lt;</span><span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">stack</span>.<span class="ident">len</span>() {
                     <span class="kw">return</span> <span class="self">self</span>.<span class="ident">throw_range_error</span>(<span class="string">&quot;Maximum call stack size exceeded&quot;</span>);
                 }
-                <span class="kw">let</span> <span class="ident">argument_count</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
-                <span class="kw">let</span> <span class="ident">rest_argument</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">arguments</span> <span class="op">=</span> <span class="ident">Vec::with_capacity</span>(<span class="ident">argument_count</span> <span class="kw">as</span> <span class="ident">usize</span>);
-                <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..(<span class="ident">argument_count</span> <span class="op">-</span> <span class="number">1</span>) {
-                    <span class="ident">arguments</span>.<span class="ident">push</span>(<span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>());
-                }
-                <span class="ident">arguments</span>.<span class="ident">reverse</span>();
+
+                <span class="comment">// Get the arguments that are stored as an array object on the stack.</span>
+                <span class="kw">let</span> <span class="ident">arguments_array</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+                <span class="kw">let</span> <span class="ident">arguments_array_object</span> <span class="op">=</span> <span class="ident">arguments_array</span>
+                    .<span class="ident">as_object</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;arguments array in call spread function must be an object&quot;</span>);
+                <span class="kw">let</span> <span class="ident">arguments</span> <span class="op">=</span> <span class="ident">arguments_array_object</span>
+                    .<span class="ident">borrow</span>()
+                    .<span class="ident">properties</span>()
+                    .<span class="ident">dense_indexed_properties</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;arguments array in call spread function must be dense&quot;</span>)
+                    .<span class="ident">clone</span>();
+
                 <span class="kw">let</span> <span class="ident">func</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
                 <span class="kw">let</span> <span class="ident">this</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
-
-                <span class="kw">let</span> <span class="ident">iterator_record</span> <span class="op">=</span> <span class="ident">rest_argument</span>.<span class="ident">get_iterator</span>(<span class="self">self</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rest_arguments</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-                <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">next</span>) <span class="op">=</span> <span class="ident">iterator_record</span>.<span class="ident">step</span>(<span class="self">self</span>)<span class="question-mark">?</span> {
-                    <span class="ident">rest_arguments</span>.<span class="ident">push</span>(<span class="ident">next</span>.<span class="ident">value</span>(<span class="self">self</span>)<span class="question-mark">?</span>);
-                }
-                <span class="ident">arguments</span>.<span class="ident">append</span>(<span class="kw-2">&amp;mut</span> <span class="ident">rest_arguments</span>);
 
                 <span class="kw">let</span> <span class="ident">object</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">func</span> {
                     <span class="ident">JsValue::Object</span>(<span class="kw-2">ref</span> <span class="ident">object</span>) <span class="kw">if</span> <span class="ident">object</span>.<span class="ident">is_callable</span>() =&gt; <span class="ident">object</span>.<span class="ident">clone</span>(),
@@ -4464,25 +4634,23 @@
 
                 <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">result</span>);
             }
-            <span class="ident">Opcode::NewWithRest</span> =&gt; {
+            <span class="ident">Opcode::NewSpread</span> =&gt; {
                 <span class="kw">if</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">stack_size_limit</span> <span class="op">&lt;</span><span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">stack</span>.<span class="ident">len</span>() {
                     <span class="kw">return</span> <span class="self">self</span>.<span class="ident">throw_range_error</span>(<span class="string">&quot;Maximum call stack size exceeded&quot;</span>);
                 }
-                <span class="kw">let</span> <span class="ident">argument_count</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
-                <span class="kw">let</span> <span class="ident">rest_argument</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">arguments</span> <span class="op">=</span> <span class="ident">Vec::with_capacity</span>(<span class="ident">argument_count</span> <span class="kw">as</span> <span class="ident">usize</span>);
-                <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..(<span class="ident">argument_count</span> <span class="op">-</span> <span class="number">1</span>) {
-                    <span class="ident">arguments</span>.<span class="ident">push</span>(<span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>());
-                }
-                <span class="ident">arguments</span>.<span class="ident">reverse</span>();
-                <span class="kw">let</span> <span class="ident">func</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+                <span class="comment">// Get the arguments that are stored as an array object on the stack.</span>
+                <span class="kw">let</span> <span class="ident">arguments_array</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+                <span class="kw">let</span> <span class="ident">arguments_array_object</span> <span class="op">=</span> <span class="ident">arguments_array</span>
+                    .<span class="ident">as_object</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;arguments array in call spread function must be an object&quot;</span>);
+                <span class="kw">let</span> <span class="ident">arguments</span> <span class="op">=</span> <span class="ident">arguments_array_object</span>
+                    .<span class="ident">borrow</span>()
+                    .<span class="ident">properties</span>()
+                    .<span class="ident">dense_indexed_properties</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;arguments array in call spread function must be dense&quot;</span>)
+                    .<span class="ident">clone</span>();
 
-                <span class="kw">let</span> <span class="ident">iterator_record</span> <span class="op">=</span> <span class="ident">rest_argument</span>.<span class="ident">get_iterator</span>(<span class="self">self</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rest_arguments</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-                <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">next</span>) <span class="op">=</span> <span class="ident">iterator_record</span>.<span class="ident">step</span>(<span class="self">self</span>)<span class="question-mark">?</span> {
-                    <span class="ident">rest_arguments</span>.<span class="ident">push</span>(<span class="ident">next</span>.<span class="ident">value</span>(<span class="self">self</span>)<span class="question-mark">?</span>);
-                }
-                <span class="ident">arguments</span>.<span class="ident">append</span>(<span class="kw-2">&amp;mut</span> <span class="ident">rest_arguments</span>);
+                <span class="kw">let</span> <span class="ident">func</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
 
                 <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">func</span>
                     .<span class="ident">as_constructor</span>()
@@ -4792,6 +4960,54 @@
                     <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">ShouldExit::True</span>);
                 }
             },
+            <span class="ident">Opcode::AsyncGeneratorNext</span> =&gt; {
+                <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
+
+                <span class="kw">if</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frame</span>().<span class="ident">generator_resume_kind</span> <span class="op">==</span> <span class="ident">GeneratorResumeKind::Throw</span> {
+                    <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">value</span>);
+                }
+
+                <span class="kw">let</span> <span class="ident">completion</span> <span class="op">=</span> <span class="prelude-val">Ok</span>(<span class="ident">value</span>);
+                <span class="kw">let</span> <span class="ident">generator_object</span> <span class="op">=</span> <span class="self">self</span>
+                    .<span class="ident">vm</span>
+                    .<span class="ident">frame</span>()
+                    .<span class="ident">async_generator</span>
+                    .<span class="ident">as_ref</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;must be in generator context here&quot;</span>)
+                    .<span class="ident">clone</span>();
+                <span class="kw">let</span> <span class="ident">next</span> <span class="op">=</span> <span class="ident">generator_object</span>
+                    .<span class="ident">borrow_mut</span>()
+                    .<span class="ident">as_async_generator_mut</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;must be async generator object&quot;</span>)
+                    .<span class="ident">queue</span>
+                    .<span class="ident">pop_front</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;must have item in queue&quot;</span>);
+                <span class="ident">AsyncGenerator::complete_step</span>(<span class="kw-2">&amp;</span><span class="ident">next</span>, <span class="ident">completion</span>, <span class="bool-val">false</span>, <span class="self">self</span>);
+
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">generator_object_mut</span> <span class="op">=</span> <span class="ident">generator_object</span>.<span class="ident">borrow_mut</span>();
+                <span class="kw">let</span> <span class="ident">gen</span> <span class="op">=</span> <span class="ident">generator_object_mut</span>
+                    .<span class="ident">as_async_generator_mut</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;must be async generator object&quot;</span>);
+
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">next</span>) <span class="op">=</span> <span class="ident">gen</span>.<span class="ident">queue</span>.<span class="ident">front</span>() {
+                    <span class="kw">let</span> (<span class="ident">completion</span>, <span class="ident">r#return</span>) <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">next</span>.<span class="ident">completion</span>;
+                    <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">r#return</span> {
+                        <span class="kw">match</span> <span class="ident">completion</span> {
+                            <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">|</span> <span class="prelude-val">Err</span>(<span class="ident">value</span>) =&gt; <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">value</span>),
+                        }
+                        <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="bool-val">true</span>);
+                    } <span class="kw">else</span> {
+                        <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="ident">completion</span>.<span class="ident">clone</span>()<span class="question-mark">?</span>);
+                        <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="bool-val">false</span>);
+                    }
+
+                    <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="bool-val">false</span>);
+                } <span class="kw">else</span> {
+                    <span class="ident">gen</span>.<span class="ident">state</span> <span class="op">=</span> <span class="ident">AsyncGeneratorState::SuspendedYield</span>;
+                    <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="bool-val">true</span>);
+                    <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">push</span>(<span class="bool-val">true</span>);
+                }
+            }
             <span class="ident">Opcode::GeneratorNextDelegate</span> =&gt; {
                 <span class="kw">let</span> <span class="ident">done_address</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">read</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>();
                 <span class="kw">let</span> <span class="ident">received</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">pop</span>();
@@ -5001,7 +5217,7 @@
         <span class="kw">let</span> <span class="ident">_timer</span> <span class="op">=</span> <span class="ident">Profiler::global</span>().<span class="ident">start_event</span>(<span class="string">&quot;run&quot;</span>, <span class="string">&quot;vm&quot;</span>);
 
         <span class="kw">if</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">trace</span> {
-            <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="kw">if</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frames</span>.<span class="ident">get</span>(<span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frames</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">2</span>).<span class="ident">is_some</span>() {
+            <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="kw">if</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frames</span>.<span class="ident">last</span>().<span class="ident">is_some</span>() {
                 <span class="string">&quot; Call Frame &quot;</span>
             } <span class="kw">else</span> {
                 <span class="string">&quot; VM Start &quot;</span>
@@ -5096,6 +5312,24 @@
                             .<span class="ident">call</span>(<span class="kw-2">&amp;</span><span class="ident">JsValue::undefined</span>(), <span class="kw-2">&amp;</span>[<span class="ident">result</span>.<span class="ident">clone</span>()], <span class="self">self</span>)
                             .<span class="ident">expect</span>(<span class="string">&quot;cannot fail per spec&quot;</span>);
                     }
+                    <span class="comment">// Step 4.e-j in [AsyncGeneratorStart](https://tc39.es/ecma262/#sec-asyncgeneratorstart)</span>
+                    <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">generator_object</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frame</span>().<span class="ident">async_generator</span>.<span class="ident">clone</span>() {
+                        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">generator_object_mut</span> <span class="op">=</span> <span class="ident">generator_object</span>.<span class="ident">borrow_mut</span>();
+                        <span class="kw">let</span> <span class="ident">generator</span> <span class="op">=</span> <span class="ident">generator_object_mut</span>
+                            .<span class="ident">as_async_generator_mut</span>()
+                            .<span class="ident">expect</span>(<span class="string">&quot;must be async generator&quot;</span>);
+
+                        <span class="ident">generator</span>.<span class="ident">state</span> <span class="op">=</span> <span class="ident">AsyncGeneratorState::Completed</span>;
+
+                        <span class="kw">let</span> <span class="ident">next</span> <span class="op">=</span> <span class="ident">generator</span>
+                            .<span class="ident">queue</span>
+                            .<span class="ident">pop_front</span>()
+                            .<span class="ident">expect</span>(<span class="string">&quot;must have item in queue&quot;</span>);
+                        <span class="ident">drop</span>(<span class="ident">generator_object_mut</span>);
+                        <span class="ident">AsyncGenerator::complete_step</span>(<span class="kw-2">&amp;</span><span class="ident">next</span>, <span class="prelude-val">Ok</span>(<span class="ident">result</span>), <span class="bool-val">true</span>, <span class="self">self</span>);
+                        <span class="ident">AsyncGenerator::drain_queue</span>(<span class="kw-2">&amp;</span><span class="ident">generator_object</span>, <span class="self">self</span>);
+                        <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">JsValue::undefined</span>(), <span class="ident">ReturnType::Normal</span>));
+                    }
 
                     <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">result</span>, <span class="ident">ReturnType::Normal</span>));
                 }
@@ -5161,6 +5395,26 @@
 
                             <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">e</span>, <span class="ident">ReturnType::Normal</span>));
                         }
+                        <span class="comment">// Step 4.e-j in [AsyncGeneratorStart](https://tc39.es/ecma262/#sec-asyncgeneratorstart)</span>
+                        <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">generator_object</span>) <span class="op">=</span>
+                            <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frame</span>().<span class="ident">async_generator</span>.<span class="ident">clone</span>()
+                        {
+                            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">generator_object_mut</span> <span class="op">=</span> <span class="ident">generator_object</span>.<span class="ident">borrow_mut</span>();
+                            <span class="kw">let</span> <span class="ident">generator</span> <span class="op">=</span> <span class="ident">generator_object_mut</span>
+                                .<span class="ident">as_async_generator_mut</span>()
+                                .<span class="ident">expect</span>(<span class="string">&quot;must be async generator&quot;</span>);
+
+                            <span class="ident">generator</span>.<span class="ident">state</span> <span class="op">=</span> <span class="ident">AsyncGeneratorState::Completed</span>;
+
+                            <span class="kw">let</span> <span class="ident">next</span> <span class="op">=</span> <span class="ident">generator</span>
+                                .<span class="ident">queue</span>
+                                .<span class="ident">pop_front</span>()
+                                .<span class="ident">expect</span>(<span class="string">&quot;must have item in queue&quot;</span>);
+                            <span class="ident">drop</span>(<span class="ident">generator_object_mut</span>);
+                            <span class="ident">AsyncGenerator::complete_step</span>(<span class="kw-2">&amp;</span><span class="ident">next</span>, <span class="prelude-val">Err</span>(<span class="ident">e</span>), <span class="bool-val">true</span>, <span class="self">self</span>);
+                            <span class="ident">AsyncGenerator::drain_queue</span>(<span class="kw-2">&amp;</span><span class="ident">generator_object</span>, <span class="self">self</span>);
+                            <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">JsValue::undefined</span>(), <span class="ident">ReturnType::Normal</span>));
+                        }
 
                         <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>);
                     }
@@ -5199,6 +5453,23 @@
                     .<span class="ident">call</span>(<span class="kw-2">&amp;</span><span class="ident">JsValue::undefined</span>(), <span class="kw-2">&amp;</span>[], <span class="self">self</span>)
                     .<span class="ident">expect</span>(<span class="string">&quot;cannot fail per spec&quot;</span>);
             }
+            <span class="comment">// Step 4.e-j in [AsyncGeneratorStart](https://tc39.es/ecma262/#sec-asyncgeneratorstart)</span>
+            <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">generator_object</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frame</span>().<span class="ident">async_generator</span>.<span class="ident">clone</span>() {
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">generator_object_mut</span> <span class="op">=</span> <span class="ident">generator_object</span>.<span class="ident">borrow_mut</span>();
+                <span class="kw">let</span> <span class="ident">generator</span> <span class="op">=</span> <span class="ident">generator_object_mut</span>
+                    .<span class="ident">as_async_generator_mut</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;must be async generator&quot;</span>);
+
+                <span class="ident">generator</span>.<span class="ident">state</span> <span class="op">=</span> <span class="ident">AsyncGeneratorState::Completed</span>;
+
+                <span class="kw">let</span> <span class="ident">next</span> <span class="op">=</span> <span class="ident">generator</span>
+                    .<span class="ident">queue</span>
+                    .<span class="ident">pop_front</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;must have item in queue&quot;</span>);
+                <span class="ident">drop</span>(<span class="ident">generator_object_mut</span>);
+                <span class="ident">AsyncGenerator::complete_step</span>(<span class="kw-2">&amp;</span><span class="ident">next</span>, <span class="prelude-val">Ok</span>(<span class="ident">JsValue::undefined</span>()), <span class="bool-val">true</span>, <span class="self">self</span>);
+                <span class="ident">AsyncGenerator::drain_queue</span>(<span class="kw-2">&amp;</span><span class="ident">generator_object</span>, <span class="self">self</span>);
+            }
 
             <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">JsValue::undefined</span>(), <span class="ident">ReturnType::Normal</span>));
         }
@@ -5213,10 +5484,28 @@
                 .<span class="ident">call</span>(<span class="kw-2">&amp;</span><span class="ident">JsValue::undefined</span>(), <span class="kw-2">&amp;</span>[<span class="ident">result</span>.<span class="ident">clone</span>()], <span class="self">self</span>)
                 .<span class="ident">expect</span>(<span class="string">&quot;cannot fail per spec&quot;</span>);
         }
+        <span class="comment">// Step 4.e-j in [AsyncGeneratorStart](https://tc39.es/ecma262/#sec-asyncgeneratorstart)</span>
+        <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">generator_object</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">vm</span>.<span class="ident">frame</span>().<span class="ident">async_generator</span>.<span class="ident">clone</span>() {
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">generator_object_mut</span> <span class="op">=</span> <span class="ident">generator_object</span>.<span class="ident">borrow_mut</span>();
+            <span class="kw">let</span> <span class="ident">generator</span> <span class="op">=</span> <span class="ident">generator_object_mut</span>
+                .<span class="ident">as_async_generator_mut</span>()
+                .<span class="ident">expect</span>(<span class="string">&quot;must be async generator&quot;</span>);
+
+            <span class="ident">generator</span>.<span class="ident">state</span> <span class="op">=</span> <span class="ident">AsyncGeneratorState::Completed</span>;
+
+            <span class="kw">let</span> <span class="ident">next</span> <span class="op">=</span> <span class="ident">generator</span>
+                .<span class="ident">queue</span>
+                .<span class="ident">pop_front</span>()
+                .<span class="ident">expect</span>(<span class="string">&quot;must have item in queue&quot;</span>);
+            <span class="ident">drop</span>(<span class="ident">generator_object_mut</span>);
+            <span class="ident">AsyncGenerator::complete_step</span>(<span class="kw-2">&amp;</span><span class="ident">next</span>, <span class="prelude-val">Ok</span>(<span class="ident">result</span>), <span class="bool-val">true</span>, <span class="self">self</span>);
+            <span class="ident">AsyncGenerator::drain_queue</span>(<span class="kw-2">&amp;</span><span class="ident">generator_object</span>, <span class="self">self</span>);
+            <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">JsValue::undefined</span>(), <span class="ident">ReturnType::Normal</span>));
+        }
 
         <span class="prelude-val">Ok</span>((<span class="ident">result</span>, <span class="ident">ReturnType::Normal</span>))
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.62.0 (a8314ef7d 2022-06-27)" ></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0 (4b91a6ea7 2022-08-08)" ></div>
 </body></html>
