@@ -11,6 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install mdBook
+        run: |
+          mkdir mdbook
+          curl -Lf https://github.com/rust-lang/mdBook/releases/download/v0.4.22/mdbook-v0.4.22-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
       - uses: actions-rs/toolchain@v1.0.7
         with:
           toolchain: stable
@@ -25,6 +29,11 @@ jobs:
             ~/.cargo/git
             ~/.cargo/registry
           key: ${{ runner.os }}-cargo-doc-bench-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build Contributor Guide
+        run: |
+          cd docs/contrib
+          mdbook build
+          cd ../../
       - name: Generate documentation
         uses: actions-rs/cargo@v1
         with:
@@ -33,7 +42,7 @@ jobs:
       - run: echo "<meta http-equiv=refresh content=0;url=boa_engine/index.html>" > target/doc/index.html
       - run: |
           if [ -d target/doc_upload ]; then rm -rf target/doc_upload; fi
-          mkdir target/doc_upload && mv target/doc target/doc_upload/doc
+          mkdir target/doc_upload && mv target/doc target/doc_upload/doc && mv docs/contrib target/doc_upload/contrib
       - name: Upload documentation
         uses: crazy-max/ghaction-github-pages@v3.1.0
         with:

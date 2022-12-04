@@ -1,0 +1,6 @@
+[book]
+title = "Boa Contributor Guide"
+authors = ["boa-dev"]
+
+[output.html]
+git-repository-url = "https://github.com/boa-dev/boa/tree/master/doc/contrib/src"
