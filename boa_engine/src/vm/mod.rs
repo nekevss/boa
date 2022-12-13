@@ -7,7 +7,7 @@
 use crate::{
     builtins::async_generator::{AsyncGenerator, AsyncGeneratorState},
     vm::{call_frame::CatchAddresses, code_block::Readable},
-    Context, JsResult, JsValue,
+    Context, JsResult, JsValue, JsNativeError,
 };
 #[cfg(feature = "fuzz")]
 use crate::{JsError, JsNativeError};
@@ -39,8 +39,25 @@ pub struct Vm {
     pub(crate) stack: Vec<JsValue>,
     pub(crate) trace: bool,
     pub(crate) stack_size_limit: usize,
+    // NOTE: Call stack limit max value is 48;
+    pub(crate) call_stack_limit: usize,
 }
 
+// The default setting for the Vm. This should be the initial 
+// setup on the Vm on any Context::default() call.
+impl Default for Vm {
+    fn default() -> Self {
+        Self {
+            frames: Vec::with_capacity(16),
+            stack: Vec::with_capacity(1024),
+            trace: false,
+            stack_size_limit: 1024,
+            call_stack_limit: 48,
+        }
+    }
+}
+
+// Internal crate methods block
 impl Vm {
     /// Push a value on the stack.
     #[inline]
@@ -90,9 +107,21 @@ impl Vm {
         self.frames.last_mut().expect("no frame found")
     }
 
+    /// Pushes `CallFrame` onto the call stack
+    /// 
+    /// # Errors
+    /// 
+    /// Can trigger 'RangeError: Maximum call stack size exceeded'
     #[inline]
-    pub(crate) fn push_frame(&mut self, frame: CallFrame) {
+    pub(crate) fn push_frame(&mut self, frame: CallFrame) -> JsResult<JsValue> {
+        // Determine if the call stack limit has been reached or exceeded.
+        if self.frames.len() >= self.call_stack_limit {
+            return Err(JsNativeError::range().with_message("Maximum call stack size exceeded").into())
+        }
+
+        // Push frame onto call stack
         self.frames.push(frame);
+        Ok(().into())
     }
 
     #[inline]
@@ -117,11 +146,12 @@ pub(crate) enum ReturnType {
     Yield,
 }
 
+// `VM` related `Context` methods are implemented here.
 impl Context {
     fn execute_instruction(&mut self) -> JsResult<ShouldExit> {
         let opcode: Opcode = {
             let _timer = Profiler::global().start_event("Opcode retrieval", "vm");
-            let opcode = self.vm.frame().code.code[self.vm.frame().pc]
+            let opcode = self.vm.frame().code.bytecode[self.vm.frame().pc]
                 .try_into()
                 .expect("could not convert code at PC to opcode");
             self.vm.frame_mut().pc += 1;
@@ -185,7 +215,7 @@ impl Context {
                     .and_then(|f| f.get_promise_capability().cloned())
             });
 
-        while self.vm.frame().pc < self.vm.frame().code.code.len() {
+        while self.vm.frame().pc < self.vm.frame().code.bytecode.len() {
             #[cfg(feature = "fuzz")]
             {
                 if self.instructions_remaining == 0 {

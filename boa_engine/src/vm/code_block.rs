@@ -78,8 +78,8 @@ pub struct CodeBlock {
     #[unsafe_ignore_trace]
     pub(crate) params: FormalParameterList,
 
-    /// Bytecode
-    pub(crate) code: Vec<u8>,
+    /// `CodeBlock`'s Executable Bytecode
+    pub(crate) bytecode: Vec<u8>,
 
     /// Literals
     pub(crate) literals: Vec<JsValue>,
@@ -120,7 +120,7 @@ impl CodeBlock {
     #[must_use]
     pub fn new(name: Sym, length: u32, strict: bool) -> Self {
         Self {
-            code: Vec::new(),
+            bytecode: Vec::new(),
             literals: Vec::new(),
             names: Vec::new(),
             bindings: Vec::new(),
@@ -153,7 +153,7 @@ impl CodeBlock {
         //
         // This has to be an unaligned read because we can't guarantee that
         // the types are aligned.
-        unsafe { self.code.as_ptr().add(offset).cast::<T>().read_unaligned() }
+        unsafe { self.bytecode.as_ptr().add(offset).cast::<T>().read_unaligned() }
     }
 
     /// Read type T from code.
@@ -162,7 +162,7 @@ impl CodeBlock {
     where
         T: Readable,
     {
-        assert!(offset + size_of::<T>() - 1 < self.code.len());
+        assert!(offset + size_of::<T>() - 1 < self.bytecode.len());
 
         // Safety: We checked that it is not an out-of-bounds read,
         // so this is safe.
@@ -174,7 +174,7 @@ impl CodeBlock {
     ///
     /// Returns an empty `String` if no operands are present.
     pub(crate) fn instruction_operands(&self, pc: &mut usize, interner: &Interner) -> String {
-        let opcode: Opcode = self.code[*pc].try_into().expect("invalid opcode");
+        let opcode: Opcode = self.bytecode[*pc].try_into().expect("invalid opcode");
         *pc += size_of::<Opcode>();
         match opcode {
             Opcode::SetFunctionName => {
@@ -257,7 +257,7 @@ impl CodeBlock {
                 let operand = self.read::<u32>(*pc);
                 *pc += size_of::<u32>();
                 format!(
-                    "{operand:04}: '{:?}' (length: {})",
+                    "{operand:04}: {} (length: {})",
                     interner.resolve_expect(self.functions[operand as usize].name),
                     self.functions[operand as usize].length
                 )
@@ -425,13 +425,13 @@ impl ToInternedString for CodeBlock {
 
         f.push_str(&format!(
             "{:-^70}\nLocation  Count   Opcode                     Operands\n\n",
-            format!("Compiled Output: '{name}'"),
+            format!(" Compiled Output: '{name}' "),
         ));
 
         let mut pc = 0;
         let mut count = 0;
-        while pc < self.code.len() {
-            let opcode: Opcode = self.code[pc].try_into().expect("invalid opcode");
+        while pc < self.bytecode.len() {
+            let opcode: Opcode = self.bytecode[pc].try_into().expect("invalid opcode");
             let opcode = opcode.as_str();
             let previous_pc = pc;
             let operands = self.instruction_operands(&mut pc, interner);
@@ -836,7 +836,7 @@ impl JsObject {
                     generator_resume_kind: GeneratorResumeKind::Normal,
                     thrown: false,
                     async_generator: None,
-                });
+                })?;
 
                 let result = context.run();
                 context.vm.pop_frame().expect("must have frame");
@@ -956,7 +956,7 @@ impl JsObject {
                     generator_resume_kind: GeneratorResumeKind::Normal,
                     thrown: false,
                     async_generator: None,
-                });
+                })?;
 
                 let _result = context.run();
                 context.vm.pop_frame().expect("must have frame");
@@ -1071,7 +1071,7 @@ impl JsObject {
                 let mut stack = args;
 
                 std::mem::swap(&mut context.vm.stack, &mut stack);
-                context.vm.push_frame(call_frame);
+                context.vm.push_frame(call_frame)?;
 
                 let init_result = context.run();
 
@@ -1209,7 +1209,7 @@ impl JsObject {
                 let mut stack = args;
 
                 std::mem::swap(&mut context.vm.stack, &mut stack);
-                context.vm.push_frame(call_frame);
+                context.vm.push_frame(call_frame)?;
 
                 let init_result = context.run();
 
@@ -1450,7 +1450,7 @@ impl JsObject {
                     generator_resume_kind: GeneratorResumeKind::Normal,
                     thrown: false,
                     async_generator: None,
-                });
+                })?;
 
                 let result = context.run();
 

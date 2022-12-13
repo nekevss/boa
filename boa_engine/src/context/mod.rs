@@ -534,7 +534,7 @@ impl Context {
             generator_resume_kind: GeneratorResumeKind::Normal,
             thrown: false,
             async_generator: None,
-        });
+        })?;
 
         self.realm.set_global_binding_number();
         let result = self.run();
@@ -665,12 +665,7 @@ impl ContextBuilder {
             #[cfg(feature = "console")]
             console: Console::default(),
             intrinsics,
-            vm: Vm {
-                frames: Vec::with_capacity(16),
-                stack: Vec::with_capacity(1024),
-                trace: false,
-                stack_size_limit: 1024,
-            },
+            vm: Vm::default(),
             #[cfg(feature = "intl")]
             icu: self.icu.unwrap_or_else(|| {
                 // TODO: Replace with a more fitting default

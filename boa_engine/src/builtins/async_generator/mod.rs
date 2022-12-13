@@ -542,7 +542,7 @@ impl AsyncGenerator {
         std::mem::swap(&mut context.vm.stack, &mut generator_context_mut.stack);
         context
             .vm
-            .push_frame(generator_context_mut.call_frame.clone());
+            .push_frame(generator_context_mut.call_frame.clone()).unwrap();
 
         // 7. Resume the suspended evaluation of genContext using completion as the result of the operation that suspended it. Let result be the Completion Record returned by the resumed computation.
         match completion {

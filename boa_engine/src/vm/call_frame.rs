@@ -8,11 +8,15 @@ use boa_gc::{Finalize, Gc, Trace};
 /// A `CallFrame` holds the state of a function call.
 #[derive(Clone, Debug, Finalize, Trace)]
 pub struct CallFrame {
+    /// The Code Block for this frame.
     pub(crate) code: Gc<CodeBlock>,
+    /// This `CallFrame`'s program counter: points to the next instruction.
     pub(crate) pc: usize,
+    /// Tracks the [`CatchAddresses`] in case of error.
     #[unsafe_ignore_trace]
     pub(crate) catch: Vec<CatchAddresses>,
     #[unsafe_ignore_trace]
+    /// Tracks the [`FinallyReturn`] value for the call frame if needed.
     pub(crate) finally_return: FinallyReturn,
     pub(crate) finally_jump: Vec<Option<u32>>,
     pub(crate) pop_on_return: usize,
@@ -39,6 +43,7 @@ pub struct CallFrame {
     pub(crate) async_generator: Option<JsObject>,
 }
 
+// Internal methods implementation block
 impl CallFrame {
     /// Tracks that one environment has been pushed in the current loop block.
     pub(crate) fn loop_env_stack_inc(&mut self) {
