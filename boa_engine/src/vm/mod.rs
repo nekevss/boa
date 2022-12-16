@@ -7,7 +7,7 @@
 use crate::{
     builtins::async_generator::{AsyncGenerator, AsyncGeneratorState},
     vm::{call_frame::CatchAddresses, code_block::Readable},
-    Context, JsResult, JsValue, JsNativeError,
+    Context, JsResult, JsValue, 
 };
 #[cfg(feature = "fuzz")]
 use crate::{JsError, JsNativeError};
@@ -35,12 +35,11 @@ mod tests;
 /// Virtual Machine.
 #[derive(Debug)]
 pub struct Vm {
+    // NOTE: Call stack limit max value is 48;
     pub(crate) frames: Vec<CallFrame>,
     pub(crate) stack: Vec<JsValue>,
     pub(crate) trace: bool,
     pub(crate) stack_size_limit: usize,
-    // NOTE: Call stack limit max value is 48;
-    pub(crate) call_stack_limit: usize,
 }
 
 // The default setting for the Vm. This should be the initial 
@@ -52,7 +51,6 @@ impl Default for Vm {
             stack: Vec::with_capacity(1024),
             trace: false,
             stack_size_limit: 1024,
-            call_stack_limit: 48,
         }
     }
 }
@@ -108,20 +106,11 @@ impl Vm {
     }
 
     /// Pushes `CallFrame` onto the call stack
-    /// 
-    /// # Errors
-    /// 
-    /// Can trigger 'RangeError: Maximum call stack size exceeded'
     #[inline]
-    pub(crate) fn push_frame(&mut self, frame: CallFrame) -> JsResult<JsValue> {
-        // Determine if the call stack limit has been reached or exceeded.
-        if self.frames.len() >= self.call_stack_limit {
-            return Err(JsNativeError::range().with_message("Maximum call stack size exceeded").into())
-        }
-
+    pub(crate) fn push_frame(&mut self, frame: CallFrame) {
         // Push frame onto call stack
+        // This panics after frames reaches a size of 48 due to a stack overflow.
         self.frames.push(frame);
-        Ok(().into())
     }
 
     #[inline]

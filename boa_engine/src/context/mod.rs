@@ -534,7 +534,7 @@ impl Context {
             generator_resume_kind: GeneratorResumeKind::Normal,
             thrown: false,
             async_generator: None,
-        })?;
+        });
 
         self.realm.set_global_binding_number();
         let result = self.run();

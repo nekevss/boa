@@ -836,7 +836,7 @@ impl JsObject {
                     generator_resume_kind: GeneratorResumeKind::Normal,
                     thrown: false,
                     async_generator: None,
-                })?;
+                });
 
                 let result = context.run();
                 context.vm.pop_frame().expect("must have frame");
@@ -956,7 +956,7 @@ impl JsObject {
                     generator_resume_kind: GeneratorResumeKind::Normal,
                     thrown: false,
                     async_generator: None,
-                })?;
+                });
 
                 let _result = context.run();
                 context.vm.pop_frame().expect("must have frame");
@@ -1071,7 +1071,7 @@ impl JsObject {
                 let mut stack = args;
 
                 std::mem::swap(&mut context.vm.stack, &mut stack);
-                context.vm.push_frame(call_frame)?;
+                context.vm.push_frame(call_frame);
 
                 let init_result = context.run();
 
@@ -1209,7 +1209,7 @@ impl JsObject {
                 let mut stack = args;
 
                 std::mem::swap(&mut context.vm.stack, &mut stack);
-                context.vm.push_frame(call_frame)?;
+                context.vm.push_frame(call_frame);
 
                 let init_result = context.run();
 
@@ -1450,7 +1450,7 @@ impl JsObject {
                     generator_resume_kind: GeneratorResumeKind::Normal,
                     thrown: false,
                     async_generator: None,
-                })?;
+                });
 
                 let result = context.run();
 

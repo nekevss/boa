@@ -263,7 +263,7 @@ impl Generator {
             &mut generator_context.environments,
         );
         std::mem::swap(&mut context.vm.stack, &mut generator_context.stack);
-        context.vm.push_frame(generator_context.call_frame.clone())?;
+        context.vm.push_frame(generator_context.call_frame.clone());
         if !first_execution {
             context.vm.push(value);
         }
@@ -381,7 +381,7 @@ impl Generator {
             &mut generator_context.environments,
         );
         std::mem::swap(&mut context.vm.stack, &mut generator_context.stack);
-        context.vm.push_frame(generator_context.call_frame.clone())?;
+        context.vm.push_frame(generator_context.call_frame.clone());
 
         let result = match abrupt_completion {
             Ok(value) => {
