@@ -1,5 +1,6 @@
 use crate::{
-    vm::{code_block::create_function_object, opcode::Operation, ShouldExit},
+    vm::{opcode::Operation, ShouldExit},
+    object::JsObject,
     Context, JsResult,
 };
 
@@ -17,7 +18,7 @@ impl Operation for GetArrowFunction {
     fn execute(context: &mut Context) -> JsResult<ShouldExit> {
         let index = context.vm.read::<u32>();
         let code = context.vm.frame().code.functions[index as usize].clone();
-        let function = create_function_object(code, false, true, None, context);
+        let function = JsObject::create_function_object(code, false, true, None, context);
         context.vm.push(function);
         Ok(ShouldExit::False)
     }
@@ -37,7 +38,7 @@ impl Operation for GetAsyncArrowFunction {
     fn execute(context: &mut Context) -> JsResult<ShouldExit> {
         let index = context.vm.read::<u32>();
         let code = context.vm.frame().code.functions[index as usize].clone();
-        let function = create_function_object(code, true, true, None, context);
+        let function = JsObject::create_function_object(code, true, true, None, context);
         context.vm.push(function);
         Ok(ShouldExit::False)
     }
@@ -57,7 +58,7 @@ impl Operation for GetFunction {
     fn execute(context: &mut Context) -> JsResult<ShouldExit> {
         let index = context.vm.read::<u32>();
         let code = context.vm.frame().code.functions[index as usize].clone();
-        let function = create_function_object(code, false, false, None, context);
+        let function = JsObject::create_function_object(code, false, false, None, context);
         context.vm.push(function);
         Ok(ShouldExit::False)
     }
@@ -77,7 +78,7 @@ impl Operation for GetFunctionAsync {
     fn execute(context: &mut Context) -> JsResult<ShouldExit> {
         let index = context.vm.read::<u32>();
         let code = context.vm.frame().code.functions[index as usize].clone();
-        let function = create_function_object(code, true, false, None, context);
+        let function = JsObject::create_function_object(code, true, false, None, context);
         context.vm.push(function);
         Ok(ShouldExit::False)
     }

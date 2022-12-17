@@ -1,7 +1,7 @@
 use crate::{
     environments::EnvironmentSlots,
     error::JsNativeError,
-    vm::{code_block::initialize_instance_elements, opcode::Operation, ShouldExit},
+    vm::{opcode::Operation, ShouldExit},
     Context, JsResult, JsValue,
 };
 
@@ -118,7 +118,7 @@ impl Operation for SuperCall {
 
         let result = super_constructor.__construct__(&arguments, &new_target, context)?;
 
-        initialize_instance_elements(&result, &active_function, context)?;
+        result.initialize_instance_elements(&active_function, context)?;
 
         let this_env = context
             .realm
@@ -189,7 +189,7 @@ impl Operation for SuperCallSpread {
 
         let result = super_constructor.__construct__(&arguments, &new_target, context)?;
 
-        initialize_instance_elements(&result, &active_function, context)?;
+        result.initialize_instance_elements(&active_function, context)?;
 
         let this_env = context
             .realm
@@ -255,7 +255,7 @@ impl Operation for SuperCallDerived {
 
         let result = super_constructor.__construct__(&arguments, &new_target, context)?;
 
-        initialize_instance_elements(&result, &active_function, context)?;
+        result.initialize_instance_elements(&active_function, context)?;
 
         let this_env = context
             .realm

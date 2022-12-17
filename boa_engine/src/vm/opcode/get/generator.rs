@@ -1,5 +1,6 @@
 use crate::{
-    vm::{code_block::create_generator_function_object, opcode::Operation, ShouldExit},
+    vm::{opcode::Operation, ShouldExit},
+    object::JsObject,
     Context, JsResult,
 };
 
@@ -17,7 +18,7 @@ impl Operation for GetGenerator {
     fn execute(context: &mut Context) -> JsResult<ShouldExit> {
         let index = context.vm.read::<u32>();
         let code = context.vm.frame().code.functions[index as usize].clone();
-        let function = create_generator_function_object(code, false, context);
+        let function = JsObject::create_generator_function_object(code, false, context);
         context.vm.push(function);
         Ok(ShouldExit::False)
     }
@@ -37,7 +38,7 @@ impl Operation for GetGeneratorAsync {
     fn execute(context: &mut Context) -> JsResult<ShouldExit> {
         let index = context.vm.read::<u32>();
         let code = context.vm.frame().code.functions[index as usize].clone();
-        let function = create_generator_function_object(code, true, context);
+        let function = JsObject::create_generator_function_object(code, true, context);
         context.vm.push(function);
         Ok(ShouldExit::False)
     }

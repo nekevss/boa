@@ -689,9 +689,9 @@ impl BuiltInFunctionObject {
             let environments = context.realm.environments.pop_to_global();
 
             let function_object = if generator {
-                crate::vm::create_generator_function_object(code, r#async, context)
+                JsObject::create_generator_function_object(code, r#async, context)
             } else {
-                crate::vm::create_function_object(code, r#async, false, Some(prototype), context)
+                JsObject::create_function_object(code, r#async, false, Some(prototype), context)
             };
 
             context.realm.environments.extend(environments);
@@ -709,7 +709,7 @@ impl BuiltInFunctionObject {
 
             let environments = context.realm.environments.pop_to_global();
             let function_object =
-                crate::vm::create_generator_function_object(code, r#async, context);
+                JsObject::create_generator_function_object(code, r#async, context);
             context.realm.environments.extend(environments);
 
             Ok(function_object)
@@ -722,7 +722,7 @@ impl BuiltInFunctionObject {
 
             let environments = context.realm.environments.pop_to_global();
             let function_object =
-                crate::vm::create_function_object(code, r#async, false, Some(prototype), context);
+                JsObject::create_function_object(code, r#async, false, Some(prototype), context);
             context.realm.environments.extend(environments);
 
             Ok(function_object)
