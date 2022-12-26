@@ -1,6 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_gc/src/cell.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cell.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../boa_gc/index.html"><div class="logo-container"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../boa_gc/index.html"><div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../boa_gc/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_gc/src/cell.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cell.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../boa_gc/index.html">
+                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -571,32 +570,6 @@
 <span id="569">569</span>
 <span id="570">570</span>
 <span id="571">571</span>
-<span id="572">572</span>
-<span id="573">573</span>
-<span id="574">574</span>
-<span id="575">575</span>
-<span id="576">576</span>
-<span id="577">577</span>
-<span id="578">578</span>
-<span id="579">579</span>
-<span id="580">580</span>
-<span id="581">581</span>
-<span id="582">582</span>
-<span id="583">583</span>
-<span id="584">584</span>
-<span id="585">585</span>
-<span id="586">586</span>
-<span id="587">587</span>
-<span id="588">588</span>
-<span id="589">589</span>
-<span id="590">590</span>
-<span id="591">591</span>
-<span id="592">592</span>
-<span id="593">593</span>
-<span id="594">594</span>
-<span id="595">595</span>
-<span id="596">596</span>
-<span id="597">597</span>
 </pre><pre class="rust"><code><span class="doccomment">//! A garbage collected cell implementation
 
 </span><span class="kw">use </span><span class="kw">crate</span>::trace::{Finalize, Trace};
@@ -634,7 +607,6 @@
 
 <span class="kw">impl </span>BorrowFlag {
     <span class="doccomment">/// Check the current `BorrowState` of `BorrowFlag`.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>borrowed(<span class="self">self</span>) -&gt; BorrowState {
         <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>&amp; !ROOT {
             UNUSED =&gt; BorrowState::Unused,
@@ -644,20 +616,17 @@
     }
 
     <span class="doccomment">/// Check whether the borrow bit is flagged.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>rooted(<span class="self">self</span>) -&gt; bool {
         <span class="self">self</span>.<span class="number">0 </span>&amp; ROOT &gt; <span class="number">0
     </span>}
 
     <span class="doccomment">/// Set the `BorrowFlag`&#39;s state to writing.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>set_writing(<span class="self">self</span>) -&gt; <span class="self">Self </span>{
         <span class="comment">// Set every bit other than the root bit, which is preserved
         </span><span class="self">Self</span>(<span class="self">self</span>.<span class="number">0 </span>| WRITING)
     }
 
     <span class="doccomment">/// Remove the root flag on `BorrowFlag`
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>set_unused(<span class="self">self</span>) -&gt; <span class="self">Self </span>{
         <span class="comment">// Clear every bit other than the root bit, which is preserved
         </span><span class="self">Self</span>(<span class="self">self</span>.<span class="number">0 </span>&amp; ROOT)
@@ -668,7 +637,6 @@
     /// # Panic
     ///  - This method will panic if the current `BorrowState` is writing.
     ///  - This method will panic after incrementing if the borrow count overflows.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>add_reading(<span class="self">self</span>) -&gt; <span class="self">Self </span>{
         <span class="macro">assert!</span>(<span class="self">self</span>.borrowed() != BorrowState::Writing);
         <span class="comment">// Add 1 to the integer starting at the second binary digit. As our
@@ -690,7 +658,6 @@
     ///
     /// # Panic
     ///  - This method will panic if the current `BorrowState` is not reading.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>sub_reading(<span class="self">self</span>) -&gt; <span class="self">Self </span>{
         <span class="macro">assert!</span>(<span class="self">self</span>.borrowed() == BorrowState::Reading);
         <span class="comment">// Subtract 1 from the integer starting at the second binary digit. As
@@ -703,7 +670,6 @@
     }
 
     <span class="doccomment">/// Set the root flag on the `BorrowFlag`.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_rooted(<span class="self">self</span>, rooted: bool) -&gt; <span class="self">Self </span>{
         <span class="comment">// Preserve the non-root bits
         </span><span class="self">Self</span>((<span class="self">self</span>.<span class="number">0 </span>&amp; !ROOT) | (usize::from(rooted)))
@@ -730,7 +696,6 @@
 
 <span class="kw">impl</span>&lt;T: Trace&gt; GcCell&lt;T&gt; {
     <span class="doccomment">/// Creates a new `GcCell` containing `value`.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub const fn </span>new(value: T) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             flags: Cell::new(BORROWFLAG_INIT),
@@ -739,7 +704,6 @@
     }
 
     <span class="doccomment">/// Consumes the `GcCell`, returning the wrapped value.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>into_inner(<span class="self">self</span>) -&gt; T {
         <span class="self">self</span>.cell.into_inner()
     }
@@ -754,7 +718,6 @@
     /// # Panics
     ///
     /// Panics if the value is currently mutably borrowed.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>borrow(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; GcCellRef&lt;<span class="lifetime">&#39;_</span>, T&gt; {
         <span class="kw">match </span><span class="self">self</span>.try_borrow() {
             <span class="prelude-val">Ok</span>(value) =&gt; value,
@@ -770,7 +733,6 @@
     /// # Panics
     ///
     /// Panics if the value is currently borrowed.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>borrow_mut(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; GcCellRefMut&lt;<span class="lifetime">&#39;_</span>, T&gt; {
         <span class="kw">match </span><span class="self">self</span>.try_borrow_mut() {
             <span class="prelude-val">Ok</span>(value) =&gt; value,
@@ -864,8 +826,7 @@
 // Implementing a Trace while the cell is being written to or incorrectly implementing Trace
 // on GcCell&#39;s value may cause Undefined Behavior
 </span><span class="kw">unsafe impl</span>&lt;T: Trace + <span class="question-mark">?</span>Sized&gt; Trace <span class="kw">for </span>GcCell&lt;T&gt; {
-    <span class="attribute">#[inline]
-    </span><span class="kw">unsafe fn </span>trace(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+    <span class="kw">unsafe fn </span>trace(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         <span class="kw">match </span><span class="self">self</span>.flags.get().borrowed() {
             BorrowState::Writing =&gt; (),
             <span class="comment">// SAFETY: Please see GcCell&#39;s Trace impl Safety note.
@@ -873,8 +834,7 @@
         }
     }
 
-    <span class="attribute">#[inline]
-    </span><span class="kw">unsafe fn </span>weak_trace(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+    <span class="kw">unsafe fn </span>weak_trace(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         <span class="kw">match </span><span class="self">self</span>.flags.get().borrowed() {
             BorrowState::Writing =&gt; (),
             <span class="comment">// SAFETY: Please see GcCell&#39;s Trace impl Safety note.
@@ -893,8 +853,7 @@
         }
     }
 
-    <span class="attribute">#[inline]
-    </span><span class="kw">unsafe fn </span>unroot(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+    <span class="kw">unsafe fn </span>unroot(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         <span class="macro">assert!</span>(<span class="self">self</span>.flags.get().rooted(), <span class="string">&quot;Can&#39;t unroot a GcCell twice!&quot;</span>);
         <span class="self">self</span>.flags.set(<span class="self">self</span>.flags.get().set_rooted(<span class="bool-val">false</span>));
 
@@ -905,8 +864,7 @@
         }
     }
 
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>run_finalizer(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+    <span class="kw">fn </span>run_finalizer(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         Finalize::finalize(<span class="self">self</span>);
         <span class="kw">match </span><span class="self">self</span>.flags.get().borrowed() {
             BorrowState::Writing =&gt; (),
@@ -931,8 +889,7 @@
     /// `GcCellRef::clone(...)`. A `Clone` implementation or a method
     /// would interfere with the use of `c.borrow().clone()` to clone
     /// the contents of a `GcCell`.
-    </span><span class="attribute">#[inline]
-    #[allow(clippy::should_implement_trait)]
+    </span><span class="attribute">#[allow(clippy::should_implement_trait)]
     #[must_use]
     </span><span class="kw">pub fn </span>clone(orig: <span class="kw-2">&amp;</span>GcCellRef&lt;<span class="lifetime">&#39;a</span>, T&gt;) -&gt; GcCellRef&lt;<span class="lifetime">&#39;a</span>, T&gt; {
         orig.flags.set(orig.flags.get().add_reading());
@@ -949,7 +906,6 @@
     /// This is an associated function that needs to be used as `GcCellRef::map(...)`.
     /// A method would interfere with methods of the same name on the contents
     /// of a `GcCellRef` used through `Deref`.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>map&lt;U, F&gt;(orig: <span class="self">Self</span>, f: F) -&gt; GcCellRef&lt;<span class="lifetime">&#39;a</span>, U&gt;
     <span class="kw">where
         </span>U: <span class="question-mark">?</span>Sized,
@@ -973,7 +929,6 @@
     ///
     /// This is an associated function that needs to be used as `GcCellRef::map_split(...)`.
     /// A method would interfere with methods of the same name on the contents of a `GcCellRef` used through `Deref`.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>map_split&lt;U, V, F&gt;(orig: <span class="self">Self</span>, f: F) -&gt; (GcCellRef&lt;<span class="lifetime">&#39;a</span>, U&gt;, GcCellRef&lt;<span class="lifetime">&#39;a</span>, V&gt;)
     <span class="kw">where
         </span>U: <span class="question-mark">?</span>Sized,
@@ -1006,8 +961,7 @@
 <span class="kw">impl</span>&lt;T: <span class="question-mark">?</span>Sized&gt; Deref <span class="kw">for </span>GcCellRef&lt;<span class="lifetime">&#39;_</span>, T&gt; {
     <span class="kw">type </span>Target = T;
 
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>deref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>T {
+    <span class="kw">fn </span>deref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>T {
         <span class="self">self</span>.value
     }
 }
@@ -1046,7 +1000,6 @@
     /// This is an associated function that needs to be used as
     /// `GcCellRefMut::map(...)`. A method would interfere with methods of the same
     /// name on the contents of a `GcCell` used through `Deref`.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>map&lt;V, F&gt;(orig: <span class="self">Self</span>, f: F) -&gt; GcCellRefMut&lt;<span class="lifetime">&#39;a</span>, T, V&gt;
     <span class="kw">where
         </span>V: <span class="question-mark">?</span>Sized,
@@ -1072,22 +1025,19 @@
 <span class="kw">impl</span>&lt;T: Trace + <span class="question-mark">?</span>Sized, U: <span class="question-mark">?</span>Sized&gt; Deref <span class="kw">for </span>GcCellRefMut&lt;<span class="lifetime">&#39;_</span>, T, U&gt; {
     <span class="kw">type </span>Target = U;
 
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>deref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>U {
+    <span class="kw">fn </span>deref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>U {
         <span class="self">self</span>.value
     }
 }
 
 <span class="kw">impl</span>&lt;T: Trace + <span class="question-mark">?</span>Sized, U: <span class="question-mark">?</span>Sized&gt; DerefMut <span class="kw">for </span>GcCellRefMut&lt;<span class="lifetime">&#39;_</span>, T, U&gt; {
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>deref_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>U {
+    <span class="kw">fn </span>deref_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>U {
         <span class="self">self</span>.value
     }
 }
 
 <span class="kw">impl</span>&lt;T: Trace + <span class="question-mark">?</span>Sized, U: <span class="question-mark">?</span>Sized&gt; Drop <span class="kw">for </span>GcCellRefMut&lt;<span class="lifetime">&#39;_</span>, T, U&gt; {
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="macro">debug_assert!</span>(<span class="self">self</span>.gc_cell.flags.get().borrowed() == BorrowState::Writing);
         <span class="comment">// Restore the rooted state of the GcCell&#39;s contents to the state of the GcCell.
         // During the lifetime of the GcCellRefMut, the GcCell&#39;s contents are rooted.
@@ -1120,15 +1070,13 @@
 </span><span class="kw">unsafe impl</span>&lt;T: <span class="question-mark">?</span>Sized + Send&gt; Send <span class="kw">for </span>GcCell&lt;T&gt; {}
 
 <span class="kw">impl</span>&lt;T: Trace + Clone&gt; Clone <span class="kw">for </span>GcCell&lt;T&gt; {
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
+    <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::new(<span class="self">self</span>.borrow().clone())
     }
 }
 
 <span class="kw">impl</span>&lt;T: Trace + Default&gt; Default <span class="kw">for </span>GcCell&lt;T&gt; {
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::new(Default::default())
     }
 }
@@ -1172,8 +1120,7 @@
 }
 
 <span class="kw">impl</span>&lt;T: Trace + <span class="question-mark">?</span>Sized + Ord&gt; Ord <span class="kw">for </span>GcCell&lt;T&gt; {
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; Ordering {
+    <span class="kw">fn </span>cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; Ordering {
         (<span class="kw-2">*</span><span class="self">self</span>.borrow()).cmp(<span class="kw-2">&amp;*</span>other.borrow())
     }
 }
@@ -1195,4 +1142,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="boa_gc" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="boa_gc" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>

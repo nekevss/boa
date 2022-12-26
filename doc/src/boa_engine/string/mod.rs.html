@@ -1,6 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/string/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/string/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html">
+                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -1090,6 +1089,7 @@
 <span id="1088">1088</span>
 <span id="1089">1089</span>
 <span id="1090">1090</span>
+<span id="1091">1091</span>
 </pre><pre class="rust"><code><span class="doccomment">//! A UTF-16–encoded, reference counted, immutable string.
 //!
 //! This module contains the [`JsString`] type, the [`js_string`][crate::js_string] macro and the
@@ -1123,10 +1123,12 @@
     alloc::{alloc, dealloc, Layout},
     borrow::Borrow,
     cell::Cell,
+    convert::Infallible,
     hash::{Hash, Hasher},
     ops::{Deref, Index},
     ptr::{<span class="self">self</span>, NonNull},
     slice::SliceIndex,
+    str::FromStr,
 };
 
 <span class="kw">use </span><span class="self">self</span>::common::{COMMON_STRINGS, COMMON_STRINGS_CACHE, MAX_COMMON_STRING_LENGTH};
@@ -1307,7 +1309,6 @@
     ///
     /// `inner` must point to a valid instance of [`RawJsString`], which should be deallocated only
     /// by [`JsString`].
-    </span><span class="attribute">#[inline]
     </span><span class="kw">const unsafe fn </span>new_heap(inner: NonNull&lt;RawJsString&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>(inner)
     }
@@ -1318,7 +1319,6 @@
     /// # Safety
     ///
     /// `idx` must be a valid index on [`COMMON_STRINGS`].
-    </span><span class="attribute">#[inline]
     </span><span class="kw">const unsafe fn </span>new_static(idx: usize) -&gt; <span class="self">Self </span>{
         <span class="comment">// SAFETY:
         // The operation `(idx &lt;&lt; 1) | 1` sets the least significant bit to 1, meaning any pointer
@@ -1327,7 +1327,6 @@
     }
 
     <span class="doccomment">/// Checks if [`TaggedJsString`] contains an index for [`COMMON_STRINGS`].
-    </span><span class="attribute">#[inline]
     </span><span class="kw">fn </span>is_static(<span class="self">self</span>) -&gt; bool {
         (<span class="self">self</span>.<span class="number">0</span>.as_ptr() <span class="kw">as </span>usize) &amp; <span class="number">1 </span>== <span class="number">1
     </span>}
@@ -1338,7 +1337,6 @@
     /// # Safety
     ///
     /// `self` must be a heap allocated [`RawJsString`].
-    </span><span class="attribute">#[inline]
     </span><span class="kw">const unsafe fn </span>get_heap_unchecked(<span class="self">self</span>) -&gt; NonNull&lt;RawJsString&gt; {
         <span class="self">self</span>.<span class="number">0
     </span>}
@@ -1350,7 +1348,6 @@
     ///
     /// `self` must not be a pointer to a heap allocated [`RawJsString`], and it must be a valid
     /// index inside [`COMMON_STRINGS`].
-    </span><span class="attribute">#[inline]
     </span><span class="kw">unsafe fn </span>get_static_unchecked(<span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>[u16] {
         <span class="comment">// SAFETY:
         // The caller must ensure `self` is a valid index inside `COMMON_STRINGS`.
@@ -1638,7 +1635,6 @@
 
     <span class="doccomment">/// Returns the inner pointer data, unwrapping its tagged data if the pointer contains a static
     /// index for [`COMMON_STRINGS`].
-    </span><span class="attribute">#[inline]
     </span><span class="kw">fn </span>ptr(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; JsStringPtrKind {
         <span class="comment">// Check the first bit to 1.
         </span><span class="kw">if </span><span class="self">self</span>.ptr.is_static() {
@@ -1785,8 +1781,7 @@
 }
 
 <span class="kw">impl </span>Drop <span class="kw">for </span>JsString {
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">if let </span>JsStringPtrKind::Heap(raw) = <span class="self">self</span>.ptr() {
             <span class="comment">// SAFETY: The reference count of `JsString` guarantees that `raw` is always valid.
             </span><span class="kw">let </span>inner = <span class="kw">unsafe </span>{ <span class="kw-2">&amp;mut *</span>raw.as_ptr() };
@@ -1891,8 +1886,7 @@
 }
 
 <span class="kw">impl</span>&lt;<span class="kw">const </span>N: usize&gt; From&lt;<span class="kw-2">&amp;</span>[u16; N]&gt; <span class="kw">for </span>JsString {
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>from(s: <span class="kw-2">&amp;</span>[u16; N]) -&gt; <span class="self">Self </span>{
+    <span class="kw">fn </span>from(s: <span class="kw-2">&amp;</span>[u16; N]) -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::from(<span class="kw-2">&amp;</span>s[..])
     }
 }
@@ -1982,6 +1976,14 @@
     }
 }
 
+<span class="kw">impl </span>FromStr <span class="kw">for </span>JsString {
+    <span class="kw">type </span><span class="prelude-val">Err </span>= Infallible;
+
+    <span class="kw">fn </span>from_str(s: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Err&gt; {
+        <span class="prelude-val">Ok</span>(JsString::from(s))
+    }
+}
+
 <span class="doccomment">/// Utility trait that adds trimming functionality to every `UTF-16` string.
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>Utf16Trim {
     <span class="doccomment">/// Trims both leading and trailing space from `self`.
@@ -2045,7 +2047,6 @@
 
     <span class="kw">impl </span>JsString {
         <span class="doccomment">/// Gets the number of `JsString`s which point to this allocation.
-        </span><span class="attribute">#[inline]
         </span><span class="kw">fn </span>refcount(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
             <span class="kw">match </span><span class="self">self</span>.ptr() {
                 JsStringPtrKind::Heap(inner) =&gt; {
@@ -2181,4 +2182,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>

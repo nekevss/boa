@@ -1,6 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/object/builtins/jsproxy.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>jsproxy.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../../normalize.css"><link rel="stylesheet" href="../../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../../ayu.css" disabled><link rel="stylesheet" href="../../../../dark.css" disabled><link rel="stylesheet" href="../../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../../storage.js"></script><script defer src="../../../../source-script.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../main.js"></script><noscript><link rel="stylesheet" href="../../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../../boa_engine/index.html"><div class="logo-container"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../../boa_engine/index.html"><div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/object/builtins/jsproxy.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>jsproxy.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../../normalize.css"><link rel="stylesheet" href="../../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../../ayu.css" disabled><link rel="stylesheet" href="../../../../dark.css" disabled><link rel="stylesheet" href="../../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../../storage.js"></script><script defer src="../../../../source-script.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../main.js"></script><noscript><link rel="stylesheet" href="../../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../../../boa_engine/index.html">
+                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../wheel.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -481,6 +480,21 @@
 <span id="479">479</span>
 <span id="480">480</span>
 <span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
 </pre><pre class="rust"><code><span class="doccomment">//! A Rust API wrapper for the `Proxy` Builtin ECMAScript Object
 </span><span class="kw">use </span>boa_gc::{Finalize, Trace};
 
@@ -562,6 +576,7 @@
 <span class="kw">impl </span>JsRevocableProxy {
     <span class="doccomment">/// Disables the traps of the internal `proxy` object, essentially
     /// making it unusable and throwing `TypeError`s for all the traps.
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>revoke(<span class="self">self</span>, context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;()&gt; {
         <span class="self">self</span>.revoker.call(<span class="kw-2">&amp;</span>JsValue::undefined(), <span class="kw-2">&amp;</span>[], context)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
@@ -644,6 +659,7 @@
 
 <span class="kw">impl </span>JsProxyBuilder {
     <span class="doccomment">/// Create a new `ProxyBuilder` with every trap set to `undefined`.
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>new(target: JsObject) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             target,
@@ -675,6 +691,7 @@
     /// when trying to call the proxy, which will throw a type error.
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/apply
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>apply(<span class="kw-2">mut </span><span class="self">self</span>, apply: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.apply = <span class="prelude-val">Some</span>(apply);
         <span class="self">self
@@ -692,6 +709,7 @@
     /// when trying to construct an object using the proxy, which will throw a type error.
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/construct
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>construct(<span class="kw-2">mut </span><span class="self">self</span>, construct: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.construct = <span class="prelude-val">Some</span>(construct);
         <span class="self">self
@@ -704,6 +722,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/defineProperty
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>define_property(<span class="kw-2">mut </span><span class="self">self</span>, define_property: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.define_property = <span class="prelude-val">Some</span>(define_property);
         <span class="self">self
@@ -716,6 +735,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/deleteProperty
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>delete_property(<span class="kw-2">mut </span><span class="self">self</span>, delete_property: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.delete_property = <span class="prelude-val">Some</span>(delete_property);
         <span class="self">self
@@ -728,6 +748,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/get
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>get(<span class="kw-2">mut </span><span class="self">self</span>, get: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.get = <span class="prelude-val">Some</span>(get);
         <span class="self">self
@@ -740,6 +761,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/getOwnPropertyDescriptor
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>get_own_property_descriptor(
         <span class="kw-2">mut </span><span class="self">self</span>,
         get_own_property_descriptor: NativeFunctionSignature,
@@ -755,6 +777,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/getPrototypeOf
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>get_prototype_of(<span class="kw-2">mut </span><span class="self">self</span>, get_prototype_of: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.get_prototype_of = <span class="prelude-val">Some</span>(get_prototype_of);
         <span class="self">self
@@ -767,6 +790,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/has
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>has(<span class="kw-2">mut </span><span class="self">self</span>, has: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.has = <span class="prelude-val">Some</span>(has);
         <span class="self">self
@@ -779,6 +803,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/isExtensible
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>is_extensible(<span class="kw-2">mut </span><span class="self">self</span>, is_extensible: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.is_extensible = <span class="prelude-val">Some</span>(is_extensible);
         <span class="self">self
@@ -791,6 +816,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/ownKeys
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>own_keys(<span class="kw-2">mut </span><span class="self">self</span>, own_keys: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.own_keys = <span class="prelude-val">Some</span>(own_keys);
         <span class="self">self
@@ -803,6 +829,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/preventExtensions
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>prevent_extensions(<span class="kw-2">mut </span><span class="self">self</span>, prevent_extensions: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.prevent_extensions = <span class="prelude-val">Some</span>(prevent_extensions);
         <span class="self">self
@@ -815,6 +842,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/set
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>set(<span class="kw-2">mut </span><span class="self">self</span>, set: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.set = <span class="prelude-val">Some</span>(set);
         <span class="self">self
@@ -827,6 +855,7 @@
     /// - [MDN documentation][mdn]
     ///
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/setPrototypeOf
+    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>set_prototype_of(<span class="kw-2">mut </span><span class="self">self</span>, set_prototype_of: NativeFunctionSignature) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.set_prototype_of = <span class="prelude-val">Some</span>(set_prototype_of);
         <span class="self">self
@@ -963,4 +992,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>

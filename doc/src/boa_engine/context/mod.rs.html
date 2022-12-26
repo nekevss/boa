@@ -1,6 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/context/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/context/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html">
+                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -693,16 +692,25 @@
 <span id="691">691</span>
 <span id="692">692</span>
 <span id="693">693</span>
+<span id="694">694</span>
+<span id="695">695</span>
+<span id="696">696</span>
+<span id="697">697</span>
+<span id="698">698</span>
+<span id="699">699</span>
+<span id="700">700</span>
 </pre><pre class="rust"><code><span class="doccomment">//! The ECMAScript context.
 
 </span><span class="kw">pub mod </span>intrinsics;
 
 <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-</span><span class="kw">mod </span>icu;
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>icu;
 
-<span class="kw">use </span>std::collections::VecDeque;
+<span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+</span><span class="kw">pub use </span>icu::BoaProvider;
 
 <span class="kw">use </span>intrinsics::{IntrinsicObjects, Intrinsics};
+<span class="kw">use </span>std::collections::VecDeque;
 
 <span class="attribute">#[cfg(feature = <span class="string">&quot;console&quot;</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::builtins::console::Console;
@@ -724,13 +732,6 @@
 <span class="kw">use </span>boa_interner::{Interner, Sym};
 <span class="kw">use </span>boa_parser::{Error <span class="kw">as </span>ParseError, Parser};
 <span class="kw">use </span>boa_profiler::Profiler;
-
-<span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-</span><span class="kw">use </span>icu_provider::DataError;
-
-<span class="attribute">#[doc(inline)]
-#[cfg(all(feature = <span class="string">&quot;intl&quot;</span>, doc))]
-</span><span class="kw">pub use </span>icu::BoaProvider;
 
 <span class="doccomment">/// ECMAScript context. It is the primary way to interact with the runtime.
 ///
@@ -773,7 +774,6 @@
 ///
 /// assert_eq!(value.as_number(), Some(12.0))
 /// ```
-</span><span class="attribute">#[derive(Debug)]
 </span><span class="kw">pub struct </span>Context {
     <span class="doccomment">/// realm holds both the global object and the environment
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) realm: Realm,
@@ -790,7 +790,7 @@
 
     <span class="doccomment">/// ICU related utilities
     </span><span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-    </span>icu: icu::Icu,
+    </span>icu: icu::Icu&lt;BoaProvider&gt;,
 
     <span class="doccomment">/// Number of instructions remaining before a forced exit
     </span><span class="attribute">#[cfg(feature = <span class="string">&quot;fuzz&quot;</span>)]
@@ -801,6 +801,29 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) promise_job_queue: VecDeque&lt;JobCallback&gt;,
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) kept_alive: Vec&lt;JsObject&gt;,
+}
+
+<span class="kw">impl </span>std::fmt::Debug <span class="kw">for </span>Context {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
+        <span class="kw">let </span><span class="kw-2">mut </span>debug = f.debug_struct(<span class="string">&quot;Context&quot;</span>);
+
+        debug
+            .field(<span class="string">&quot;realm&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.realm)
+            .field(<span class="string">&quot;interner&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.interner);
+
+        <span class="attribute">#[cfg(feature = <span class="string">&quot;console&quot;</span>)]
+        </span>debug.field(<span class="string">&quot;console&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.console);
+
+        debug
+            .field(<span class="string">&quot;intrinsics&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.intrinsics)
+            .field(<span class="string">&quot;vm&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.vm)
+            .field(<span class="string">&quot;promise_job_queue&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.promise_job_queue);
+
+        <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+        </span>debug.field(<span class="string">&quot;icu&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.icu);
+
+        debug.finish()
+    }
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>Context {
@@ -837,13 +860,11 @@
 
     <span class="doccomment">/// A helper function for getting a mutable reference to the `console` object.
     </span><span class="attribute">#[cfg(feature = <span class="string">&quot;console&quot;</span>)]
-    #[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>console_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Console {
         <span class="kw-2">&amp;mut </span><span class="self">self</span>.console
     }
 
     <span class="doccomment">/// Sets up the default global objects within Global
-    </span><span class="attribute">#[inline]
     </span><span class="kw">fn </span>create_intrinsics(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;create_intrinsics&quot;</span>, <span class="string">&quot;interpreter&quot;</span>);
         <span class="comment">// Create intrinsics, add global objects here
@@ -883,7 +904,6 @@
     ///  - [ECMA reference][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-call
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>call(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         f: <span class="kw-2">&amp;</span>JsValue,
@@ -909,13 +929,11 @@
     }
 
     <span class="doccomment">/// Return a mutable reference to the global object string bindings.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>global_bindings_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>GlobalPropertyMap {
         <span class="self">self</span>.realm.global_bindings_mut()
     }
 
     <span class="doccomment">/// Constructs a `Error` with the specified message.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>construct_error&lt;M&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, message: M) -&gt; JsValue
     <span class="kw">where
         </span>M: Into&lt;JsString&gt;,
@@ -951,7 +969,6 @@
     /// [`FunctionBuilder`](crate::object::FunctionBuilder::native). And bind it to the global
     /// object with [`Context::register_global_property`](Context::register_global_property)
     /// method.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>register_global_function(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         name: <span class="kw-2">&amp;</span>str,
@@ -988,7 +1005,6 @@
     /// The difference to [`Context::register_global_function`](Context::register_global_function) is,
     /// that the function will not be `constructable`.
     /// Usage of the function as a constructor will produce a `TypeError`.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>register_global_builtin_function(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         name: <span class="kw-2">&amp;</span>str,
@@ -1035,7 +1051,6 @@
     ///
     /// See &lt;https://github.com/boa-dev/boa/issues/1515&gt; for an explanation on
     /// why we need to restrict the set of accepted closures.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>register_global_closure&lt;F&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, length: usize, body: F) -&gt; JsResult&lt;()&gt;
     <span class="kw">where
         </span>F: Fn(<span class="kw-2">&amp;</span>JsValue, <span class="kw-2">&amp;</span>[JsValue], <span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; JsResult&lt;JsValue&gt; + Copy + <span class="lifetime">&#39;static</span>,
@@ -1059,7 +1074,6 @@
     }
 
     <span class="doccomment">/// &lt;https://tc39.es/ecma262/#sec-hasproperty&gt;
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>has_property(<span class="kw-2">&amp;mut </span><span class="self">self</span>, obj: <span class="kw-2">&amp;</span>JsValue, key: <span class="kw-2">&amp;</span>PropertyKey) -&gt; JsResult&lt;bool&gt; {
         obj.as_object()
             .map_or(<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>), |obj| obj.__has_property__(key, <span class="self">self</span>))
@@ -1078,7 +1092,6 @@
     ///
     /// context.register_global_class::&lt;MyClass&gt;();
     /// ```
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>register_global_class&lt;T&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; JsResult&lt;()&gt;
     <span class="kw">where
         </span>T: Class,
@@ -1118,7 +1131,6 @@
     ///     .build();
     /// context.register_global_property(&quot;myObjectProperty&quot;, object, Attribute::all());
     /// ```
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>register_global_property&lt;K, V&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: K, value: V, attribute: Attribute)
     <span class="kw">where
         </span>K: Into&lt;PropertyKey&gt;,
@@ -1167,7 +1179,6 @@
     }
 
     <span class="doccomment">/// Compile the AST into a `CodeBlock` ready to be executed by the VM.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>compile(<span class="kw-2">&amp;mut </span><span class="self">self</span>, statement_list: <span class="kw-2">&amp;</span>StatementList) -&gt; JsResult&lt;Gc&lt;CodeBlock&gt;&gt; {
         <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;Compilation&quot;</span>, <span class="string">&quot;Main&quot;</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>compiler = ByteCompiler::new(Sym::MAIN, statement_list.strict(), <span class="bool-val">false</span>, <span class="self">self</span>);
@@ -1177,7 +1188,6 @@
     }
 
     <span class="doccomment">/// Compile the AST into a `CodeBlock` ready to be executed by the VM in a `JSON.parse` context.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>compile_json_parse(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         statement_list: <span class="kw-2">&amp;</span>StatementList,
@@ -1190,7 +1200,6 @@
     }
 
     <span class="doccomment">/// Compile the AST into a `CodeBlock` with an additional declarative environment.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>compile_with_new_declarative(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         statement_list: <span class="kw-2">&amp;</span>StatementList,
@@ -1208,7 +1217,6 @@
     /// just a pointer copy. Therefore, if you&#39;d like to execute the same `CodeBlock` multiple
     /// times, there is no need to re-compile it, and you can just call `clone()` on the
     /// `Gc&lt;CodeBlock&gt;` returned by the [`Self::compile()`] function.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>execute(<span class="kw-2">&amp;mut </span><span class="self">self</span>, code_block: Gc&lt;CodeBlock&gt;) -&gt; JsResult&lt;JsValue&gt; {
         <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;Execution&quot;</span>, <span class="string">&quot;Main&quot;</span>);
 
@@ -1261,9 +1269,8 @@
     }
 
     <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-    #[inline]
     </span><span class="doccomment">/// Get the ICU related utilities
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>icu(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>icu::Icu {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>icu(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>icu::Icu&lt;BoaProvider&gt; {
         <span class="kw-2">&amp;</span><span class="self">self</span>.icu
     }
 
@@ -1302,11 +1309,11 @@
     feature = <span class="string">&quot;intl&quot;</span>,
     doc = <span class="string">&quot;The required data in a valid provider is specified in [`BoaProvider`]&quot;
 </span>)]
-#[derive(Debug, Default)]
+#[derive(Default, Debug)]
 </span><span class="kw">pub struct </span>ContextBuilder {
     interner: <span class="prelude-ty">Option</span>&lt;Interner&gt;,
     <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-    </span>icu: <span class="prelude-ty">Option</span>&lt;icu::Icu&gt;,
+    </span>icu: <span class="prelude-ty">Option</span>&lt;icu::Icu&lt;BoaProvider&gt;&gt;,
     <span class="attribute">#[cfg(feature = <span class="string">&quot;fuzz&quot;</span>)]
     </span>instructions_remaining: usize,
 }
@@ -1326,8 +1333,11 @@
     <span class="doccomment">/// Provides an icu data provider to the [`Context`].
     ///
     /// This function is only available if the `intl` feature is enabled.
-    </span><span class="attribute">#[cfg(any(feature = <span class="string">&quot;intl&quot;</span>, docs))]
-    </span><span class="kw">pub fn </span>icu_provider(<span class="kw-2">mut </span><span class="self">self</span>, provider: Box&lt;<span class="kw">dyn </span>icu::BoaProvider&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, DataError&gt; {
+    </span><span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    </span><span class="kw">pub fn </span>icu_provider(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        provider: BoaProvider,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, icu_locid_transform::LocaleTransformError&gt; {
         <span class="self">self</span>.icu = <span class="prelude-val">Some</span>(icu::Icu::new(provider)<span class="question-mark">?</span>);
         <span class="prelude-val">Ok</span>(<span class="self">self</span>)
     }
@@ -1368,9 +1378,12 @@
             },
             <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
             </span>icu: <span class="self">self</span>.icu.unwrap_or_else(|| {
-                <span class="comment">// TODO: Replace with a more fitting default
-                </span>icu::Icu::new(Box::new(icu_testdata::get_provider()))
-                    .expect(<span class="string">&quot;Failed to initialize default icu data.&quot;</span>)
+                <span class="kw">use </span>icu_provider_adapters::fallback::LocaleFallbackProvider;
+                <span class="kw">let </span>provider = BoaProvider::Buffer(Box::new(
+                    LocaleFallbackProvider::try_new_with_buffer_provider(boa_icu_provider::blob())
+                        .expect(<span class="string">&quot;boa_icu_provider should return a valid provider&quot;</span>),
+                ));
+                icu::Icu::new(provider).expect(<span class="string">&quot;Failed to initialize default icu data.&quot;</span>)
             }),
             <span class="attribute">#[cfg(feature = <span class="string">&quot;fuzz&quot;</span>)]
             </span>instructions_remaining: <span class="self">self</span>.instructions_remaining,
@@ -1387,4 +1400,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>

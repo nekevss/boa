@@ -1,6 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/object/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/object/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html">
+                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -2424,6 +2423,96 @@
 <span id="2422">2422</span>
 <span id="2423">2423</span>
 <span id="2424">2424</span>
+<span id="2425">2425</span>
+<span id="2426">2426</span>
+<span id="2427">2427</span>
+<span id="2428">2428</span>
+<span id="2429">2429</span>
+<span id="2430">2430</span>
+<span id="2431">2431</span>
+<span id="2432">2432</span>
+<span id="2433">2433</span>
+<span id="2434">2434</span>
+<span id="2435">2435</span>
+<span id="2436">2436</span>
+<span id="2437">2437</span>
+<span id="2438">2438</span>
+<span id="2439">2439</span>
+<span id="2440">2440</span>
+<span id="2441">2441</span>
+<span id="2442">2442</span>
+<span id="2443">2443</span>
+<span id="2444">2444</span>
+<span id="2445">2445</span>
+<span id="2446">2446</span>
+<span id="2447">2447</span>
+<span id="2448">2448</span>
+<span id="2449">2449</span>
+<span id="2450">2450</span>
+<span id="2451">2451</span>
+<span id="2452">2452</span>
+<span id="2453">2453</span>
+<span id="2454">2454</span>
+<span id="2455">2455</span>
+<span id="2456">2456</span>
+<span id="2457">2457</span>
+<span id="2458">2458</span>
+<span id="2459">2459</span>
+<span id="2460">2460</span>
+<span id="2461">2461</span>
+<span id="2462">2462</span>
+<span id="2463">2463</span>
+<span id="2464">2464</span>
+<span id="2465">2465</span>
+<span id="2466">2466</span>
+<span id="2467">2467</span>
+<span id="2468">2468</span>
+<span id="2469">2469</span>
+<span id="2470">2470</span>
+<span id="2471">2471</span>
+<span id="2472">2472</span>
+<span id="2473">2473</span>
+<span id="2474">2474</span>
+<span id="2475">2475</span>
+<span id="2476">2476</span>
+<span id="2477">2477</span>
+<span id="2478">2478</span>
+<span id="2479">2479</span>
+<span id="2480">2480</span>
+<span id="2481">2481</span>
+<span id="2482">2482</span>
+<span id="2483">2483</span>
+<span id="2484">2484</span>
+<span id="2485">2485</span>
+<span id="2486">2486</span>
+<span id="2487">2487</span>
+<span id="2488">2488</span>
+<span id="2489">2489</span>
+<span id="2490">2490</span>
+<span id="2491">2491</span>
+<span id="2492">2492</span>
+<span id="2493">2493</span>
+<span id="2494">2494</span>
+<span id="2495">2495</span>
+<span id="2496">2496</span>
+<span id="2497">2497</span>
+<span id="2498">2498</span>
+<span id="2499">2499</span>
+<span id="2500">2500</span>
+<span id="2501">2501</span>
+<span id="2502">2502</span>
+<span id="2503">2503</span>
+<span id="2504">2504</span>
+<span id="2505">2505</span>
+<span id="2506">2506</span>
+<span id="2507">2507</span>
+<span id="2508">2508</span>
+<span id="2509">2509</span>
+<span id="2510">2510</span>
+<span id="2511">2511</span>
+<span id="2512">2512</span>
+<span id="2513">2513</span>
+<span id="2514">2514</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Boa&#39;s representation of a JavaScript object and builtin object wrappers
 //!
 //! For the builtin object wrappers, please see [`object::builtins`][builtins] for implementors.
@@ -2449,7 +2538,9 @@
     InternalObjectMethods, ORDINARY_INTERNAL_METHODS,
 };
 <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-</span><span class="kw">use </span><span class="kw">crate</span>::builtins::intl::date_time_format::DateTimeFormat;
+</span><span class="kw">use </span><span class="kw">crate</span>::builtins::intl::{
+    collator::Collator, date_time_format::DateTimeFormat, list_format::ListFormat,
+};
 <span class="kw">use crate</span>::{
     builtins::{
         array::array_iterator::ArrayIterator,
@@ -2530,13 +2621,11 @@
 }
 
 <span class="kw">impl</span>&lt;T: Any + Debug + Trace&gt; NativeObject <span class="kw">for </span>T {
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
+    <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}
 
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>as_mut_any(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>Any {
+    <span class="kw">fn </span>as_mut_any(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}
 }
@@ -2698,9 +2787,21 @@
     <span class="doccomment">/// The `WeakRef` object kind.
     </span>WeakRef(WeakGc&lt;GcCell&lt;Object&gt;&gt;),
 
+    <span class="doccomment">/// The `Intl.Collator` object kind.
+    </span><span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    </span>Collator(Box&lt;Collator&gt;),
+
     <span class="doccomment">/// The `Intl.DateTimeFormat` object kind.
     </span><span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
     </span>DateTimeFormat(Box&lt;DateTimeFormat&gt;),
+
+    <span class="doccomment">/// The `Intl.ListFormat` object kind.
+    </span><span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    </span>ListFormat(Box&lt;ListFormat&gt;),
+
+    <span class="doccomment">/// The `Intl.Locale` object kind.
+    </span><span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    </span>Locale(Box&lt;icu_locid::Locale&gt;),
 }
 
 <span class="kw">unsafe impl </span>Trace <span class="kw">for </span>ObjectKind {
@@ -2724,11 +2825,15 @@
             <span class="self">Self</span>::Arguments(a) =&gt; mark(a),
             <span class="self">Self</span>::NativeObject(o) =&gt; mark(o),
             <span class="self">Self</span>::IntegerIndexed(i) =&gt; mark(i),
-            <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-            </span><span class="self">Self</span>::DateTimeFormat(f) =&gt; mark(f),
             <span class="self">Self</span>::Promise(p) =&gt; mark(p),
             <span class="self">Self</span>::AsyncGenerator(g) =&gt; mark(g),
             <span class="self">Self</span>::WeakRef(wr) =&gt; mark(wr),
+            <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+            </span><span class="self">Self</span>::DateTimeFormat(f) =&gt; mark(f),
+            <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+            </span><span class="self">Self</span>::Collator(co) =&gt; mark(co),
+            <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+            </span><span class="self">Self</span>::ListFormat(<span class="kw">_</span>) | <span class="self">Self</span>::Locale(<span class="kw">_</span>) =&gt; {}
             <span class="self">Self</span>::RegExp(<span class="kw">_</span>)
             | <span class="self">Self</span>::BigInt(<span class="kw">_</span>)
             | <span class="self">Self</span>::Boolean(<span class="kw">_</span>)
@@ -3056,12 +3161,42 @@
         }
     }
 
+    <span class="doccomment">/// Create the `Collator` object data
+    </span><span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    #[must_use]
+    </span><span class="kw">pub fn </span>collator(date_time_fmt: Collator) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            kind: ObjectKind::Collator(Box::new(date_time_fmt)),
+            internal_methods: <span class="kw-2">&amp;</span>ORDINARY_INTERNAL_METHODS,
+        }
+    }
+
     <span class="doccomment">/// Create the `DateTimeFormat` object data
     </span><span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
     #[must_use]
     </span><span class="kw">pub fn </span>date_time_format(date_time_fmt: Box&lt;DateTimeFormat&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             kind: ObjectKind::DateTimeFormat(date_time_fmt),
+            internal_methods: <span class="kw-2">&amp;</span>ORDINARY_INTERNAL_METHODS,
+        }
+    }
+
+    <span class="doccomment">/// Create the `ListFormat` object data
+    </span><span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    #[must_use]
+    </span><span class="kw">pub fn </span>list_format(list_format: ListFormat) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            kind: ObjectKind::ListFormat(Box::new(list_format)),
+            internal_methods: <span class="kw-2">&amp;</span>ORDINARY_INTERNAL_METHODS,
+        }
+    }
+
+    <span class="doccomment">/// Create the `Locale` object data
+    </span><span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    #[must_use]
+    </span><span class="kw">pub fn </span>locale(locale: icu_locid::Locale) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            kind: ObjectKind::Locale(Box::new(locale)),
             internal_methods: <span class="kw-2">&amp;</span>ORDINARY_INTERNAL_METHODS,
         }
     }
@@ -3102,10 +3237,16 @@
             <span class="self">Self</span>::NativeObject(<span class="kw">_</span>) =&gt; <span class="string">&quot;NativeObject&quot;</span>,
             <span class="self">Self</span>::IntegerIndexed(<span class="kw">_</span>) =&gt; <span class="string">&quot;TypedArray&quot;</span>,
             <span class="self">Self</span>::DataView(<span class="kw">_</span>) =&gt; <span class="string">&quot;DataView&quot;</span>,
-            <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-            </span><span class="self">Self</span>::DateTimeFormat(<span class="kw">_</span>) =&gt; <span class="string">&quot;DateTimeFormat&quot;</span>,
             <span class="self">Self</span>::Promise(<span class="kw">_</span>) =&gt; <span class="string">&quot;Promise&quot;</span>,
             <span class="self">Self</span>::WeakRef(<span class="kw">_</span>) =&gt; <span class="string">&quot;WeakRef&quot;</span>,
+            <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+            </span><span class="self">Self</span>::Collator(<span class="kw">_</span>) =&gt; <span class="string">&quot;Collator&quot;</span>,
+            <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+            </span><span class="self">Self</span>::DateTimeFormat(<span class="kw">_</span>) =&gt; <span class="string">&quot;DateTimeFormat&quot;</span>,
+            <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+            </span><span class="self">Self</span>::ListFormat(<span class="kw">_</span>) =&gt; <span class="string">&quot;ListFormat&quot;</span>,
+            <span class="attribute">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+            </span><span class="self">Self</span>::Locale(<span class="kw">_</span>) =&gt; <span class="string">&quot;Locale&quot;</span>,
         })
     }
 }
@@ -3927,8 +4068,7 @@
     /// [More information][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-invariants-of-the-essential-internal-methods
-    </span><span class="attribute">#[inline]
-    #[track_caller]
+    </span><span class="attribute">#[track_caller]
     </span><span class="kw">pub fn </span>set_prototype&lt;O: Into&lt;JsPrototype&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, prototype: O) -&gt; bool {
         <span class="kw">let </span>prototype = prototype.into();
         <span class="kw">if </span><span class="self">self</span>.extensible {
@@ -4001,7 +4141,7 @@
         }
     }
 
-    <span class="doccomment">/// Gets the `WeakRef`data if the object is a `WeakRef`.
+    <span class="doccomment">/// Gets the `WeakRef` data if the object is a `WeakRef`.
     </span><span class="attribute">#[inline]
     </span><span class="kw">pub const fn </span>as_weak_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>WeakGc&lt;GcCell&lt;<span class="self">Self</span>&gt;&gt;&gt; {
         <span class="kw">match </span><span class="self">self</span>.data {
@@ -4013,8 +4153,72 @@
         }
     }
 
-    <span class="doccomment">/// Return `true` if it is a native object and the native type is `T`.
+    <span class="doccomment">/// Gets the `Collator` data if the object is a `Collator`.
     </span><span class="attribute">#[inline]
+    #[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    </span><span class="kw">pub const fn </span>as_collator(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Collator&gt; {
+        <span class="kw">match </span><span class="self">self</span>.data {
+            ObjectData {
+                kind: ObjectKind::Collator(<span class="kw-2">ref </span>collator),
+                ..
+            } =&gt; <span class="prelude-val">Some</span>(collator),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+        }
+    }
+
+    <span class="doccomment">/// Gets a mutable reference to the `Collator` data if the object is a `Collator`.
+    </span><span class="attribute">#[inline]
+    #[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    </span><span class="kw">pub fn </span>as_collator_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Collator&gt; {
+        <span class="kw">match </span><span class="self">self</span>.data {
+            ObjectData {
+                kind: ObjectKind::Collator(<span class="kw-2">ref mut </span>collator),
+                ..
+            } =&gt; <span class="prelude-val">Some</span>(collator),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+        }
+    }
+
+    <span class="doccomment">/// Checks if it is a `Locale` object.
+    </span><span class="attribute">#[inline]
+    #[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    </span><span class="kw">pub const fn </span>is_locale(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="macro">matches!</span>(
+            <span class="self">self</span>.data,
+            ObjectData {
+                kind: ObjectKind::Locale(<span class="kw">_</span>),
+                ..
+            }
+        )
+    }
+
+    <span class="doccomment">/// Gets the `Locale` data if the object is a `Locale`.
+    </span><span class="attribute">#[inline]
+    #[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    </span><span class="kw">pub const fn </span>as_locale(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>icu_locid::Locale&gt; {
+        <span class="kw">match </span><span class="self">self</span>.data {
+            ObjectData {
+                kind: ObjectKind::Locale(<span class="kw-2">ref </span>locale),
+                ..
+            } =&gt; <span class="prelude-val">Some</span>(locale),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+        }
+    }
+
+    <span class="doccomment">/// Gets the `ListFormat` data if the object is a `ListFormat`.
+    </span><span class="attribute">#[inline]
+    #[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    </span><span class="kw">pub const fn </span>as_list_format(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>ListFormat&gt; {
+        <span class="kw">match </span><span class="self">self</span>.data {
+            ObjectData {
+                kind: ObjectKind::ListFormat(<span class="kw-2">ref </span>lf),
+                ..
+            } =&gt; <span class="prelude-val">Some</span>(lf),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+        }
+    }
+
+    <span class="doccomment">/// Return `true` if it is a native object and the native type is `T`.
     </span><span class="kw">pub fn </span>is&lt;T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool
     <span class="kw">where
         </span>T: NativeObject,
@@ -4030,7 +4234,6 @@
 
     <span class="doccomment">/// Downcast a reference to the object,
     /// if the object is type native object type `T`.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>downcast_ref&lt;T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>T&gt;
     <span class="kw">where
         </span>T: NativeObject,
@@ -4046,7 +4249,6 @@
 
     <span class="doccomment">/// Downcast a mutable reference to the object,
     /// if the object is type native object type `T`.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>downcast_mut&lt;T&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>T&gt;
     <span class="kw">where
         </span>T: NativeObject,
@@ -4075,7 +4277,6 @@
     ///
     /// If a field was already in the object with the same name, then a `Some` is returned
     /// with that field&#39;s value, otherwise, `None` is returned.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>insert&lt;K, P&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: K, property: P) -&gt; <span class="prelude-ty">Option</span>&lt;PropertyDescriptor&gt;
     <span class="kw">where
         </span>K: Into&lt;PropertyKey&gt;,
@@ -4103,7 +4304,6 @@
     }
 
     <span class="doccomment">/// Set a private setter.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_private_element_setter(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: Sym, setter: JsObject) {
         <span class="kw">match </span><span class="self">self</span>.private_elements.get_mut(<span class="kw-2">&amp;</span>name) {
             <span class="prelude-val">Some</span>(PrivateElement::Accessor {
@@ -4125,7 +4325,6 @@
     }
 
     <span class="doccomment">/// Set a private getter.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_private_element_getter(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: Sym, getter: JsObject) {
         <span class="kw">match </span><span class="self">self</span>.private_elements.get_mut(<span class="kw-2">&amp;</span>name) {
             <span class="prelude-val">Some</span>(PrivateElement::Accessor {
@@ -4205,8 +4404,7 @@
     </span>B: Into&lt;PropertyKey&gt;,
     N: AsRef&lt;str&gt;,
 {
-    <span class="attribute">#[inline]
-    </span><span class="kw">fn </span>from((binding, name): (B, N)) -&gt; <span class="self">Self </span>{
+    <span class="kw">fn </span>from((binding, name): (B, N)) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             binding: binding.into(),
             name: name.as_ref().into(),
@@ -4239,7 +4437,6 @@
     }
 
     <span class="doccomment">/// Create a new `FunctionBuilder` for creating a closure function.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>closure&lt;F&gt;(context: <span class="kw-2">&amp;</span><span class="lifetime">&#39;context </span><span class="kw-2">mut </span>Context, function: F) -&gt; <span class="self">Self
     </span><span class="kw">where
         </span>F: Fn(<span class="kw-2">&amp;</span>JsValue, <span class="kw-2">&amp;</span>[JsValue], <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; + Copy + <span class="lifetime">&#39;static</span>,
@@ -4262,7 +4459,6 @@
     ///
     /// You can only move variables that implement `Debug + Any + Trace + Clone`.
     /// In other words, only `NativeObject + Clone` objects are movable.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>closure_with_captures&lt;F, C&gt;(
         context: <span class="kw-2">&amp;</span><span class="lifetime">&#39;context </span><span class="kw-2">mut </span>Context,
         function: F,
@@ -4294,8 +4490,7 @@
     <span class="doccomment">/// Specify the name property of object function object.
     ///
     /// The default is `&quot;&quot;` (empty string).
-    </span><span class="attribute">#[inline]
-    #[must_use]
+    </span><span class="attribute">#[must_use]
     </span><span class="kw">pub fn </span>name&lt;N&gt;(<span class="kw-2">mut </span><span class="self">self</span>, name: N) -&gt; <span class="self">Self
     </span><span class="kw">where
         </span>N: Into&lt;JsString&gt;,
@@ -4319,8 +4514,7 @@
     <span class="doccomment">/// Specify whether the object function object can be called with `new` keyword.
     ///
     /// The default is `false`.
-    </span><span class="attribute">#[inline]
-    #[must_use]
+    </span><span class="attribute">#[must_use]
     </span><span class="kw">pub fn </span>constructor(<span class="kw-2">mut </span><span class="self">self</span>, yes: bool) -&gt; <span class="self">Self </span>{
         <span class="kw">match </span><span class="self">self</span>.function {
             Function::Native {
@@ -4344,7 +4538,6 @@
     </span>}
 
     <span class="doccomment">/// Build the function object.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>build(<span class="self">self</span>) -&gt; JsFunction {
         <span class="kw">let </span>function = JsObject::from_proto_and_data(
             <span class="self">self</span>.context
@@ -4422,7 +4615,6 @@
     }
 
     <span class="doccomment">/// Add a function to the object.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>function&lt;B&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         function: NativeFunctionSignature,
@@ -4451,7 +4643,6 @@
     </span>}
 
     <span class="doccomment">/// Add a property to the object.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>property&lt;K, V&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: K, value: V, attribute: Attribute) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self
     </span><span class="kw">where
         </span>K: Into&lt;PropertyKey&gt;,
@@ -4522,8 +4713,7 @@
         }
     }
 
-    <span class="attribute">#[inline]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>with_standard_constructor(
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>with_standard_constructor(
         context: <span class="kw-2">&amp;</span><span class="lifetime">&#39;context </span><span class="kw-2">mut </span>Context,
         function: NativeFunctionSignature,
         standard_constructor: StandardConstructor,
@@ -4544,7 +4734,6 @@
     }
 
     <span class="doccomment">/// Add new method to the constructors prototype.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>method&lt;B&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         function: NativeFunctionSignature,
@@ -4573,7 +4762,6 @@
     </span>}
 
     <span class="doccomment">/// Add new static method to the constructors object itself.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>static_method&lt;B&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         function: NativeFunctionSignature,
@@ -4602,7 +4790,6 @@
     </span>}
 
     <span class="doccomment">/// Add new data property to the constructor&#39;s prototype.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>property&lt;K, V&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: K, value: V, attribute: Attribute) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self
     </span><span class="kw">where
         </span>K: Into&lt;PropertyKey&gt;,
@@ -4618,7 +4805,6 @@
     </span>}
 
     <span class="doccomment">/// Add new static data property to the constructor object itself.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>static_property&lt;K, V&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: K, value: V, attribute: Attribute) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self
     </span><span class="kw">where
         </span>K: Into&lt;PropertyKey&gt;,
@@ -4634,7 +4820,6 @@
     </span>}
 
     <span class="doccomment">/// Add new accessor property to the constructor&#39;s prototype.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>accessor&lt;K&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         key: K,
@@ -4655,7 +4840,6 @@
     </span>}
 
     <span class="doccomment">/// Add new static accessor property to the constructor object itself.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>static_accessor&lt;K&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         key: K,
@@ -4676,7 +4860,6 @@
     </span>}
 
     <span class="doccomment">/// Add new property to the constructor&#39;s prototype.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>property_descriptor&lt;K, P&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: K, property: P) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self
     </span><span class="kw">where
         </span>K: Into&lt;PropertyKey&gt;,
@@ -4688,7 +4871,6 @@
     </span>}
 
     <span class="doccomment">/// Add new static property to the constructor object itself.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>static_property_descriptor&lt;K, P&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: K, property: P) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self
     </span><span class="kw">where
         </span>K: Into&lt;PropertyKey&gt;,
@@ -4711,7 +4893,6 @@
     <span class="doccomment">/// Specify the name of the constructor function.
     ///
     /// Default is `&quot;[object]&quot;`
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>name&lt;N&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: N) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self
     </span><span class="kw">where
         </span>N: AsRef&lt;str&gt;,
@@ -4742,7 +4923,6 @@
     /// inherit from.
     ///
     /// Default is `Object.prototype`
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>inherit&lt;O: Into&lt;JsPrototype&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, prototype: O) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self </span>{
         <span class="self">self</span>.inherit = <span class="prelude-val">Some</span>(prototype.into());
         <span class="self">self
@@ -4751,7 +4931,6 @@
     <span class="doccomment">/// Specify the `[[Prototype]]` internal field of this constructor.
     ///
     /// Default is `Function.prototype`
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>custom_prototype&lt;O: Into&lt;JsPrototype&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, prototype: O) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self </span>{
         <span class="self">self</span>.custom_prototype = <span class="prelude-val">Some</span>(prototype.into());
         <span class="self">self
@@ -4849,4 +5028,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>

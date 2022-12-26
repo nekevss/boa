@@ -1,6 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/builtins/object/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../../normalize.css"><link rel="stylesheet" href="../../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../../ayu.css" disabled><link rel="stylesheet" href="../../../../dark.css" disabled><link rel="stylesheet" href="../../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../../storage.js"></script><script defer src="../../../../source-script.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../main.js"></script><noscript><link rel="stylesheet" href="../../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../../boa_engine/index.html"><div class="logo-container"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../../boa_engine/index.html"><div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/builtins/object/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../../normalize.css"><link rel="stylesheet" href="../../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../../ayu.css" disabled><link rel="stylesheet" href="../../../../dark.css" disabled><link rel="stylesheet" href="../../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../../storage.js"></script><script defer src="../../../../source-script.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../main.js"></script><noscript><link rel="stylesheet" href="../../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../../../boa_engine/index.html">
+                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../wheel.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -1365,7 +1364,6 @@
 <span id="1363">1363</span>
 <span id="1364">1364</span>
 <span id="1365">1365</span>
-<span id="1366">1366</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Boa&#39;s implementation of ECMAScript&#39;s global `Object` object.
 //!
 //! The `Object` class represents one of ECMAScript&#39;s data types.
@@ -1606,7 +1604,7 @@
 
         <span class="comment">// 3. Let desc be PropertyDescriptor { [[Get]]: getter, [[Enumerable]]: true, [[Configurable]]: true }.
         </span><span class="kw">let </span>desc = PropertyDescriptor::builder()
-            .get(getter)
+            .get(getter.clone())
             .enumerable(<span class="bool-val">true</span>)
             .configurable(<span class="bool-val">true</span>);
 
@@ -1649,7 +1647,7 @@
 
         <span class="comment">// 3. Let desc be PropertyDescriptor { [[Set]]: setter, [[Enumerable]]: true, [[Configurable]]: true }.
         </span><span class="kw">let </span>desc = PropertyDescriptor::builder()
-            .set(setter)
+            .set(setter.clone())
             .enumerable(<span class="bool-val">true</span>)
             .configurable(<span class="bool-val">true</span>);
 
@@ -1693,7 +1691,7 @@
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(current_desc) = desc {
                 <span class="comment">// i. If IsAccessorDescriptor(desc) is true, return desc.[[Get]].
                 </span><span class="kw">return if </span>current_desc.is_accessor_descriptor() {
-                    <span class="prelude-val">Ok</span>(current_desc.expect_get().into())
+                    <span class="prelude-val">Ok</span>(current_desc.expect_get().clone())
                 } <span class="kw">else </span>{
                     <span class="comment">// ii. Return undefined.
                     </span><span class="prelude-val">Ok</span>(JsValue::undefined())
@@ -1737,7 +1735,7 @@
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(current_desc) = desc {
                 <span class="comment">// i. If IsAccessorDescriptor(desc) is true, return desc.[[Set]].
                 </span><span class="kw">return if </span>current_desc.is_accessor_descriptor() {
-                    <span class="prelude-val">Ok</span>(current_desc.expect_set().into())
+                    <span class="prelude-val">Ok</span>(current_desc.expect_set().clone())
                 } <span class="kw">else </span>{
                     <span class="comment">// ii. Return undefined.
                     </span><span class="prelude-val">Ok</span>(JsValue::undefined())
@@ -1885,7 +1883,7 @@
         <span class="comment">// 4. If Desc has a [[Value]] field, then
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(value) = desc.value() {
             <span class="comment">// a. Perform ! CreateDataPropertyOrThrow(obj, &quot;value&quot;, Desc.[[Value]]).
-            </span>obj.create_data_property_or_throw(<span class="string">&quot;value&quot;</span>, value, context)
+            </span>obj.create_data_property_or_throw(<span class="string">&quot;value&quot;</span>, value.clone(), context)
                 .expect(<span class="string">&quot;CreateDataPropertyOrThrow cannot fail here&quot;</span>);
         }
 
@@ -1899,14 +1897,14 @@
         <span class="comment">// 6. If Desc has a [[Get]] field, then
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(get) = desc.get() {
             <span class="comment">// a. Perform ! CreateDataPropertyOrThrow(obj, &quot;get&quot;, Desc.[[Get]]).
-            </span>obj.create_data_property_or_throw(<span class="string">&quot;get&quot;</span>, get, context)
+            </span>obj.create_data_property_or_throw(<span class="string">&quot;get&quot;</span>, get.clone(), context)
                 .expect(<span class="string">&quot;CreateDataPropertyOrThrow cannot fail here&quot;</span>);
         }
 
         <span class="comment">// 7. If Desc has a [[Set]] field, then
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(set) = desc.set() {
             <span class="comment">// a. Perform ! CreateDataPropertyOrThrow(obj, &quot;set&quot;, Desc.[[Set]]).
-            </span>obj.create_data_property_or_throw(<span class="string">&quot;set&quot;</span>, set, context)
+            </span>obj.create_data_property_or_throw(<span class="string">&quot;set&quot;</span>, set.clone(), context)
                 .expect(<span class="string">&quot;CreateDataPropertyOrThrow cannot fail here&quot;</span>);
         }
 
@@ -2624,7 +2622,7 @@
                 </span><span class="kw">let </span>property_key = key.to_property_key(context)<span class="question-mark">?</span>;
 
                 <span class="comment">// b. Perform ! CreateDataPropertyOrThrow(obj, propertyKey, value).
-                </span>obj.create_data_property_or_throw(property_key, value, context)<span class="question-mark">?</span>;
+                </span>obj.create_data_property_or_throw(property_key, value.clone(), context)<span class="question-mark">?</span>;
 
                 <span class="comment">// c. Return undefined.
                 </span><span class="prelude-val">Ok</span>(JsValue::undefined())
@@ -2646,7 +2644,6 @@
 ///  - [ECMAScript reference][spec]
 ///
 /// [spec]: https://tc39.es/ecma262/#sec-object.defineproperties
-</span><span class="attribute">#[inline]
 </span><span class="kw">fn </span>object_define_properties(
     object: <span class="kw-2">&amp;</span>JsObject,
     props: <span class="kw-2">&amp;</span>JsValue,
@@ -2733,4 +2730,4 @@
     </span><span class="prelude-val">Ok</span>(Array::create_array_from_list(name_list, context).into())
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>

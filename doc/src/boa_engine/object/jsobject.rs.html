@@ -1,6 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/object/jsobject.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>jsobject.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../boa_engine/index.html"><div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/object/jsobject.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>jsobject.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html">
+                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -887,16 +886,6 @@
 <span id="885">885</span>
 <span id="886">886</span>
 <span id="887">887</span>
-<span id="888">888</span>
-<span id="889">889</span>
-<span id="890">890</span>
-<span id="891">891</span>
-<span id="892">892</span>
-<span id="893">893</span>
-<span id="894">894</span>
-<span id="895">895</span>
-<span id="896">896</span>
-<span id="897">897</span>
 </pre><pre class="rust"><code><span class="doccomment">//! This module implements the `JsObject` structure.
 //!
 //! The `JsObject` is a garbage collected Object.
@@ -933,7 +922,6 @@
 
 <span class="kw">impl </span>JsObject {
     <span class="doccomment">/// Create a new `JsObject` from an internal `Object`.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">fn </span>from_object(object: Object) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             inner: Gc::new(GcCell::new(object)),
@@ -951,7 +939,6 @@
     ///
     /// Create a `JsObject` and automatically set its internal methods and
     /// internal slots from the `data` provided.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>from_proto_and_data&lt;O: Into&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;&gt;&gt;(prototype: O, data: ObjectData) -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::from_object(Object {
             data,
@@ -1097,8 +1084,7 @@
     /// # Panics
     ///
     /// Panics if the object is currently mutably borrowed.
-    </span><span class="attribute">#[inline]
-    #[track_caller]
+    </span><span class="attribute">#[track_caller]
     </span><span class="kw">pub fn </span>is&lt;T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool
     <span class="kw">where
         </span>T: NativeObject,
@@ -1112,8 +1098,7 @@
     /// # Panics
     ///
     /// Panics if the object is currently mutably borrowed.
-    </span><span class="attribute">#[inline]
-    #[track_caller]
+    </span><span class="attribute">#[track_caller]
     </span><span class="kw">pub fn </span>downcast_ref&lt;T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Ref&lt;<span class="lifetime">&#39;_</span>, T&gt;&gt;
     <span class="kw">where
         </span>T: NativeObject,
@@ -1134,8 +1119,7 @@
     /// # Panics
     ///
     /// Panics if the object is currently borrowed.
-    </span><span class="attribute">#[inline]
-    #[track_caller]
+    </span><span class="attribute">#[track_caller]
     </span><span class="kw">pub fn </span>downcast_mut&lt;T&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;RefMut&lt;<span class="lifetime">&#39;_</span>, Object, T&gt;&gt;
     <span class="kw">where
         </span>T: NativeObject,
@@ -1167,7 +1151,6 @@
     /// # Panics
     ///
     /// Panics if the object is currently mutably borrowed.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>extensible(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="self">self</span>.borrow().extensible
     }
@@ -1506,7 +1489,6 @@ Cannot both specify accessors and a value or writable attribute&quot;</span>,
     ///  - [ECMAScript][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-copydataproperties
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>copy_data_properties&lt;K&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         source: <span class="kw-2">&amp;</span>JsValue,
@@ -1571,8 +1553,7 @@ Cannot both specify accessors and a value or writable attribute&quot;</span>,
         </span><span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attribute">#[inline]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_property(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>PropertyKey) -&gt; <span class="prelude-ty">Option</span>&lt;PropertyDescriptor&gt; {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_property(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>PropertyKey) -&gt; <span class="prelude-ty">Option</span>&lt;PropertyDescriptor&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>obj = <span class="prelude-val">Some</span>(<span class="self">self</span>.clone());
 
         <span class="kw">while let </span><span class="prelude-val">Some</span>(o) = obj {
@@ -1585,8 +1566,7 @@ Cannot both specify accessors and a value or writable attribute&quot;</span>,
     </span>}
 
     <span class="doccomment">/// Helper function for property insertion.
-    </span><span class="attribute">#[inline]
-    #[track_caller]
+    </span><span class="attribute">#[track_caller]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>insert&lt;K, P&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, key: K, property: P) -&gt; <span class="prelude-ty">Option</span>&lt;PropertyDescriptor&gt;
     <span class="kw">where
         </span>K: Into&lt;PropertyKey&gt;,
@@ -1599,7 +1579,6 @@ Cannot both specify accessors and a value or writable attribute&quot;</span>,
     ///
     /// If a field was already in the object with the same name that a `Some` is returned
     /// with that field, otherwise None is returned.
-    </span><span class="attribute">#[inline]
     </span><span class="kw">pub fn </span>insert_property&lt;K, P&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, key: K, property: P) -&gt; <span class="prelude-ty">Option</span>&lt;PropertyDescriptor&gt;
     <span class="kw">where
         </span>K: Into&lt;PropertyKey&gt;,
@@ -1795,4 +1774,4 @@ Cannot both specify accessors and a value or writable attribute&quot;</span>,
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="boa_engine" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>
