@@ -291,6 +291,7 @@
 <span id="290">290</span>
 <span id="291">291</span>
 <span id="292">292</span>
+<span id="293">293</span>
 </pre><pre class="rust"><code><span class="kw">use crate</span>::{
     environments::DeclarativeEnvironment,
     object::{JsObject, ObjectData},
@@ -364,17 +365,18 @@
     /// [spec]: https://tc39.es/ecma262/#sec-createunmappedargumentsobject
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_unmapped_arguments_object(
         arguments_list: <span class="kw-2">&amp;</span>[JsValue],
-        context: <span class="kw-2">&amp;mut </span>Context,
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsObject {
         <span class="comment">// 1. Let len be the number of elements in argumentsList.
         </span><span class="kw">let </span>len = arguments_list.len();
 
         <span class="comment">// 2. Let obj be ! OrdinaryObjectCreate(%Object.prototype%, « [[ParameterMap]] »).
-        </span><span class="kw">let </span>obj = context.construct_object();
-
-        <span class="comment">// 3. Set obj.[[ParameterMap]] to undefined.
+        // 3. Set obj.[[ParameterMap]] to undefined.
         // skipped because the `Arguments` enum ensures ordinary argument objects don&#39;t have a `[[ParameterMap]]`
-        </span>obj.borrow_mut().data = ObjectData::arguments(<span class="self">Self</span>::Unmapped);
+        </span><span class="kw">let </span>obj = JsObject::from_proto_and_data(
+            context.intrinsics().constructors().object().prototype(),
+            ObjectData::arguments(<span class="self">Self</span>::Unmapped),
+        );
 
         <span class="comment">// 4. Perform DefinePropertyOrThrow(obj, &quot;length&quot;, PropertyDescriptor { [[Value]]: 𝔽(len),
         // [[Writable]]: true, [[Enumerable]]: false, [[Configurable]]: true }).
@@ -443,7 +445,7 @@
         formals: <span class="kw-2">&amp;</span>FormalParameterList,
         arguments_list: <span class="kw-2">&amp;</span>[JsValue],
         env: <span class="kw-2">&amp;</span>Gc&lt;DeclarativeEnvironment&gt;,
-        context: <span class="kw-2">&amp;mut </span>Context,
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsObject {
         <span class="comment">// 1. Assert: formals does not contain a rest parameter, any binding patterns, or any initializers.
         // It may contain duplicate identifiers.

@@ -837,6 +837,7 @@
 <span id="836">836</span>
 <span id="837">837</span>
 <span id="838">838</span>
+<span id="839">839</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Boa&#39;s implementation of ECMAScript&#39;s global `ArrayBuffer` object.
 //!
 //! More information:
@@ -889,7 +890,7 @@
 <span class="kw">impl </span>BuiltIn <span class="kw">for </span>ArrayBuffer {
     <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str = <span class="string">&quot;ArrayBuffer&quot;</span>;
 
-    <span class="kw">fn </span>init(context: <span class="kw-2">&amp;mut </span>Context) -&gt; <span class="prelude-ty">Option</span>&lt;JsValue&gt; {
+    <span class="kw">fn </span>init(context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;JsValue&gt; {
         <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="self">Self</span>::NAME, <span class="string">&quot;init&quot;</span>);
 
         <span class="kw">let </span>flag_attributes = Attribute::CONFIGURABLE | Attribute::NON_ENUMERABLE;
@@ -942,7 +943,7 @@
     </span><span class="kw">fn </span>constructor(
         new_target: <span class="kw-2">&amp;</span>JsValue,
         args: <span class="kw-2">&amp;</span>[JsValue],
-        context: <span class="kw-2">&amp;mut </span>Context,
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. If NewTarget is undefined, throw a TypeError exception.
         </span><span class="kw">if </span>new_target.is_undefined() {
@@ -965,7 +966,7 @@
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-get-arraybuffer-@@species
     </span><span class="attribute">#[allow(clippy::unnecessary_wraps)]
-    </span><span class="kw">fn </span>get_species(this: <span class="kw-2">&amp;</span>JsValue, <span class="kw">_</span>: <span class="kw-2">&amp;</span>[JsValue], <span class="kw">_</span>: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; {
+    </span><span class="kw">fn </span>get_species(this: <span class="kw-2">&amp;</span>JsValue, <span class="kw">_</span>: <span class="kw-2">&amp;</span>[JsValue], <span class="kw">_</span>: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Return the this value.
         </span><span class="prelude-val">Ok</span>(this.clone())
     }
@@ -977,7 +978,7 @@
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-arraybuffer.isview
     </span><span class="attribute">#[allow(clippy::unnecessary_wraps)]
-    </span><span class="kw">fn </span>is_view(<span class="kw">_</span>: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], _context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; {
+    </span><span class="kw">fn </span>is_view(<span class="kw">_</span>: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], _context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. If Type(arg) is not Object, return false.
         // 2. If arg has a [[ViewedArrayBuffer]] internal slot, return true.
         // 3. Return false.
@@ -998,7 +999,7 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_byte_length(
         this: <span class="kw-2">&amp;</span>JsValue,
         _args: <span class="kw-2">&amp;</span>[JsValue],
-        <span class="kw">_</span>: <span class="kw-2">&amp;mut </span>Context,
+        <span class="kw">_</span>: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Let O be the this value.
         // 2. Perform ? RequireInternalSlot(O, [[ArrayBufferData]]).
@@ -1029,7 +1030,7 @@
     ///  - [ECMAScript reference][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-arraybuffer.prototype.slice
-    </span><span class="kw">fn </span>slice(this: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; {
+    </span><span class="kw">fn </span>slice(this: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Let O be the this value.
         // 2. Perform ? RequireInternalSlot(O, [[ArrayBufferData]]).
         </span><span class="kw">let </span>obj = this.as_object().ok_or_else(|| {
@@ -1171,7 +1172,7 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>allocate(
         constructor: <span class="kw-2">&amp;</span>JsValue,
         byte_length: u64,
-        context: <span class="kw-2">&amp;mut </span>Context,
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;JsObject&gt; {
         <span class="comment">// 1. Let obj be ? OrdinaryCreateFromConstructor(constructor, &quot;%ArrayBuffer.prototype%&quot;, « [[ArrayBufferData]], [[ArrayBufferByteLength]], [[ArrayBufferDetachKey]] »).
         </span><span class="kw">let </span>prototype = get_prototype_from_constructor(
@@ -1179,19 +1180,20 @@
             StandardConstructors::array_buffer,
             context,
         )<span class="question-mark">?</span>;
-        <span class="kw">let </span>obj = context.construct_object();
-        obj.set_prototype(prototype.into());
 
         <span class="comment">// 2. Let block be ? CreateByteDataBlock(byteLength).
         </span><span class="kw">let </span>block = create_byte_data_block(byte_length)<span class="question-mark">?</span>;
 
         <span class="comment">// 3. Set obj.[[ArrayBufferData]] to block.
         // 4. Set obj.[[ArrayBufferByteLength]] to byteLength.
-        </span>obj.borrow_mut().data = ObjectData::array_buffer(<span class="self">Self </span>{
-            array_buffer_data: <span class="prelude-val">Some</span>(block),
-            array_buffer_byte_length: byte_length,
-            array_buffer_detach_key: JsValue::Undefined,
-        });
+        </span><span class="kw">let </span>obj = JsObject::from_proto_and_data(
+            prototype,
+            ObjectData::array_buffer(<span class="self">Self </span>{
+                array_buffer_data: <span class="prelude-val">Some</span>(block),
+                array_buffer_byte_length: byte_length,
+                array_buffer_detach_key: JsValue::Undefined,
+            }),
+        );
 
         <span class="comment">// 5. Return obj.
         </span><span class="prelude-val">Ok</span>(obj)
@@ -1220,7 +1222,7 @@
         src_byte_offset: u64,
         src_length: u64,
         clone_constructor: <span class="kw-2">&amp;</span>JsValue,
-        context: <span class="kw-2">&amp;mut </span>Context,
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;JsObject&gt; {
         <span class="comment">// 1. Let targetBuffer be ? AllocateArrayBuffer(cloneConstructor, srcLength).
         </span><span class="kw">let </span>target_buffer = <span class="self">Self</span>::allocate(clone_constructor, src_length, context)<span class="question-mark">?</span>;
@@ -1465,7 +1467,7 @@
         t: TypedArrayKind,
         value: <span class="kw-2">&amp;</span>JsValue,
         is_little_endian: bool,
-        context: <span class="kw-2">&amp;mut </span>Context,
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;Vec&lt;u8&gt;&gt; {
         <span class="prelude-val">Ok</span>(<span class="kw">match </span>t {
             TypedArrayKind::Int8 <span class="kw">if </span>is_little_endian =&gt; {
@@ -1560,7 +1562,7 @@
         value: <span class="kw-2">&amp;</span>JsValue,
         _order: SharedMemoryOrder,
         is_little_endian: <span class="prelude-ty">Option</span>&lt;bool&gt;,
-        context: <span class="kw-2">&amp;mut </span>Context,
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Assert: IsDetachedBuffer(arrayBuffer) is false.
         // 2. Assert: There are sufficient bytes in arrayBuffer starting at byteIndex to represent a value of type.

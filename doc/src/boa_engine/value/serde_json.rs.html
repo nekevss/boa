@@ -287,12 +287,14 @@
 <span id="286">286</span>
 <span id="287">287</span>
 <span id="288">288</span>
+<span id="289">289</span>
 </pre><pre class="rust"><code><span class="doccomment">//! This module implements the conversions from and into [`serde_json::Value`].
 
 </span><span class="kw">use </span><span class="kw">super</span>::JsValue;
 <span class="kw">use crate</span>::{
     builtins::Array,
     error::JsNativeError,
+    object::JsObject,
     property::{PropertyDescriptor, PropertyKey},
     Context, JsResult,
 };
@@ -323,7 +325,7 @@
     /// #
     /// # assert_eq!(json, value.to_json(&amp;mut context).unwrap());
     /// ```
-    </span><span class="kw">pub fn </span>from_json(json: <span class="kw-2">&amp;</span>Value, context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;<span class="self">Self</span>&gt; {
+    </span><span class="kw">pub fn </span>from_json(json: <span class="kw-2">&amp;</span>Value, context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;<span class="self">Self</span>&gt; {
         <span class="doccomment">/// Biggest possible integer, as i64.
         </span><span class="kw">const </span>MAX_INT: i64 = i32::MAX <span class="kw">as </span>i64;
 
@@ -352,7 +354,7 @@
                 <span class="prelude-val">Ok</span>(Array::create_array_from_list(arr, context).into())
             }
             Value::Object(obj) =&gt; {
-                <span class="kw">let </span>js_obj = context.construct_object();
+                <span class="kw">let </span>js_obj = JsObject::with_object_proto(context);
                 <span class="kw">for </span>(key, value) <span class="kw">in </span>obj {
                     <span class="kw">let </span>property = PropertyDescriptor::builder()
                         .value(<span class="self">Self</span>::from_json(value, context)<span class="question-mark">?</span>)
@@ -397,7 +399,7 @@
     /// # Panics
     ///
     /// Panics if the `JsValue` is `Undefined`.
-    </span><span class="kw">pub fn </span>to_json(<span class="kw-2">&amp;</span><span class="self">self</span>, context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;Value&gt; {
+    </span><span class="kw">pub fn </span>to_json(<span class="kw-2">&amp;</span><span class="self">self</span>, context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;Value&gt; {
         <span class="kw">match </span><span class="self">self </span>{
             <span class="self">Self</span>::Null =&gt; <span class="prelude-val">Ok</span>(Value::Null),
             <span class="self">Self</span>::Undefined =&gt; <span class="macro">todo!</span>(<span class="string">&quot;undefined to JSON&quot;</span>),

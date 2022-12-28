@@ -1568,7 +1568,6 @@
 <span id="1567">1567</span>
 <span id="1568">1568</span>
 <span id="1569">1569</span>
-<span id="1570">1570</span>
 </pre><pre class="rust"><code><span class="doccomment">//! `CodeBlock`
 //!
 //! This module is for the `CodeBlock` which implements a function representation in the VM
@@ -2061,7 +2060,7 @@
     r#async: bool,
     arrow: bool,
     prototype: <span class="prelude-ty">Option</span>&lt;JsObject&gt;,
-    context: <span class="kw-2">&amp;mut </span>Context,
+    context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
 ) -&gt; JsObject {
     <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;JsVmFunction::new&quot;</span>, <span class="string">&quot;vm&quot;</span>);
 
@@ -2076,8 +2075,6 @@
     } <span class="kw">else </span>{
         context.intrinsics().constructors().function().prototype()
     };
-
-    <span class="kw">let </span>prototype = context.construct_object();
 
     <span class="kw">let </span>name_property = PropertyDescriptor::builder()
         .value(
@@ -2137,6 +2134,7 @@
         .configurable(<span class="bool-val">true</span>)
         .build();
 
+    <span class="kw">let </span>prototype = JsObject::with_object_proto(context);
     prototype
         .define_property_or_throw(<span class="macro">js_string!</span>(<span class="string">&quot;constructor&quot;</span>), constructor_property, context)
         .expect(<span class="string">&quot;failed to define the constructor property of the function&quot;</span>);
@@ -2167,7 +2165,7 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_generator_function_object(
     code: Gc&lt;CodeBlock&gt;,
     r#async: bool,
-    context: <span class="kw-2">&amp;mut </span>Context,
+    context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
 ) -&gt; JsObject {
     <span class="kw">let </span>function_prototype = <span class="kw">if </span>r#async {
         context
@@ -2259,7 +2257,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         this: <span class="kw-2">&amp;</span>JsValue,
         args: <span class="kw-2">&amp;</span>[JsValue],
-        context: <span class="kw-2">&amp;mut </span>Context,
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="kw">let </span>this_function_object = <span class="self">self</span>.clone();
 
@@ -2836,7 +2834,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         args: <span class="kw-2">&amp;</span>[JsValue],
         this_target: <span class="kw-2">&amp;</span>JsValue,
-        context: <span class="kw-2">&amp;mut </span>Context,
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;<span class="self">Self</span>&gt; {
         <span class="kw">let </span>this_function_object = <span class="self">self</span>.clone();
 
@@ -3083,7 +3081,7 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>initialize_instance_elements(
     target: <span class="kw-2">&amp;</span>JsObject,
     constructor: <span class="kw-2">&amp;</span>JsObject,
-    context: <span class="kw-2">&amp;mut </span>Context,
+    context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
 ) -&gt; JsResult&lt;()&gt; {
     <span class="kw">let </span>constructor_borrow = constructor.borrow();
     <span class="kw">let </span>constructor_function = constructor_borrow
