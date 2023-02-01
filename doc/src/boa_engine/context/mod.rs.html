@@ -600,38 +600,11 @@
 <a href="#599" id="599">599</a>
 <a href="#600" id="600">600</a>
 <a href="#601" id="601">601</a>
-<a href="#602" id="602">602</a>
-<a href="#603" id="603">603</a>
-<a href="#604" id="604">604</a>
-<a href="#605" id="605">605</a>
-<a href="#606" id="606">606</a>
-<a href="#607" id="607">607</a>
-<a href="#608" id="608">608</a>
-<a href="#609" id="609">609</a>
-<a href="#610" id="610">610</a>
-<a href="#611" id="611">611</a>
-<a href="#612" id="612">612</a>
-<a href="#613" id="613">613</a>
-<a href="#614" id="614">614</a>
-<a href="#615" id="615">615</a>
-<a href="#616" id="616">616</a>
-<a href="#617" id="617">617</a>
-<a href="#618" id="618">618</a>
-<a href="#619" id="619">619</a>
-<a href="#620" id="620">620</a>
-<a href="#621" id="621">621</a>
-<a href="#622" id="622">622</a>
-<a href="#623" id="623">623</a>
-<a href="#624" id="624">624</a>
-<a href="#625" id="625">625</a>
-<a href="#626" id="626">626</a>
-<a href="#627" id="627">627</a>
 </pre><pre class="rust"><code><span class="doccomment">//! The ECMAScript context.
 
 </span><span class="kw">mod </span>hooks;
 <span class="kw">pub mod </span>intrinsics;
-<span class="kw">use </span>hooks::DefaultHooks;
-<span class="kw">pub use </span>hooks::HostHooks;
+<span class="kw">pub use </span>hooks::{DefaultHooks, HostHooks};
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>icu;
@@ -639,13 +612,12 @@
 <span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
 </span><span class="kw">pub use </span>icu::BoaProvider;
 
-<span class="kw">use </span>intrinsics::{IntrinsicObjects, Intrinsics};
+<span class="kw">use </span>intrinsics::Intrinsics;
 
+<span class="kw">use </span>std::io::Read;
 <span class="attr">#[cfg(not(feature = <span class="string">&quot;intl&quot;</span>))]
 </span><span class="kw">pub use </span>std::marker::PhantomData;
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;console&quot;</span>)]
-</span><span class="kw">use </span><span class="kw">crate</span>::builtins::console::Console;
 <span class="kw">use crate</span>::{
     builtins,
     bytecompiler::ByteCompiler,
@@ -656,7 +628,7 @@
     property::{Attribute, PropertyDescriptor, PropertyKey},
     realm::Realm,
     vm::{CallFrame, CodeBlock, Vm},
-    JsResult, JsValue,
+    JsResult, JsValue, Source,
 };
 
 <span class="kw">use </span>boa_ast::StatementList;
@@ -680,6 +652,7 @@
 ///     object::ObjectInitializer,
 ///     property::{Attribute, PropertyDescriptor},
 ///     Context,
+///     Source
 /// };
 ///
 /// let script = r#&quot;
@@ -694,7 +667,7 @@
 /// let mut context = Context::default();
 ///
 /// // Populate the script definition to the context.
-/// context.eval(script).unwrap();
+/// context.eval(Source::from_bytes(script)).unwrap();
 ///
 /// // Create an object that can be used in eval calls.
 /// let arg = ObjectInitializer::new(&amp;mut context)
@@ -702,7 +675,7 @@
 ///     .build();
 /// context.register_global_property(&quot;arg&quot;, arg, Attribute::all());
 ///
-/// let value = context.eval(&quot;test(arg)&quot;).unwrap();
+/// let value = context.eval(Source::from_bytes(&quot;test(arg)&quot;)).unwrap();
 ///
 /// assert_eq!(value.as_number(), Some(12.0))
 /// ```
@@ -713,12 +686,8 @@
     <span class="doccomment">/// String interner in the context.
     </span>interner: Interner,
 
-    <span class="doccomment">/// console object state.
-    </span><span class="attr">#[cfg(feature = <span class="string">&quot;console&quot;</span>)]
-    </span>console: Console,
-
-    <span class="doccomment">/// Intrinsic objects
-    </span>intrinsics: Intrinsics,
+    <span class="doccomment">/// Execute in strict mode,
+    </span>strict: bool,
 
     <span class="doccomment">/// Number of instructions remaining before a forced exit
     </span><span class="attr">#[cfg(feature = <span class="string">&quot;fuzz&quot;</span>)]
@@ -744,13 +713,10 @@
         debug
             .field(<span class="string">&quot;realm&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.realm)
             .field(<span class="string">&quot;interner&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.interner)
-            .field(<span class="string">&quot;intrinsics&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.intrinsics)
             .field(<span class="string">&quot;vm&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.vm)
+            .field(<span class="string">&quot;strict&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.strict)
             .field(<span class="string">&quot;promise_job_queue&quot;</span>, <span class="kw-2">&amp;</span><span class="string">&quot;JobQueue&quot;</span>)
             .field(<span class="string">&quot;hooks&quot;</span>, <span class="kw-2">&amp;</span><span class="string">&quot;HostHooks&quot;</span>);
-
-        <span class="attr">#[cfg(feature = <span class="string">&quot;console&quot;</span>)]
-        </span>debug.field(<span class="string">&quot;console&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.console);
 
         <span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
         </span>debug.field(<span class="string">&quot;icu&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.icu);
@@ -761,7 +727,9 @@
 
 <span class="kw">impl </span>Default <span class="kw">for </span>Context&lt;<span class="lifetime">&#39;_</span>&gt; {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-        ContextBuilder::default().build()
+        ContextBuilder::default()
+            .build()
+            .expect(<span class="string">&quot;Building the default context should not fail&quot;</span>)
     }
 }
 
@@ -775,14 +743,16 @@
         ContextBuilder::default()
     }
 
-    <span class="doccomment">/// Evaluates the given code by compiling down to bytecode, then interpreting the bytecode into a value
+    <span class="doccomment">/// Evaluates the given script `Source` by compiling down to bytecode, then interpreting the
+    /// bytecode into a value.
     ///
     /// # Examples
     /// ```
-    /// # use boa_engine::Context;
+    /// # use boa_engine::{Context, Source};
     /// let mut context = Context::default();
     ///
-    /// let value = context.eval(&quot;1 + 3&quot;).unwrap();
+    /// let source = Source::from_bytes(&quot;1 + 3&quot;);
+    /// let value = context.eval(source).unwrap();
     ///
     /// assert!(value.is_number());
     /// assert_eq!(value.as_number().unwrap(), 4.0);
@@ -791,14 +761,11 @@
     /// Note that this won&#39;t run any scheduled promise jobs; you need to call [`Context::run_jobs`]
     /// on the context or [`JobQueue::run_jobs`] on the provided queue to run them.
     </span><span class="attr">#[allow(clippy::unit_arg, clippy::drop_copy)]
-    </span><span class="kw">pub fn </span>eval&lt;S&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, src: S) -&gt; JsResult&lt;JsValue&gt;
-    <span class="kw">where
-        </span>S: AsRef&lt;[u8]&gt;,
-    {
+    </span><span class="kw">pub fn </span>eval&lt;R: Read&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, src: Source&lt;<span class="lifetime">&#39;_</span>, R&gt;) -&gt; JsResult&lt;JsValue&gt; {
         <span class="kw">let </span>main_timer = Profiler::global().start_event(<span class="string">&quot;Evaluation&quot;</span>, <span class="string">&quot;Main&quot;</span>);
 
-        <span class="kw">let </span>statement_list = <span class="self">self</span>.parse(src)<span class="question-mark">?</span>;
-        <span class="kw">let </span>code_block = <span class="self">self</span>.compile(<span class="kw-2">&amp;</span>statement_list)<span class="question-mark">?</span>;
+        <span class="kw">let </span>script = <span class="self">self</span>.parse(src)<span class="question-mark">?</span>;
+        <span class="kw">let </span>code_block = <span class="self">self</span>.compile(<span class="kw-2">&amp;</span>script)<span class="question-mark">?</span>;
         <span class="kw">let </span>result = <span class="self">self</span>.execute(code_block);
 
         <span class="comment">// The main_timer needs to be dropped before the Profiler is.
@@ -808,13 +775,13 @@
         result
     }
 
-    <span class="doccomment">/// Parse the given source text.
-    </span><span class="kw">pub fn </span>parse&lt;S&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, src: S) -&gt; <span class="prelude-ty">Result</span>&lt;StatementList, ParseError&gt;
-    <span class="kw">where
-        </span>S: AsRef&lt;[u8]&gt;,
-    {
+    <span class="doccomment">/// Parse the given source script.
+    </span><span class="kw">pub fn </span>parse&lt;R: Read&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, src: Source&lt;<span class="lifetime">&#39;_</span>, R&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;StatementList, ParseError&gt; {
         <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;Parsing&quot;</span>, <span class="string">&quot;Main&quot;</span>);
-        <span class="kw">let </span><span class="kw-2">mut </span>parser = Parser::new(src.as_ref());
+        <span class="kw">let </span><span class="kw-2">mut </span>parser = Parser::new(src);
+        <span class="kw">if </span><span class="self">self</span>.strict {
+            parser.set_strict();
+        }
         parser.parse_all(<span class="kw-2">&amp;mut </span><span class="self">self</span>.interner)
     }
 
@@ -1000,12 +967,17 @@
     <span class="doccomment">/// Return the intrinsic constructors and objects.
     </span><span class="attr">#[inline]
     </span><span class="kw">pub const fn </span>intrinsics(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Intrinsics {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.intrinsics
+        <span class="kw-2">&amp;</span><span class="self">self</span>.realm.intrinsics
     }
 
     <span class="doccomment">/// Set the value of trace on the context
     </span><span class="kw">pub fn </span>set_trace(<span class="kw-2">&amp;mut </span><span class="self">self</span>, trace: bool) {
         <span class="self">self</span>.vm.trace = trace;
+    }
+
+    <span class="doccomment">/// Executes all code in strict mode.
+    </span><span class="kw">pub fn </span>strict(<span class="kw-2">&amp;mut </span><span class="self">self</span>, strict: bool) {
+        <span class="self">self</span>.strict = strict;
     }
 
     <span class="doccomment">/// Enqueues a [`NativeJob`] on the [`JobQueue`].
@@ -1035,18 +1007,6 @@
 <span class="comment">// ==== Private API ====
 
 </span><span class="kw">impl </span>Context&lt;<span class="lifetime">&#39;_</span>&gt; {
-    <span class="doccomment">/// A helper function for getting an immutable reference to the `console` object.
-    </span><span class="attr">#[cfg(feature = <span class="string">&quot;console&quot;</span>)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>console(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Console {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.console
-    }
-
-    <span class="doccomment">/// A helper function for getting a mutable reference to the `console` object.
-    </span><span class="attr">#[cfg(feature = <span class="string">&quot;console&quot;</span>)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>console_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Console {
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>.console
-    }
-
     <span class="doccomment">/// Return a mutable reference to the global object string bindings.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>global_bindings_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>GlobalPropertyMap {
         <span class="self">self</span>.realm.global_bindings_mut()
@@ -1075,23 +1035,16 @@
         compiler.compile_statement_list_with_new_declarative(statement_list, <span class="bool-val">true</span>, strict)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(Gc::new(compiler.finish()))
     }
-
-    <span class="doccomment">/// Sets up the default global objects within Global
-    </span><span class="kw">fn </span>create_intrinsics(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-        <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;create_intrinsics&quot;</span>, <span class="string">&quot;interpreter&quot;</span>);
-        <span class="comment">// Create intrinsics, add global objects here
-        </span>builtins::init(<span class="self">self</span>);
-    }
 }
 
 <span class="kw">impl</span>&lt;<span class="lifetime">&#39;host</span>&gt; Context&lt;<span class="lifetime">&#39;host</span>&gt; {
     <span class="doccomment">/// Get the host hooks.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>host_hooks(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;host </span><span class="kw">dyn </span>HostHooks {
+    </span><span class="kw">pub fn </span>host_hooks(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;host </span><span class="kw">dyn </span>HostHooks {
         <span class="self">self</span>.host_hooks
     }
 
     <span class="doccomment">/// Get the job queue.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>job_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;host </span><span class="kw">dyn </span>JobQueue {
+    </span><span class="kw">pub fn </span>job_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;host </span><span class="kw">dyn </span>JobQueue {
         <span class="self">self</span>.job_queue
     }
 
@@ -1218,21 +1171,19 @@
 
     <span class="doccomment">/// Builds a new [`Context`] with the provided parameters, and defaults
     /// all missing parameters to their default values.
-    </span><span class="attr">#[must_use]
-    </span><span class="kw">pub fn </span>build&lt;<span class="lifetime">&#39;host</span>&gt;(<span class="self">self</span>) -&gt; Context&lt;<span class="lifetime">&#39;host</span>&gt;
+    </span><span class="kw">pub fn </span>build&lt;<span class="lifetime">&#39;host</span>&gt;(<span class="self">self</span>) -&gt; JsResult&lt;Context&lt;<span class="lifetime">&#39;host</span>&gt;&gt;
     <span class="kw">where
         </span><span class="lifetime">&#39;icu</span>: <span class="lifetime">&#39;host</span>,
         <span class="lifetime">&#39;hooks</span>: <span class="lifetime">&#39;host</span>,
         <span class="lifetime">&#39;queue</span>: <span class="lifetime">&#39;host</span>,
     {
-        <span class="kw">let </span>intrinsics = Intrinsics::default();
+        <span class="kw">let </span>host_hooks = <span class="self">self</span>.host_hooks.unwrap_or(<span class="kw-2">&amp;</span>DefaultHooks);
+
         <span class="kw">let </span><span class="kw-2">mut </span>context = Context {
-            realm: Realm::create(intrinsics.constructors().object().prototype().into()),
+            realm: Realm::create(host_hooks),
             interner: <span class="self">self</span>.interner.unwrap_or_default(),
-            <span class="attr">#[cfg(feature = <span class="string">&quot;console&quot;</span>)]
-            </span>console: Console::default(),
-            intrinsics,
             vm: Vm::default(),
+            strict: <span class="bool-val">false</span>,
             <span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
             </span>icu: <span class="self">self</span>.icu.unwrap_or_else(|| {
                 <span class="kw">let </span>provider = BoaProvider::Buffer(boa_icu_provider::buffer());
@@ -1241,16 +1192,13 @@
             <span class="attr">#[cfg(feature = <span class="string">&quot;fuzz&quot;</span>)]
             </span>instructions_remaining: <span class="self">self</span>.instructions_remaining,
             kept_alive: Vec::new(),
-            host_hooks: <span class="self">self</span>.host_hooks.unwrap_or(<span class="kw-2">&amp;</span>DefaultHooks),
+            host_hooks,
             job_queue: <span class="self">self</span>.job_queue.unwrap_or(<span class="kw-2">&amp;</span>IdleJobQueue),
         };
 
-        <span class="comment">// Add new builtIns to Context Realm
-        // At a later date this can be removed from here and called explicitly,
-        // but for now we almost always want these default builtins
-        </span>context.intrinsics.objects = IntrinsicObjects::init(<span class="kw-2">&amp;mut </span>context);
-        context.create_intrinsics();
-        context
+        builtins::set_default_global_bindings(<span class="kw-2">&amp;mut </span>context)<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(context)
     }
 }
 </code></pre></div>
