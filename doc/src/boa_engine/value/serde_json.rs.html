@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/value/serde_json.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>serde_json.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6827029ac823cab7.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../static.files/light-ebce58d0a40c3431.css"><link rel="stylesheet" disabled href="../../../static.files/dark-f23faae4a2daf9a6.css"><link rel="stylesheet" disabled href="../../../static.files/ayu-8af5e100b21cd173.css"><script id="default-settings" ></script><script src="../../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-c55e1eb52e1886b4.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/value/serde_json.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>serde_json.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-93196c7a1c3542a8.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../static.files/light-4743e13df3dfe8c4.css"><link rel="stylesheet" disabled href="../../../static.files/dark-0e1b889528bd466b.css"><link rel="stylesheet" disabled href="../../../static.files/ayu-65289d5d067c7c66.css"><script id="default-settings" ></script><script src="../../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-3367e395607fafc1.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html">
                         <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
@@ -250,55 +250,6 @@
 <a href="#249" id="249">249</a>
 <a href="#250" id="250">250</a>
 <a href="#251" id="251">251</a>
-<a href="#252" id="252">252</a>
-<a href="#253" id="253">253</a>
-<a href="#254" id="254">254</a>
-<a href="#255" id="255">255</a>
-<a href="#256" id="256">256</a>
-<a href="#257" id="257">257</a>
-<a href="#258" id="258">258</a>
-<a href="#259" id="259">259</a>
-<a href="#260" id="260">260</a>
-<a href="#261" id="261">261</a>
-<a href="#262" id="262">262</a>
-<a href="#263" id="263">263</a>
-<a href="#264" id="264">264</a>
-<a href="#265" id="265">265</a>
-<a href="#266" id="266">266</a>
-<a href="#267" id="267">267</a>
-<a href="#268" id="268">268</a>
-<a href="#269" id="269">269</a>
-<a href="#270" id="270">270</a>
-<a href="#271" id="271">271</a>
-<a href="#272" id="272">272</a>
-<a href="#273" id="273">273</a>
-<a href="#274" id="274">274</a>
-<a href="#275" id="275">275</a>
-<a href="#276" id="276">276</a>
-<a href="#277" id="277">277</a>
-<a href="#278" id="278">278</a>
-<a href="#279" id="279">279</a>
-<a href="#280" id="280">280</a>
-<a href="#281" id="281">281</a>
-<a href="#282" id="282">282</a>
-<a href="#283" id="283">283</a>
-<a href="#284" id="284">284</a>
-<a href="#285" id="285">285</a>
-<a href="#286" id="286">286</a>
-<a href="#287" id="287">287</a>
-<a href="#288" id="288">288</a>
-<a href="#289" id="289">289</a>
-<a href="#290" id="290">290</a>
-<a href="#291" id="291">291</a>
-<a href="#292" id="292">292</a>
-<a href="#293" id="293">293</a>
-<a href="#294" id="294">294</a>
-<a href="#295" id="295">295</a>
-<a href="#296" id="296">296</a>
-<a href="#297" id="297">297</a>
-<a href="#298" id="298">298</a>
-<a href="#299" id="299">299</a>
-<a href="#300" id="300">300</a>
 </pre><pre class="rust"><code><span class="doccomment">//! This module implements the conversions from and into [`serde_json::Value`].
 
 </span><span class="kw">use </span><span class="kw">super</span>::JsValue;
@@ -469,135 +420,86 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
-    <span class="kw">use </span>boa_parser::Source;
+    <span class="kw">use </span>indoc::indoc;
+    <span class="kw">use </span>serde_json::json;
 
     <span class="kw">use </span><span class="kw">crate</span>::object::JsArray;
-    <span class="kw">use crate</span>::{string::utf16, Context, JsValue};
+    <span class="kw">use crate</span>::{run_test_actions, TestAction};
+    <span class="kw">use crate</span>::{string::utf16, JsValue};
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>ut_json_conversions() {
-        <span class="kw">let </span>data = <span class="string">r#&quot;
-         {
-             &quot;name&quot;: &quot;John Doe&quot;,
-             &quot;age&quot;: 43,
-             &quot;minor&quot;: false,
-             &quot;adult&quot;: true,
-             &quot;extra&quot;: {
-                 &quot;address&quot;: null
-             },
-             &quot;phones&quot;: [
-                 &quot;+44 1234567&quot;,
-                 -45,
-                 {},
-                 true
-             ]
-          }&quot;#</span>;
+        <span class="kw">const </span>DATA: <span class="kw-2">&amp;</span>str = <span class="macro">indoc! </span>{<span class="string">r#&quot;
+            {
+                &quot;name&quot;: &quot;John Doe&quot;,
+                &quot;age&quot;: 43,
+                &quot;minor&quot;: false,
+                &quot;adult&quot;: true,
+                &quot;extra&quot;: {
+                    &quot;address&quot;: null
+                },
+                &quot;phones&quot;: [
+                    &quot;+44 1234567&quot;,
+                    -45,
+                    {},
+                    true
+                ]
+            }
+        &quot;#</span>};
 
-        <span class="kw">let </span>json: serde_json::Value = serde_json::from_str(data).unwrap();
-        <span class="macro">assert!</span>(json.is_object());
+        run_test_actions([TestAction::inspect_context(|ctx| {
+            <span class="kw">let </span>json: serde_json::Value = serde_json::from_str(DATA).unwrap();
+            <span class="macro">assert!</span>(json.is_object());
 
-        <span class="kw">let </span><span class="kw-2">mut </span>context = Context::default();
-        <span class="kw">let </span>value = JsValue::from_json(<span class="kw-2">&amp;</span>json, <span class="kw-2">&amp;mut </span>context).unwrap();
+            <span class="kw">let </span>value = JsValue::from_json(<span class="kw-2">&amp;</span>json, ctx).unwrap();
+            <span class="kw">let </span>obj = value.as_object().unwrap();
+            <span class="macro">assert_eq!</span>(obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;name&quot;</span>), ctx).unwrap(), <span class="string">&quot;John Doe&quot;</span>.into());
+            <span class="macro">assert_eq!</span>(obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;age&quot;</span>), ctx).unwrap(), <span class="number">43_i32</span>.into());
+            <span class="macro">assert_eq!</span>(obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;minor&quot;</span>), ctx).unwrap(), <span class="bool-val">false</span>.into());
+            <span class="macro">assert_eq!</span>(obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;adult&quot;</span>), ctx).unwrap(), <span class="bool-val">true</span>.into());
+            {
+                <span class="kw">let </span>extra = obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;extra&quot;</span>), ctx).unwrap();
+                <span class="kw">let </span>extra = extra.as_object().unwrap();
+                <span class="macro">assert!</span>(extra.get(<span class="macro">utf16!</span>(<span class="string">&quot;address&quot;</span>), ctx).unwrap().is_null());
+            }
+            {
+                <span class="kw">let </span>phones = obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;phones&quot;</span>), ctx).unwrap();
+                <span class="kw">let </span>phones = phones.as_object().unwrap();
 
-        <span class="kw">let </span>obj = value.as_object().unwrap();
-        <span class="macro">assert_eq!</span>(
-            obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;name&quot;</span>), <span class="kw-2">&amp;mut </span>context).unwrap(),
-            <span class="string">&quot;John Doe&quot;</span>.into()
-        );
-        <span class="macro">assert_eq!</span>(obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;age&quot;</span>), <span class="kw-2">&amp;mut </span>context).unwrap(), <span class="number">43_i32</span>.into());
-        <span class="macro">assert_eq!</span>(
-            obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;minor&quot;</span>), <span class="kw-2">&amp;mut </span>context).unwrap(),
-            <span class="bool-val">false</span>.into()
-        );
-        <span class="macro">assert_eq!</span>(obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;adult&quot;</span>), <span class="kw-2">&amp;mut </span>context).unwrap(), <span class="bool-val">true</span>.into());
-        {
-            <span class="kw">let </span>extra = obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;extra&quot;</span>), <span class="kw-2">&amp;mut </span>context).unwrap();
-            <span class="kw">let </span>extra = extra.as_object().unwrap();
-            <span class="macro">assert!</span>(extra
-                .get(<span class="macro">utf16!</span>(<span class="string">&quot;address&quot;</span>), <span class="kw-2">&amp;mut </span>context)
-                .unwrap()
-                .is_null());
-        }
-        {
-            <span class="kw">let </span>phones = obj.get(<span class="macro">utf16!</span>(<span class="string">&quot;phones&quot;</span>), <span class="kw-2">&amp;mut </span>context).unwrap();
-            <span class="kw">let </span>phones = phones.as_object().unwrap();
+                <span class="kw">let </span>arr = JsArray::from_object(phones.clone()).unwrap();
+                <span class="macro">assert_eq!</span>(arr.at(<span class="number">0</span>, ctx).unwrap(), <span class="string">&quot;+44 1234567&quot;</span>.into());
+                <span class="macro">assert_eq!</span>(arr.at(<span class="number">1</span>, ctx).unwrap(), JsValue::from(-<span class="number">45_i32</span>));
+                <span class="macro">assert!</span>(arr.at(<span class="number">2</span>, ctx).unwrap().is_object());
+                <span class="macro">assert_eq!</span>(arr.at(<span class="number">3</span>, ctx).unwrap(), <span class="bool-val">true</span>.into());
+            }
 
-            <span class="kw">let </span>arr = JsArray::from_object(phones.clone()).unwrap();
-            <span class="macro">assert_eq!</span>(arr.at(<span class="number">0</span>, <span class="kw-2">&amp;mut </span>context).unwrap(), <span class="string">&quot;+44 1234567&quot;</span>.into());
-            <span class="macro">assert_eq!</span>(arr.at(<span class="number">1</span>, <span class="kw-2">&amp;mut </span>context).unwrap(), JsValue::from(-<span class="number">45_i32</span>));
-            <span class="macro">assert!</span>(arr.at(<span class="number">2</span>, <span class="kw-2">&amp;mut </span>context).unwrap().is_object());
-            <span class="macro">assert_eq!</span>(arr.at(<span class="number">3</span>, <span class="kw-2">&amp;mut </span>context).unwrap(), <span class="bool-val">true</span>.into());
-        }
-
-        <span class="macro">assert_eq!</span>(json, value.to_json(<span class="kw-2">&amp;mut </span>context).unwrap());
+            <span class="macro">assert_eq!</span>(json, value.to_json(ctx).unwrap());
+        })]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>integer_ops_to_json() {
-        <span class="kw">let </span><span class="kw-2">mut </span>context = Context::default();
-
-        <span class="kw">let </span>add = context
-            .eval_script(Source::from_bytes(
-                <span class="string">r#&quot;
-                1000000 + 500
-            &quot;#</span>,
-            ))
-            .unwrap();
-        <span class="kw">let </span>add: u32 = serde_json::from_value(add.to_json(<span class="kw-2">&amp;mut </span>context).unwrap()).unwrap();
-        <span class="macro">assert_eq!</span>(add, <span class="number">1_000_500</span>);
-
-        <span class="kw">let </span>sub = context
-            .eval_script(Source::from_bytes(
-                <span class="string">r#&quot;
-                1000000 - 500
-            &quot;#</span>,
-            ))
-            .unwrap();
-        <span class="kw">let </span>sub: u32 = serde_json::from_value(sub.to_json(<span class="kw-2">&amp;mut </span>context).unwrap()).unwrap();
-        <span class="macro">assert_eq!</span>(sub, <span class="number">999_500</span>);
-
-        <span class="kw">let </span>mult = context
-            .eval_script(Source::from_bytes(
-                <span class="string">r#&quot;
-                1000000 * 500
-            &quot;#</span>,
-            ))
-            .unwrap();
-        <span class="kw">let </span>mult: u32 = serde_json::from_value(mult.to_json(<span class="kw-2">&amp;mut </span>context).unwrap()).unwrap();
-        <span class="macro">assert_eq!</span>(mult, <span class="number">500_000_000</span>);
-
-        <span class="kw">let </span>div = context
-            .eval_script(Source::from_bytes(
-                <span class="string">r#&quot;
-                1000000 / 500
-            &quot;#</span>,
-            ))
-            .unwrap();
-        <span class="kw">let </span>div: u32 = serde_json::from_value(div.to_json(<span class="kw-2">&amp;mut </span>context).unwrap()).unwrap();
-        <span class="macro">assert_eq!</span>(div, <span class="number">2000</span>);
-
-        <span class="kw">let </span>rem = context
-            .eval_script(Source::from_bytes(
-                <span class="string">r#&quot;
-                233894 % 500
-            &quot;#</span>,
-            ))
-            .unwrap();
-        <span class="kw">let </span>rem: u32 = serde_json::from_value(rem.to_json(<span class="kw-2">&amp;mut </span>context).unwrap()).unwrap();
-        <span class="macro">assert_eq!</span>(rem, <span class="number">394</span>);
-
-        <span class="kw">let </span>pow = context
-            .eval_script(Source::from_bytes(
-                <span class="string">r#&quot;
-                36 ** 5
-            &quot;#</span>,
-            ))
-            .unwrap();
-
-        <span class="kw">let </span>pow: u32 = serde_json::from_value(pow.to_json(<span class="kw-2">&amp;mut </span>context).unwrap()).unwrap();
-
-        <span class="macro">assert_eq!</span>(pow, <span class="number">60_466_176</span>);
+        run_test_actions([
+            TestAction::assert_with_op(<span class="string">&quot;1000000 + 500&quot;</span>, |v, ctx| {
+                v.to_json(ctx).unwrap() == <span class="macro">json!</span>(<span class="number">1_000_500</span>)
+            }),
+            TestAction::assert_with_op(<span class="string">&quot;1000000 - 500&quot;</span>, |v, ctx| {
+                v.to_json(ctx).unwrap() == <span class="macro">json!</span>(<span class="number">999_500</span>)
+            }),
+            TestAction::assert_with_op(<span class="string">&quot;1000000 * 500&quot;</span>, |v, ctx| {
+                v.to_json(ctx).unwrap() == <span class="macro">json!</span>(<span class="number">500_000_000</span>)
+            }),
+            TestAction::assert_with_op(<span class="string">&quot;1000000 / 500&quot;</span>, |v, ctx| {
+                v.to_json(ctx).unwrap() == <span class="macro">json!</span>(<span class="number">2_000</span>)
+            }),
+            TestAction::assert_with_op(<span class="string">&quot;233894 % 500&quot;</span>, |v, ctx| {
+                v.to_json(ctx).unwrap() == <span class="macro">json!</span>(<span class="number">394</span>)
+            }),
+            TestAction::assert_with_op(<span class="string">&quot;36 ** 5&quot;</span>, |v, ctx| {
+                v.to_json(ctx).unwrap() == <span class="macro">json!</span>(<span class="number">60_466_176</span>)
+            }),
+        ]);
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.1 (d5a82bbd2 2023-02-07)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0 (2c8cc3432 2023-03-06)" data-search-js="search-98d53477a794af0b.js" data-settings-js="settings-c3c521c753752a1a.js" data-settings-css="settings-08ddfdda51b8ee2e.css" ></div></body></html>
