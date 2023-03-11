@@ -542,7 +542,7 @@
             <span class="number">0x005C </span><span class="comment">/* \ */ </span>=&gt; <span class="prelude-val">Some</span>((<span class="number">0x005C </span><span class="comment">/* \ */</span>, <span class="prelude-val">None</span>)),
             <span class="number">0x0030 </span><span class="comment">/* 0 */ </span><span class="kw">if </span>cursor
                 .peek()<span class="question-mark">?
-                </span>.filter(|next_byte| (<span class="string">b&#39;0&#39;</span>..=<span class="string">b&#39;9&#39;</span>).contains(next_byte))
+                </span>.filter(u8::is_ascii_digit)
                 .is_none() =&gt;
                 <span class="prelude-val">Some</span>((<span class="number">0x0000 </span><span class="comment">/* NULL */</span>, <span class="prelude-val">None</span>)),
             <span class="number">0x0078 </span><span class="comment">/* x */ </span>=&gt; {

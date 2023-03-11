@@ -286,7 +286,7 @@
 
     <span class="comment">// 5. For each integer i starting with 0 such that i &lt; len, in ascending order, do
     // a. Add ! ToString(𝔽(i)) as the last element of keys.
-    </span>keys.extend((<span class="number">0</span>..len).into_iter().map(Into::into));
+    </span>keys.extend((<span class="number">0</span>..len).map(Into::into));
 
     <span class="comment">// 6. For each own property key P of O such that P is an array index
     // and ! ToIntegerOrInfinity(P) ≥ len, in ascending numeric index order, do

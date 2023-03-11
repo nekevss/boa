@@ -382,7 +382,6 @@
 <a href="#381" id="381">381</a>
 <a href="#382" id="382">382</a>
 <a href="#383" id="383">383</a>
-<a href="#384" id="384">384</a>
 </pre><pre class="rust"><code><span class="kw">use crate</span>::{
     builtins::{array_buffer::SharedMemoryOrder, typed_array::integer_indexed_object::ContentType},
     object::JsObject,
@@ -610,7 +609,6 @@
         // a. For each integer i starting with 0 such that i &lt; O.[[ArrayLength]], in ascending order, do
         // i. Add ! ToString(𝔽(i)) as the last element of keys.
         </span>(<span class="number">0</span>..inner.array_length())
-            .into_iter()
             .map(|index| PropertyKey::Index(index <span class="kw">as </span>u32))
             .collect()
     };
