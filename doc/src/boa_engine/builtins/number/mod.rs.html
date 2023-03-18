@@ -1109,7 +1109,7 @@
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-number.min_value
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MIN_VALUE
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>MIN_VALUE: f64 = f64::MIN_POSITIVE;
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>MIN_VALUE: f64 = <span class="number">5e-324</span>;
 
     <span class="doccomment">/// This function returns a `JsResult` of the number `Value`.
     ///
@@ -1789,7 +1789,7 @@
     <span class="doccomment">/// Checks if the float argument is an integer.
     </span><span class="attr">#[allow(clippy::float_cmp)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>is_float_integer(number: f64) -&gt; bool {
-        number.is_finite() &amp;&amp; number.abs().floor() == number.abs()
+        number.is_finite() &amp;&amp; number.trunc() == number
     }
 
     <span class="doccomment">/// The abstract operation `Number::equal` takes arguments

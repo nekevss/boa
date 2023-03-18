@@ -1495,7 +1495,6 @@
 <a href="#1494" id="1494">1494</a>
 <a href="#1495" id="1495">1495</a>
 <a href="#1496" id="1496">1496</a>
-<a href="#1497" id="1497">1497</a>
 </pre><pre class="rust"><code><span class="doccomment">//! `CodeBlock`
 //!
 //! This module is for the `CodeBlock` which implements a function representation in the VM
@@ -1578,35 +1577,35 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) params: FormalParameterList,
 
     <span class="doccomment">/// Bytecode
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) bytecode: Vec&lt;u8&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) bytecode: Box&lt;[u8]&gt;,
 
     <span class="doccomment">/// Literals
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) literals: Vec&lt;JsValue&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) literals: Box&lt;[JsValue]&gt;,
 
     <span class="doccomment">/// Property field names.
     </span><span class="attr">#[unsafe_ignore_trace]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) names: Vec&lt;Identifier&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) names: Box&lt;[Identifier]&gt;,
 
     <span class="doccomment">/// Private names.
     </span><span class="attr">#[unsafe_ignore_trace]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) private_names: Vec&lt;PrivateName&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) private_names: Box&lt;[PrivateName]&gt;,
 
     <span class="doccomment">/// Locators for all bindings in the codeblock.
     </span><span class="attr">#[unsafe_ignore_trace]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) bindings: Vec&lt;BindingLocator&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) bindings: Box&lt;[BindingLocator]&gt;,
 
     <span class="doccomment">/// Number of binding for the function environment.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) num_bindings: usize,
 
     <span class="doccomment">/// Functions inside this function
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) functions: Vec&lt;Gc&lt;<span class="self">Self</span>&gt;&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) functions: Box&lt;[Gc&lt;<span class="self">Self</span>&gt;]&gt;,
 
     <span class="doccomment">/// The `arguments` binding location of the function, if set.
     </span><span class="attr">#[unsafe_ignore_trace]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) arguments_binding: <span class="prelude-ty">Option</span>&lt;BindingLocator&gt;,
 
     <span class="doccomment">/// Compile time environments in this function.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) compile_environments: Vec&lt;Gc&lt;GcRefCell&lt;CompileTimeEnvironment&gt;&gt;&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) compile_environments: Box&lt;[Gc&lt;GcRefCell&lt;CompileTimeEnvironment&gt;&gt;]&gt;,
 
     <span class="doccomment">/// The `[[IsClassConstructor]]` internal slot.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) is_class_constructor: bool,
@@ -1627,13 +1626,13 @@
     </span><span class="attr">#[must_use]
     </span><span class="kw">pub fn </span>new(name: Sym, length: u32, strict: bool) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            bytecode: Vec::new(),
-            literals: Vec::new(),
-            names: Vec::new(),
-            private_names: Vec::new(),
-            bindings: Vec::new(),
+            bytecode: Box::default(),
+            literals: Box::default(),
+            names: Box::default(),
+            private_names: Box::default(),
+            bindings: Box::default(),
             num_bindings: <span class="number">0</span>,
-            functions: Vec::new(),
+            functions: Box::default(),
             name,
             has_binding_identifier: <span class="bool-val">false</span>,
             length,
@@ -1641,7 +1640,7 @@
             this_mode: ThisMode::Global,
             params: FormalParameterList::default(),
             arguments_binding: <span class="prelude-val">None</span>,
-            compile_environments: Vec::new(),
+            compile_environments: Box::default(),
             is_class_constructor: <span class="bool-val">false</span>,
             class_field_initializer_name: <span class="prelude-val">None</span>,
             function_environment_push_location: <span class="number">0</span>,
@@ -2370,14 +2369,13 @@
                         .with_arg_count(arg_count),
                 );
 
-                <span class="kw">let </span>result = context.run();
+                <span class="kw">let </span>record = context.run();
                 context.vm.pop_frame().expect(<span class="string">&quot;must have frame&quot;</span>);
 
                 std::mem::swap(<span class="kw-2">&amp;mut </span>environments, <span class="kw-2">&amp;mut </span>context.realm.environments);
                 environments.truncate(environments_len);
 
-                <span class="kw">let </span>(result, <span class="kw">_</span>) = result<span class="question-mark">?</span>;
-                <span class="prelude-val">Ok</span>(result)
+                record.consume()
             }
             Function::Async {
                 code,
@@ -2635,7 +2633,7 @@
                     }),
                 );
 
-                init_result<span class="question-mark">?</span>;
+                init_result.consume()<span class="question-mark">?</span>;
 
                 <span class="prelude-val">Ok</span>(generator.into())
             }
@@ -2786,7 +2784,7 @@
                     gen_context.call_frame.async_generator = <span class="prelude-val">Some</span>(generator.clone());
                 }
 
-                init_result<span class="question-mark">?</span>;
+                init_result.consume()<span class="question-mark">?</span>;
 
                 <span class="prelude-val">Ok</span>(generator.into())
             }
@@ -2945,7 +2943,7 @@
                         .with_arg_count(arg_count),
                 );
 
-                <span class="kw">let </span>result = context.run();
+                <span class="kw">let </span>record = context.run();
 
                 context.vm.pop_frame();
 
@@ -2961,7 +2959,7 @@
                     environments.pop()
                 };
 
-                <span class="kw">let </span>(result, <span class="kw">_</span>) = result<span class="question-mark">?</span>;
+                <span class="kw">let </span>result = record.consume()<span class="question-mark">?</span>;
 
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(result) = result.as_object() {
                     <span class="prelude-val">Ok</span>(result.clone())
