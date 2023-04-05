@@ -377,6 +377,10 @@
 <a href="#376" id="376">376</a>
 <a href="#377" id="377">377</a>
 <a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
 </pre><pre class="rust"><code><span class="doccomment">//! Edition detection utilities.
 //!
 //! This module contains the [`SpecEdition`] struct, which is used in the tester to
@@ -425,6 +429,10 @@
     <span class="comment">// JSON modules
     // https://github.com/tc39/proposal-json-modules
     </span><span class="string">&quot;json-modules&quot;  </span>=&gt; SpecEdition::ESNext,
+
+    <span class="comment">// JSON.parse with source
+    // https://github.com/tc39/proposal-json-parse-with-source
+    </span><span class="string">&quot;json-parse-with-source&quot; </span>=&gt; SpecEdition::ESNext,
 
     <span class="comment">// Resizable Arraybuffer
     // https://github.com/tc39/proposal-resizablearraybuffer
@@ -716,7 +724,7 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>from_test_metadata(metadata: <span class="kw-2">&amp;</span>MetaData) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Vec&lt;<span class="kw-2">&amp;</span>str&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>min_edition = <span class="kw">if </span>metadata.flags.contains(<span class="kw-2">&amp;</span>TestFlag::Async) {
             <span class="self">Self</span>::ES8
-        } <span class="kw">else if </span>metadata.es6id.is_some() || metadata.flags.contains(<span class="kw-2">&amp;</span>TestFlag::Module) {
+        } <span class="kw">else if </span>metadata.flags.contains(<span class="kw-2">&amp;</span>TestFlag::Module) {
             <span class="self">Self</span>::ES6
         } <span class="kw">else </span>{
             <span class="self">Self</span>::ES5
