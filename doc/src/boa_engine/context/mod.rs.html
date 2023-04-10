@@ -678,6 +678,22 @@
 <a href="#677" id="677">677</a>
 <a href="#678" id="678">678</a>
 <a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
 </pre><pre class="rust"><code><span class="doccomment">//! The ECMAScript context.
 
 </span><span class="kw">mod </span>hooks;
@@ -702,7 +718,7 @@
     class::{Class, ClassBuilder},
     job::{IdleJobQueue, JobQueue, NativeJob},
     native_function::NativeFunction,
-    object::{FunctionObjectBuilder, GlobalPropertyMap, JsObject},
+    object::{FunctionObjectBuilder, JsObject},
     optimizer::{Optimizer, OptimizerOptions, OptimizerStatistics},
     property::{Attribute, PropertyDescriptor, PropertyKey},
     realm::Realm,
@@ -759,7 +775,7 @@
 /// ```
 </span><span class="kw">pub struct </span>Context&lt;<span class="lifetime">&#39;host</span>&gt; {
     <span class="doccomment">/// realm holds both the global object and the environment
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) realm: Realm,
+    </span>realm: Realm,
 
     <span class="doccomment">/// String interner in the context.
     </span>interner: Interner,
@@ -815,7 +831,7 @@
 }
 
 <span class="comment">// ==== Public API ====
-</span><span class="kw">impl </span>Context&lt;<span class="lifetime">&#39;_</span>&gt; {
+</span><span class="kw">impl</span>&lt;<span class="lifetime">&#39;host</span>&gt; Context&lt;<span class="lifetime">&#39;host</span>&gt; {
     <span class="doccomment">/// Create a new [`ContextBuilder`] to specify the [`Interner`] and/or
     /// the icu data provider.
     </span><span class="attr">#[must_use]
@@ -925,7 +941,13 @@
     <span class="doccomment">/// Compile the script AST into a `CodeBlock` ready to be executed by the VM.
     </span><span class="kw">pub fn </span>compile_script(<span class="kw-2">&amp;mut </span><span class="self">self</span>, statement_list: <span class="kw-2">&amp;</span>StatementList) -&gt; JsResult&lt;Gc&lt;CodeBlock&gt;&gt; {
         <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;Script compilation&quot;</span>, <span class="string">&quot;Main&quot;</span>);
-        <span class="kw">let </span><span class="kw-2">mut </span>compiler = ByteCompiler::new(Sym::MAIN, statement_list.strict(), <span class="bool-val">false</span>, <span class="self">self</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>compiler = ByteCompiler::new(
+            Sym::MAIN,
+            statement_list.strict(),
+            <span class="bool-val">false</span>,
+            <span class="self">self</span>.realm.environment().compile_env(),
+            <span class="self">self</span>,
+        );
         compiler.create_script_decls(statement_list, <span class="bool-val">false</span>);
         compiler.compile_statement_list(statement_list, <span class="bool-val">true</span>, <span class="bool-val">false</span>);
         <span class="prelude-val">Ok</span>(Gc::new(compiler.finish()))
@@ -935,7 +957,13 @@
     </span><span class="kw">pub fn </span>compile_module(<span class="kw-2">&amp;mut </span><span class="self">self</span>, statement_list: <span class="kw-2">&amp;</span>ModuleItemList) -&gt; JsResult&lt;Gc&lt;CodeBlock&gt;&gt; {
         <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;Module compilation&quot;</span>, <span class="string">&quot;Main&quot;</span>);
 
-        <span class="kw">let </span><span class="kw-2">mut </span>compiler = ByteCompiler::new(Sym::MAIN, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="self">self</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>compiler = ByteCompiler::new(
+            Sym::MAIN,
+            <span class="bool-val">true</span>,
+            <span class="bool-val">false</span>,
+            <span class="self">self</span>.realm.environment().compile_env(),
+            <span class="self">self</span>,
+        );
         compiler.create_module_decls(statement_list, <span class="bool-val">false</span>);
         compiler.compile_module_item_list(statement_list, <span class="bool-val">false</span>);
         <span class="prelude-val">Ok</span>(Gc::new(compiler.finish()))
@@ -956,7 +984,9 @@
 
         <span class="self">self</span>.vm.push_frame(CallFrame::new(code_block));
 
-        <span class="self">self</span>.realm.set_global_binding_number();
+        <span class="comment">// TODO: Here should be https://tc39.es/ecma262/#sec-globaldeclarationinstantiation
+
+        </span><span class="self">self</span>.realm().resize_global_env();
         <span class="kw">let </span>record = <span class="self">self</span>.run();
         <span class="self">self</span>.vm.pop_frame();
         <span class="self">self</span>.clear_kept_objects();
@@ -984,20 +1014,26 @@
     ///     .build();
     /// context.register_global_property(&quot;myObjectProperty&quot;, object, Attribute::all());
     /// ```
-    </span><span class="kw">pub fn </span>register_global_property&lt;K, V&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: K, value: V, attribute: Attribute)
+    </span><span class="kw">pub fn </span>register_global_property&lt;K, V&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        key: K,
+        value: V,
+        attribute: Attribute,
+    ) -&gt; JsResult&lt;()&gt;
     <span class="kw">where
         </span>K: Into&lt;PropertyKey&gt;,
         V: Into&lt;JsValue&gt;,
     {
-        <span class="self">self</span>.realm.global_property_map.insert(
-            <span class="kw-2">&amp;</span>key.into(),
+        <span class="self">self</span>.global_object().define_property_or_throw(
+            key,
             PropertyDescriptor::builder()
                 .value(value)
                 .writable(attribute.writable())
                 .enumerable(attribute.enumerable())
-                .configurable(attribute.configurable())
-                .build(),
-        );
+                .configurable(attribute.configurable()),
+            <span class="self">self</span>,
+        )<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
     }
 
     <span class="doccomment">/// Register a global native callable.
@@ -1012,22 +1048,28 @@
     ///
     /// If you wish to only create the function object without binding it to the global object, you
     /// can use the [`FunctionObjectBuilder`] API.
-    </span><span class="kw">pub fn </span>register_global_callable(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, length: usize, body: NativeFunction) {
+    </span><span class="kw">pub fn </span>register_global_callable(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        name: <span class="kw-2">&amp;</span>str,
+        length: usize,
+        body: NativeFunction,
+    ) -&gt; JsResult&lt;()&gt; {
         <span class="kw">let </span>function = FunctionObjectBuilder::new(<span class="self">self</span>, body)
             .name(name)
             .length(length)
             .constructor(<span class="bool-val">true</span>)
             .build();
 
-        <span class="self">self</span>.global_bindings_mut().insert(
-            name.into(),
+        <span class="self">self</span>.global_object().define_property_or_throw(
+            name,
             PropertyDescriptor::builder()
                 .value(function)
                 .writable(<span class="bool-val">true</span>)
                 .enumerable(<span class="bool-val">false</span>)
-                .configurable(<span class="bool-val">true</span>)
-                .build(),
-        );
+                .configurable(<span class="bool-val">true</span>),
+            <span class="self">self</span>,
+        )<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
     }
 
     <span class="doccomment">/// Register a global native function that is not a constructor.
@@ -1044,22 +1086,23 @@
         name: <span class="kw-2">&amp;</span>str,
         length: usize,
         body: NativeFunction,
-    ) {
+    ) -&gt; JsResult&lt;()&gt; {
         <span class="kw">let </span>function = FunctionObjectBuilder::new(<span class="self">self</span>, body)
             .name(name)
             .length(length)
             .constructor(<span class="bool-val">false</span>)
             .build();
 
-        <span class="self">self</span>.global_bindings_mut().insert(
-            name.into(),
+        <span class="self">self</span>.global_object().define_property_or_throw(
+            name,
             PropertyDescriptor::builder()
                 .value(function)
                 .writable(<span class="bool-val">true</span>)
                 .enumerable(<span class="bool-val">false</span>)
-                .configurable(<span class="bool-val">true</span>)
-                .build(),
-        );
+                .configurable(<span class="bool-val">true</span>),
+            <span class="self">self</span>,
+        )<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
     }
 
     <span class="doccomment">/// Register a global class of type `T`, where `T` implements `Class`.
@@ -1087,10 +1130,11 @@
             .value(class)
             .writable(T::ATTRIBUTES.writable())
             .enumerable(T::ATTRIBUTES.enumerable())
-            .configurable(T::ATTRIBUTES.configurable())
-            .build();
+            .configurable(T::ATTRIBUTES.configurable());
 
-        <span class="self">self</span>.global_bindings_mut().insert(T::NAME.into(), property);
+        <span class="self">self</span>.global_object()
+            .define_property_or_throw(T::NAME, property, <span class="self">self</span>)<span class="question-mark">?</span>;
+
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -1106,16 +1150,22 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>.interner
     }
 
-    <span class="doccomment">/// Return the global object.
+    <span class="doccomment">/// Returns the global object.
     </span><span class="attr">#[inline]
-    </span><span class="kw">pub const fn </span>global_object(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>JsObject {
-        <span class="self">self</span>.realm.global_object()
+    </span><span class="kw">pub fn </span>global_object(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; JsObject {
+        <span class="self">self</span>.realm.global_object().clone()
     }
 
-    <span class="doccomment">/// Return the intrinsic constructors and objects.
+    <span class="doccomment">/// Returns the currently active intrinsic constructors and objects.
     </span><span class="attr">#[inline]
-    </span><span class="kw">pub const fn </span>intrinsics(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Intrinsics {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.realm.intrinsics
+    </span><span class="kw">pub fn </span>intrinsics(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Intrinsics {
+        <span class="self">self</span>.realm.intrinsics()
+    }
+
+    <span class="doccomment">/// Returns the currently active realm.
+    </span><span class="attr">#[inline]
+    </span><span class="kw">pub const fn </span>realm(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Realm {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.realm
     }
 
     <span class="doccomment">/// Set the value of trace on the context
@@ -1160,51 +1210,31 @@
     </span><span class="kw">pub fn </span>clear_kept_objects(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="self">self</span>.kept_alive.clear();
     }
-}
 
-<span class="comment">// ==== Private API ====
-
-</span><span class="kw">impl </span>Context&lt;<span class="lifetime">&#39;_</span>&gt; {
-    <span class="doccomment">/// Return a mutable reference to the global object string bindings.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>global_bindings_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>GlobalPropertyMap {
-        <span class="self">self</span>.realm.global_bindings_mut()
+    <span class="doccomment">/// Replaces the currently active realm with `realm`, and returns the old realm.
+    </span><span class="kw">pub fn </span>enter_realm(<span class="kw-2">&amp;mut </span><span class="self">self</span>, realm: Realm) -&gt; Realm {
+        <span class="self">self</span>.vm
+            .environments
+            .replace_global(realm.environment().clone());
+        std::mem::replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>.realm, realm)
     }
 
-    <span class="doccomment">/// Compile the AST into a `CodeBlock` ready to be executed by the VM in a `JSON.parse` context.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>compile_json_parse(<span class="kw-2">&amp;mut </span><span class="self">self</span>, statement_list: <span class="kw-2">&amp;</span>StatementList) -&gt; Gc&lt;CodeBlock&gt; {
-        <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;Compilation&quot;</span>, <span class="string">&quot;Main&quot;</span>);
-        <span class="kw">let </span><span class="kw-2">mut </span>compiler = ByteCompiler::new(Sym::MAIN, statement_list.strict(), <span class="bool-val">true</span>, <span class="self">self</span>);
-        compiler.create_script_decls(statement_list, <span class="bool-val">false</span>);
-        compiler.compile_statement_list(statement_list, <span class="bool-val">true</span>, <span class="bool-val">false</span>);
-        Gc::new(compiler.finish())
-    }
-
-    <span class="doccomment">/// Compile the AST into a `CodeBlock` with an additional declarative environment.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>compile_with_new_declarative(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        statement_list: <span class="kw-2">&amp;</span>StatementList,
-        strict: bool,
-    ) -&gt; Gc&lt;CodeBlock&gt; {
-        <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;Compilation&quot;</span>, <span class="string">&quot;Main&quot;</span>);
-        <span class="kw">let </span><span class="kw-2">mut </span>compiler = ByteCompiler::new(Sym::MAIN, statement_list.strict(), <span class="bool-val">false</span>, <span class="self">self</span>);
-        compiler.compile_statement_list_with_new_declarative(statement_list, <span class="bool-val">true</span>, strict);
-        Gc::new(compiler.finish())
-    }
-}
-
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;host</span>&gt; Context&lt;<span class="lifetime">&#39;host</span>&gt; {
-    <span class="doccomment">/// Get the host hooks.
+    <span class="doccomment">/// Gets the host hooks.
     </span><span class="kw">pub fn </span>host_hooks(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;host </span><span class="kw">dyn </span>HostHooks {
         <span class="self">self</span>.host_hooks
     }
 
-    <span class="doccomment">/// Get the job queue.
+    <span class="doccomment">/// Gets the job queue.
     </span><span class="kw">pub fn </span>job_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;host </span><span class="kw">dyn </span>JobQueue {
         <span class="self">self</span>.job_queue
     }
+}
 
+<span class="comment">// ==== Private API ====
+
+</span><span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+</span><span class="kw">impl</span>&lt;<span class="lifetime">&#39;host</span>&gt; Context&lt;<span class="lifetime">&#39;host</span>&gt; {
     <span class="doccomment">/// Get the ICU related utilities
-    </span><span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>icu(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>icu::Icu&lt;<span class="lifetime">&#39;host</span>&gt; {
         <span class="kw-2">&amp;</span><span class="self">self</span>.icu
     }
@@ -1333,11 +1363,13 @@
         <span class="lifetime">&#39;queue</span>: <span class="lifetime">&#39;host</span>,
     {
         <span class="kw">let </span>host_hooks = <span class="self">self</span>.host_hooks.unwrap_or(<span class="kw-2">&amp;</span>DefaultHooks);
+        <span class="kw">let </span>realm = Realm::create(host_hooks);
+        <span class="kw">let </span>vm = Vm::new(realm.environment().clone());
 
         <span class="kw">let </span><span class="kw-2">mut </span>context = Context {
-            realm: Realm::create(host_hooks),
+            realm,
             interner: <span class="self">self</span>.interner.unwrap_or_default(),
-            vm: Vm::default(),
+            vm,
             strict: <span class="bool-val">false</span>,
             <span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
             </span>icu: <span class="self">self</span>.icu.unwrap_or_else(|| {

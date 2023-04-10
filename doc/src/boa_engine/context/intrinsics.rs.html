@@ -929,15 +929,25 @@
 <a href="#928" id="928">928</a>
 <a href="#929" id="929">929</a>
 <a href="#930" id="930">930</a>
+<a href="#931" id="931">931</a>
+<a href="#932" id="932">932</a>
+<a href="#933" id="933">933</a>
+<a href="#934" id="934">934</a>
+<a href="#935" id="935">935</a>
 </pre><pre class="rust"><code><span class="doccomment">//! Data structures that contain intrinsic objects and constructors.
 
-</span><span class="kw">use crate</span>::{
+</span><span class="kw">use </span>boa_gc::{Finalize, Trace};
+
+<span class="kw">use crate</span>::{
     builtins::{iterable::IteratorPrototypes, uri::UriFunctions},
     object::{JsFunction, JsObject, ObjectData},
 };
 
 <span class="doccomment">/// The intrinsic objects and constructors.
-</span><span class="attr">#[derive(Debug, Default)]
+///
+/// `Intrinsics` is internally stored using a `Gc`, which makes it cheapily clonable
+/// for multiple references to the same set of intrinsic objects.
+</span><span class="attr">#[derive(Debug, Default, Trace, Finalize)]
 </span><span class="kw">pub struct </span>Intrinsics {
     <span class="doccomment">/// Cached standard constructors
     </span><span class="kw">pub</span>(<span class="kw">super</span>) constructors: StandardConstructors,
@@ -960,7 +970,7 @@
 }
 
 <span class="doccomment">/// Store a builtin constructor (such as `Object`) and its corresponding prototype.
-</span><span class="attr">#[derive(Debug, Clone)]
+</span><span class="attr">#[derive(Debug, Trace, Finalize)]
 </span><span class="kw">pub struct </span>StandardConstructor {
     <span class="kw">pub</span>(<span class="kw">crate</span>) constructor: JsObject,
     <span class="kw">pub</span>(<span class="kw">crate</span>) prototype: JsObject,
@@ -1002,7 +1012,7 @@
 }
 
 <span class="doccomment">/// Cached core standard constructors.
-</span><span class="attr">#[derive(Debug, Clone)]
+</span><span class="attr">#[derive(Debug, Trace, Finalize)]
 </span><span class="kw">pub struct </span>StandardConstructors {
     object: StandardConstructor,
     proxy: StandardConstructor,
@@ -1651,7 +1661,7 @@
 }
 
 <span class="doccomment">/// Cached intrinsic objects
-</span><span class="attr">#[derive(Debug)]
+</span><span class="attr">#[derive(Debug, Trace, Finalize)]
 </span><span class="kw">pub struct </span>IntrinsicObjects {
     <span class="doccomment">/// [`%Reflect%`](https://tc39.es/ecma262/#sec-reflect)
     </span>reflect: JsObject,

@@ -126,6 +126,27 @@
 <a href="#125" id="125">125</a>
 <a href="#126" id="126">126</a>
 <a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
 </pre><pre class="rust"><code><span class="doccomment">//! This module implements the global `TypeError` object.
 //!
 //! The `TypeError` object represents an error when an operation could not be performed,
@@ -145,13 +166,15 @@
 
 </span><span class="kw">use crate</span>::{
     builtins::{
-        function::Function, BuiltInBuilder, BuiltInConstructor, BuiltInObject, IntrinsicObject,
+        function::{Function, FunctionKind},
+        BuiltInBuilder, BuiltInConstructor, BuiltInObject, IntrinsicObject,
     },
     context::intrinsics::{Intrinsics, StandardConstructor, StandardConstructors},
     error::JsNativeError,
     native_function::NativeFunction,
     object::{internal_methods::get_prototype_from_constructor, JsObject, ObjectData},
     property::Attribute,
+    realm::Realm,
     string::utf16,
     Context, JsArgs, JsResult, JsValue,
 };
@@ -164,13 +187,13 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>TypeError;
 
 <span class="kw">impl </span>IntrinsicObject <span class="kw">for </span>TypeError {
-    <span class="kw">fn </span>init(intrinsics: <span class="kw-2">&amp;</span>Intrinsics) {
+    <span class="kw">fn </span>init(realm: <span class="kw-2">&amp;</span>Realm) {
         <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="self">Self</span>::NAME, <span class="string">&quot;init&quot;</span>);
 
         <span class="kw">let </span>attribute = Attribute::WRITABLE | Attribute::NON_ENUMERABLE | Attribute::CONFIGURABLE;
-        BuiltInBuilder::from_standard_constructor::&lt;<span class="self">Self</span>&gt;(intrinsics)
-            .prototype(intrinsics.constructors().error().constructor())
-            .inherits(<span class="prelude-val">Some</span>(intrinsics.constructors().error().prototype()))
+        BuiltInBuilder::from_standard_constructor::&lt;<span class="self">Self</span>&gt;(realm)
+            .prototype(realm.intrinsics().constructors().error().constructor())
+            .inherits(<span class="prelude-val">Some</span>(realm.intrinsics().constructors().error().prototype()))
             .property(<span class="macro">utf16!</span>(<span class="string">&quot;name&quot;</span>), <span class="self">Self</span>::NAME, attribute)
             .property(<span class="macro">utf16!</span>(<span class="string">&quot;message&quot;</span>), <span class="string">&quot;&quot;</span>, attribute)
             .build();
@@ -198,7 +221,23 @@
         context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. If NewTarget is undefined, let newTarget be the active function object; else let newTarget be NewTarget.
-        // 2. Let O be ? OrdinaryCreateFromConstructor(newTarget, &quot;%NativeError.prototype%&quot;, « [[ErrorData]] »).
+        </span><span class="kw">let </span>new_target = <span class="kw-2">&amp;</span><span class="kw">if </span>new_target.is_undefined() {
+            context
+                .vm
+                .active_function
+                .clone()
+                .unwrap_or_else(|| {
+                    context
+                        .intrinsics()
+                        .constructors()
+                        .type_error()
+                        .constructor()
+                })
+                .into()
+        } <span class="kw">else </span>{
+            new_target.clone()
+        };
+        <span class="comment">// 2. Let O be ? OrdinaryCreateFromConstructor(newTarget, &quot;%NativeError.prototype%&quot;, « [[ErrorData]] »).
         </span><span class="kw">let </span>prototype =
             get_prototype_from_constructor(new_target, StandardConstructors::type_error, context)<span class="question-mark">?</span>;
         <span class="kw">let </span>o = JsObject::from_proto_and_data(prototype, ObjectData::error(ErrorKind::Type));
@@ -225,7 +264,7 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ThrowTypeError;
 
 <span class="kw">impl </span>IntrinsicObject <span class="kw">for </span>ThrowTypeError {
-    <span class="kw">fn </span>init(intrinsics: <span class="kw-2">&amp;</span>Intrinsics) {
+    <span class="kw">fn </span>init(realm: <span class="kw-2">&amp;</span>Realm) {
         <span class="kw">fn </span>throw_type_error(<span class="kw">_</span>: <span class="kw-2">&amp;</span>JsValue, <span class="kw">_</span>: <span class="kw-2">&amp;</span>[JsValue], <span class="kw">_</span>: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;JsValue&gt; {
             <span class="prelude-val">Err</span>(JsNativeError::typ()
                 .with_message(
@@ -235,18 +274,21 @@
                 .into())
         }
 
-        <span class="kw">let </span>obj = BuiltInBuilder::with_intrinsic::&lt;<span class="self">Self</span>&gt;(intrinsics)
-            .prototype(intrinsics.constructors().function().prototype())
+        <span class="kw">let </span>obj = BuiltInBuilder::with_intrinsic::&lt;<span class="self">Self</span>&gt;(realm)
+            .prototype(realm.intrinsics().constructors().function().prototype())
             .static_property(<span class="macro">utf16!</span>(<span class="string">&quot;name&quot;</span>), <span class="string">&quot;ThrowTypeError&quot;</span>, Attribute::empty())
             .static_property(<span class="macro">utf16!</span>(<span class="string">&quot;length&quot;</span>), <span class="number">0</span>, Attribute::empty())
             .build();
 
         <span class="kw">let </span><span class="kw-2">mut </span>obj = obj.borrow_mut();
 
-        obj.data = ObjectData::function(Function::Native {
-            function: NativeFunction::from_fn_ptr(throw_type_error),
-            constructor: <span class="prelude-val">None</span>,
-        });
+        obj.data = ObjectData::function(Function::new(
+            FunctionKind::Native {
+                function: NativeFunction::from_fn_ptr(throw_type_error),
+                constructor: <span class="prelude-val">None</span>,
+            },
+            realm.clone(),
+        ));
     }
 
     <span class="kw">fn </span>get(intrinsics: <span class="kw-2">&amp;</span>Intrinsics) -&gt; JsObject {

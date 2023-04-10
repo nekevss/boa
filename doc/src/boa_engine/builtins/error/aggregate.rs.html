@@ -108,6 +108,23 @@
 <a href="#107" id="107">107</a>
 <a href="#108" id="108">108</a>
 <a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
 </pre><pre class="rust"><code><span class="doccomment">//! This module implements the global `AggregateError` object.
 //!
 //! More information:
@@ -125,6 +142,7 @@
     context::intrinsics::{Intrinsics, StandardConstructor, StandardConstructors},
     object::{internal_methods::get_prototype_from_constructor, JsObject, ObjectData},
     property::{Attribute, PropertyDescriptorBuilder},
+    realm::Realm,
     string::utf16,
     Context, JsArgs, JsResult, JsValue,
 };
@@ -136,13 +154,13 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>AggregateError;
 
 <span class="kw">impl </span>IntrinsicObject <span class="kw">for </span>AggregateError {
-    <span class="kw">fn </span>init(intrinsics: <span class="kw-2">&amp;</span>Intrinsics) {
+    <span class="kw">fn </span>init(realm: <span class="kw-2">&amp;</span>Realm) {
         <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="self">Self</span>::NAME, <span class="string">&quot;init&quot;</span>);
 
         <span class="kw">let </span>attribute = Attribute::WRITABLE | Attribute::NON_ENUMERABLE | Attribute::CONFIGURABLE;
-        BuiltInBuilder::from_standard_constructor::&lt;<span class="self">Self</span>&gt;(intrinsics)
-            .prototype(intrinsics.constructors().error().constructor())
-            .inherits(<span class="prelude-val">Some</span>(intrinsics.constructors().error().prototype()))
+        BuiltInBuilder::from_standard_constructor::&lt;<span class="self">Self</span>&gt;(realm)
+            .prototype(realm.intrinsics().constructors().error().constructor())
+            .inherits(<span class="prelude-val">Some</span>(realm.intrinsics().constructors().error().prototype()))
             .property(<span class="macro">utf16!</span>(<span class="string">&quot;name&quot;</span>), <span class="self">Self</span>::NAME, attribute)
             .property(<span class="macro">utf16!</span>(<span class="string">&quot;message&quot;</span>), <span class="string">&quot;&quot;</span>, attribute)
             .build();
@@ -170,7 +188,23 @@
         context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. If NewTarget is undefined, let newTarget be the active function object; else let newTarget be NewTarget.
-        // 2. Let O be ? OrdinaryCreateFromConstructor(newTarget, &quot;%AggregateError.prototype%&quot;, « [[ErrorData]] »).
+        </span><span class="kw">let </span>new_target = <span class="kw-2">&amp;</span><span class="kw">if </span>new_target.is_undefined() {
+            context
+                .vm
+                .active_function
+                .clone()
+                .unwrap_or_else(|| {
+                    context
+                        .intrinsics()
+                        .constructors()
+                        .aggregate_error()
+                        .constructor()
+                })
+                .into()
+        } <span class="kw">else </span>{
+            new_target.clone()
+        };
+        <span class="comment">// 2. Let O be ? OrdinaryCreateFromConstructor(newTarget, &quot;%AggregateError.prototype%&quot;, « [[ErrorData]] »).
         </span><span class="kw">let </span>prototype = get_prototype_from_constructor(
             new_target,
             StandardConstructors::aggregate_error,
