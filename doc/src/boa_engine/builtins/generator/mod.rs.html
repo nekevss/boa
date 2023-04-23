@@ -1,5 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/builtins/generator/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-93196c7a1c3542a8.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../../static.files/light-4743e13df3dfe8c4.css"><link rel="stylesheet" disabled href="../../../../static.files/dark-0e1b889528bd466b.css"><link rel="stylesheet" disabled href="../../../../static.files/ayu-65289d5d067c7c66.css"><script id="default-settings" ></script><script src="../../../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../static.files/main-3367e395607fafc1.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/builtins/generator/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" disabled href="../../../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" disabled href="../../../../static.files/ayu-be46fdc453a55015.css"><script src="../../../../static.files/storage-3891ce972e3a2bf8.js"></script><script defer src="../../../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../static.files/main-98a684e84ae5b08b.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../boa_engine/index.html">
+                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -426,6 +426,7 @@
 <a href="#425" id="425">425</a>
 <a href="#426" id="426">426</a>
 <a href="#427" id="427">427</a>
+<a href="#428" id="428">428</a>
 </pre><pre class="rust"><code><span class="doccomment">//! Boa&#39;s implementation of ECMAScript&#39;s global `Generator` object.
 //!
 //! A Generator is an instance of a generator function and conforms to both the Iterator and Iterable interfaces.
@@ -617,13 +618,7 @@
         context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Return ? GeneratorResume(this value, value, empty).
-        </span><span class="kw">let </span>completion = <span class="self">Self</span>::generator_resume(this, args.get_or_undefined(<span class="number">0</span>).clone(), context);
-
-        <span class="kw">match </span>completion {
-            CompletionRecord::Return(value) =&gt; <span class="prelude-val">Ok</span>(create_iter_result_object(value, <span class="bool-val">false</span>, context)),
-            CompletionRecord::Normal(value) =&gt; <span class="prelude-val">Ok</span>(create_iter_result_object(value, <span class="bool-val">true</span>, context)),
-            CompletionRecord::Throw(err) =&gt; <span class="prelude-val">Err</span>(err),
-        }
+        </span><span class="self">Self</span>::generator_resume(this, args.get_or_undefined(<span class="number">0</span>).clone(), context)
     }
 
     <span class="doccomment">/// `Generator.prototype.return ( value )`
@@ -644,14 +639,7 @@
         <span class="comment">// 1. Let g be the this value.
         // 2. Let C be Completion { [[Type]]: return, [[Value]]: value, [[Target]]: empty }.
         // 3. Return ? GeneratorResumeAbrupt(g, C, empty).
-        </span><span class="kw">let </span>completion =
-            <span class="self">Self</span>::generator_resume_abrupt(this, <span class="prelude-val">Ok</span>(args.get_or_undefined(<span class="number">0</span>).clone()), context);
-
-        <span class="kw">match </span>completion {
-            CompletionRecord::Return(value) =&gt; <span class="prelude-val">Ok</span>(create_iter_result_object(value, <span class="bool-val">false</span>, context)),
-            CompletionRecord::Normal(value) =&gt; <span class="prelude-val">Ok</span>(create_iter_result_object(value, <span class="bool-val">true</span>, context)),
-            CompletionRecord::Throw(err) =&gt; <span class="prelude-val">Err</span>(err),
-        }
+        </span><span class="self">Self</span>::generator_resume_abrupt(this, <span class="prelude-val">Ok</span>(args.get_or_undefined(<span class="number">0</span>).clone()), context)
     }
 
     <span class="doccomment">/// `Generator.prototype.throw ( exception )`
@@ -673,17 +661,11 @@
         <span class="comment">// 1. Let g be the this value.
         // 2. Let C be ThrowCompletion(exception).
         // 3. Return ? GeneratorResumeAbrupt(g, C, empty).
-        </span><span class="kw">let </span>completion = <span class="self">Self</span>::generator_resume_abrupt(
+        </span><span class="self">Self</span>::generator_resume_abrupt(
             this,
             <span class="prelude-val">Err</span>(JsError::from_opaque(args.get_or_undefined(<span class="number">0</span>).clone())),
             context,
-        );
-
-        <span class="kw">match </span>completion {
-            CompletionRecord::Return(value) =&gt; <span class="prelude-val">Ok</span>(create_iter_result_object(value, <span class="bool-val">false</span>, context)),
-            CompletionRecord::Normal(value) =&gt; <span class="prelude-val">Ok</span>(create_iter_result_object(value, <span class="bool-val">true</span>, context)),
-            CompletionRecord::Throw(err) =&gt; <span class="prelude-val">Err</span>(err),
-        }
+        )
     }
 
     <span class="doccomment">/// `27.5.3.3 GeneratorResume ( generator, value, generatorBrand )`
@@ -696,10 +678,10 @@
         gen: <span class="kw-2">&amp;</span>JsValue,
         value: JsValue,
         context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
-    ) -&gt; CompletionRecord {
+    ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Let state be ? GeneratorValidate(generator, generatorBrand).
         </span><span class="kw">let </span><span class="prelude-val">Some</span>(generator_obj) = gen.as_object() <span class="kw">else </span>{
-            <span class="kw">return </span>CompletionRecord::Throw(
+            <span class="kw">return </span><span class="prelude-val">Err</span>(
                 JsNativeError::typ()
                     .with_message(<span class="string">&quot;Generator method called on non generator&quot;</span>)
                     .into()
@@ -707,7 +689,7 @@
         };
         <span class="kw">let </span><span class="kw-2">mut </span>generator_obj_mut = generator_obj.borrow_mut();
         <span class="kw">let </span><span class="prelude-val">Some</span>(generator) = generator_obj_mut.as_generator_mut() <span class="kw">else </span>{
-            <span class="kw">return </span>CompletionRecord::Throw(
+            <span class="kw">return </span><span class="prelude-val">Err</span>(
                 JsNativeError::typ()
                     .with_message(<span class="string">&quot;generator resumed on non generator object&quot;</span>)
                     .into()
@@ -721,16 +703,18 @@
         </span><span class="kw">let </span>(<span class="kw-2">mut </span>generator_context, first_execution) =
             <span class="kw">match </span>std::mem::replace(<span class="kw-2">&amp;mut </span>generator.state, GeneratorState::Executing) {
                 GeneratorState::Executing =&gt; {
-                    <span class="kw">return </span>CompletionRecord::Throw(
-                        JsNativeError::typ()
-                            .with_message(<span class="string">&quot;Generator should not be executing&quot;</span>)
-                            .into(),
-                    );
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::typ()
+                        .with_message(<span class="string">&quot;Generator should not be executing&quot;</span>)
+                        .into());
                 }
                 <span class="comment">// 2. If state is completed, return CreateIterResultObject(undefined, true).
                 </span>GeneratorState::Completed =&gt; {
                     generator.state = GeneratorState::Completed;
-                    <span class="kw">return </span>CompletionRecord::Normal(JsValue::undefined());
+                    <span class="kw">return </span><span class="prelude-val">Ok</span>(create_iter_result_object(
+                        JsValue::undefined(),
+                        <span class="bool-val">true</span>,
+                        context,
+                    ));
                 }
                 <span class="comment">// 3. Assert: state is either suspendedStart or suspendedYield.
                 </span>GeneratorState::SuspendedStart { context } =&gt; (context, <span class="bool-val">true</span>),
@@ -750,18 +734,26 @@
             .as_generator_mut()
             .expect(<span class="string">&quot;already checked this object type&quot;</span>);
 
-        generator.state = <span class="kw">match </span>record {
-            CompletionRecord::Return(<span class="kw">_</span>) =&gt; GeneratorState::SuspendedYield {
-                context: generator_context,
-            },
-            CompletionRecord::Normal(<span class="kw">_</span>) | CompletionRecord::Throw(<span class="kw">_</span>) =&gt; GeneratorState::Completed,
-        };
-
         <span class="comment">// 8. Push genContext onto the execution context stack; genContext is now the running execution context.
         // 9. Resume the suspended evaluation of genContext using NormalCompletion(value) as the result of the operation that suspended it. Let result be the value returned by the resumed computation.
         // 10. Assert: When we return here, genContext has already been removed from the execution context stack and methodContext is the currently running execution context.
         // 11. Return Completion(result).
-        </span>record
+        </span><span class="kw">match </span>record {
+            CompletionRecord::Return(value) =&gt; {
+                generator.state = GeneratorState::SuspendedYield {
+                    context: generator_context,
+                };
+                <span class="prelude-val">Ok</span>(value)
+            }
+            CompletionRecord::Normal(value) =&gt; {
+                generator.state = GeneratorState::Completed;
+                <span class="prelude-val">Ok</span>(create_iter_result_object(value, <span class="bool-val">true</span>, context))
+            }
+            CompletionRecord::Throw(err) =&gt; {
+                generator.state = GeneratorState::Completed;
+                <span class="prelude-val">Err</span>(err)
+            }
+        }
     }
 
     <span class="doccomment">/// `27.5.3.4 GeneratorResumeAbrupt ( generator, abruptCompletion, generatorBrand )`
@@ -774,10 +766,10 @@
         gen: <span class="kw-2">&amp;</span>JsValue,
         abrupt_completion: JsResult&lt;JsValue&gt;,
         context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
-    ) -&gt; CompletionRecord {
+    ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Let state be ? GeneratorValidate(generator, generatorBrand).
         </span><span class="kw">let </span><span class="prelude-val">Some</span>(generator_obj) = gen.as_object() <span class="kw">else </span>{
-            <span class="kw">return </span>CompletionRecord::Throw(
+            <span class="kw">return </span><span class="prelude-val">Err</span>(
                 JsNativeError::typ()
                     .with_message(<span class="string">&quot;Generator method called on non generator&quot;</span>)
                     .into()
@@ -785,7 +777,7 @@
         };
         <span class="kw">let </span><span class="kw-2">mut </span>generator_obj_mut = generator_obj.borrow_mut();
         <span class="kw">let </span><span class="prelude-val">Some</span>(generator) = generator_obj_mut.as_generator_mut() <span class="kw">else </span>{
-            <span class="kw">return </span>CompletionRecord::Throw(
+            <span class="kw">return </span><span class="prelude-val">Err</span>(
                 JsNativeError::typ()
                     .with_message(<span class="string">&quot;generator resumed on non generator object&quot;</span>)
                     .into()
@@ -800,11 +792,9 @@
         </span><span class="kw">let </span><span class="kw-2">mut </span>generator_context =
             <span class="kw">match </span>std::mem::replace(<span class="kw-2">&amp;mut </span>generator.state, GeneratorState::Executing) {
                 GeneratorState::Executing =&gt; {
-                    <span class="kw">return </span>CompletionRecord::Throw(
-                        JsNativeError::typ()
-                            .with_message(<span class="string">&quot;Generator should not be executing&quot;</span>)
-                            .into(),
-                    );
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::typ()
+                        .with_message(<span class="string">&quot;Generator should not be executing&quot;</span>)
+                        .into());
                 }
                 <span class="comment">// 2. If state is suspendedStart, then
                 // 3. If state is completed, then
@@ -817,10 +807,14 @@
                     // with generator can be discarded at this point.
 
                     // a. If abruptCompletion.[[Type]] is return, then
-                    // i. Return CreateIterResultObject(abruptCompletion.[[Value]], true).
-                    // b. Return Completion(abruptCompletion).
-                    </span><span class="kw">return </span>abrupt_completion
-                        .map_or_else(CompletionRecord::Throw, CompletionRecord::Normal);
+                    </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(value) = abrupt_completion {
+                        <span class="comment">// i. Return CreateIterResultObject(abruptCompletion.[[Value]], true).
+                        </span><span class="kw">let </span>value = create_iter_result_object(value, <span class="bool-val">true</span>, context);
+                        <span class="kw">return </span><span class="prelude-val">Ok</span>(value);
+                    }
+
+                    <span class="comment">// b. Return Completion(abruptCompletion).
+                    </span><span class="kw">return </span>abrupt_completion;
                 }
                 GeneratorState::SuspendedYield { context } =&gt; context,
             };
@@ -843,15 +837,23 @@
             .as_generator_mut()
             .expect(<span class="string">&quot;already checked this object type&quot;</span>);
 
-        generator.state = <span class="kw">match </span>record {
-            CompletionRecord::Return(<span class="kw">_</span>) =&gt; GeneratorState::SuspendedYield {
-                context: generator_context,
-            },
-            CompletionRecord::Normal(<span class="kw">_</span>) | CompletionRecord::Throw(<span class="kw">_</span>) =&gt; GeneratorState::Completed,
-        };
-
-        record
+        <span class="kw">match </span>record {
+            CompletionRecord::Return(value) =&gt; {
+                generator.state = GeneratorState::SuspendedYield {
+                    context: generator_context,
+                };
+                <span class="prelude-val">Ok</span>(value)
+            }
+            CompletionRecord::Normal(value) =&gt; {
+                generator.state = GeneratorState::Completed;
+                <span class="prelude-val">Ok</span>(create_iter_result_object(value, <span class="bool-val">true</span>, context))
+            }
+            CompletionRecord::Throw(err) =&gt; {
+                generator.state = GeneratorState::Completed;
+                <span class="prelude-val">Err</span>(err)
+            }
+        }
     }
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.2 (9eb3afe9e 2023-03-27)" data-search-js="search-98d53477a794af0b.js" data-settings-js="settings-c3c521c753752a1a.js" data-settings-css="settings-08ddfdda51b8ee2e.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0 (84c898d65 2023-04-16)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

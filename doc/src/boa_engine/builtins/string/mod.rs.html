@@ -1,5 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/builtins/string/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-93196c7a1c3542a8.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../../static.files/light-4743e13df3dfe8c4.css"><link rel="stylesheet" disabled href="../../../../static.files/dark-0e1b889528bd466b.css"><link rel="stylesheet" disabled href="../../../../static.files/ayu-65289d5d067c7c66.css"><script id="default-settings" ></script><script src="../../../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../static.files/main-3367e395607fafc1.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/builtins/string/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" disabled href="../../../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" disabled href="../../../../static.files/ayu-be46fdc453a55015.css"><script src="../../../../static.files/storage-3891ce972e3a2bf8.js"></script><script defer src="../../../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../static.files/main-98a684e84ae5b08b.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../boa_engine/index.html">
+                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -2785,6 +2785,8 @@
 <a href="#2784" id="2784">2784</a>
 <a href="#2785" id="2785">2785</a>
 <a href="#2786" id="2786">2786</a>
+<a href="#2787" id="2787">2787</a>
+<a href="#2788" id="2788">2788</a>
 </pre><pre class="rust"><code><span class="doccomment">//! Boa&#39;s implementation of ECMAScript&#39;s global `String` object.
 //!
 //! The `String` global object is a constructor for strings or a sequence of characters.
@@ -2811,12 +2813,22 @@
     Context, JsArgs, JsResult, JsString, JsValue,
 };
 <span class="kw">use </span>boa_profiler::Profiler;
+<span class="kw">use </span>icu_normalizer::{ComposingNormalizer, DecomposingNormalizer};
 <span class="kw">use </span>std::cmp::{max, min};
 
 <span class="kw">use super</span>::{BuiltInBuilder, BuiltInConstructor, IntrinsicObject};
 
 <span class="kw">mod </span>string_iterator;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>string_iterator::StringIterator;
+
+<span class="doccomment">/// The set of normalizers required for the `String.prototype.normalize` function.
+</span><span class="attr">#[derive(Debug)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>StringNormalizers {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) nfc: ComposingNormalizer,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) nfkc: ComposingNormalizer,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) nfd: DecomposingNormalizer,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) nfkd: DecomposingNormalizer,
+}
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests;
@@ -4811,7 +4823,6 @@
         args: <span class="kw-2">&amp;</span>[JsValue],
         context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="kw">use </span>unicode_normalization::UnicodeNormalization;
         <span class="doccomment">/// Represents the type of normalization applied to a [`JsString`]
         </span><span class="attr">#[derive(Clone, Copy)]
         </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>Normalization {
@@ -4820,79 +4831,72 @@
             Nfkc,
             Nfkd,
         }
+
         <span class="comment">// 1. Let O be ? RequireObjectCoercible(this value).
         </span><span class="kw">let </span>this = this.require_object_coercible()<span class="question-mark">?</span>;
 
         <span class="comment">// 2. Let S be ? ToString(O).
         </span><span class="kw">let </span>s = this.to_string(context)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>f = <span class="kw">match </span>args.get_or_undefined(<span class="number">0</span>) {
-            <span class="comment">// 3. If form is undefined, let f be &quot;NFC&quot;.
-            </span><span class="kw-2">&amp;</span>JsValue::Undefined =&gt; <span class="macro">js_string!</span>(<span class="string">&quot;NFC&quot;</span>),
-            <span class="comment">// 4. Else, let f be ? ToString(form).
-            </span>form =&gt; form.to_string(context)<span class="question-mark">?</span>,
-        };
-
         <span class="comment">// 6. Let ns be the String value that is the result of normalizing S
         // into the normalization form named by f as specified in
         // https://unicode.org/reports/tr15/.
-        </span><span class="kw">let </span>normalization = <span class="kw">match </span>f {
-            ntype <span class="kw">if </span><span class="kw-2">&amp;</span>ntype == <span class="macro">utf16!</span>(<span class="string">&quot;NFC&quot;</span>) =&gt; Normalization::Nfc,
-            ntype <span class="kw">if </span><span class="kw-2">&amp;</span>ntype == <span class="macro">utf16!</span>(<span class="string">&quot;NFD&quot;</span>) =&gt; Normalization::Nfd,
-            ntype <span class="kw">if </span><span class="kw-2">&amp;</span>ntype == <span class="macro">utf16!</span>(<span class="string">&quot;NFKC&quot;</span>) =&gt; Normalization::Nfkc,
-            ntype <span class="kw">if </span><span class="kw-2">&amp;</span>ntype == <span class="macro">utf16!</span>(<span class="string">&quot;NFKD&quot;</span>) =&gt; Normalization::Nfkd,
-            <span class="comment">// 5. If f is not one of &quot;NFC&quot;, &quot;NFD&quot;, &quot;NFKC&quot;, or &quot;NFKD&quot;, throw a RangeError exception.
-            </span><span class="kw">_ </span>=&gt; {
-                <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::range()
-                    .with_message(<span class="string">&quot;The normalization form should be one of NFC, NFD, NFKC, NFKD.&quot;</span>)
-                    .into());
+        </span><span class="kw">let </span>normalization = <span class="kw">match </span>args.get_or_undefined(<span class="number">0</span>) {
+            <span class="comment">// 3. If form is undefined, let f be &quot;NFC&quot;.
+            </span><span class="kw-2">&amp;</span>JsValue::Undefined =&gt; Normalization::Nfc,
+            <span class="comment">// 4. Else, let f be ? ToString(form).
+            </span>f =&gt; <span class="kw">match </span>f.to_string(context)<span class="question-mark">? </span>{
+                ntype <span class="kw">if </span><span class="kw-2">&amp;</span>ntype == <span class="macro">utf16!</span>(<span class="string">&quot;NFC&quot;</span>) =&gt; Normalization::Nfc,
+                ntype <span class="kw">if </span><span class="kw-2">&amp;</span>ntype == <span class="macro">utf16!</span>(<span class="string">&quot;NFD&quot;</span>) =&gt; Normalization::Nfd,
+                ntype <span class="kw">if </span><span class="kw-2">&amp;</span>ntype == <span class="macro">utf16!</span>(<span class="string">&quot;NFKC&quot;</span>) =&gt; Normalization::Nfkc,
+                ntype <span class="kw">if </span><span class="kw-2">&amp;</span>ntype == <span class="macro">utf16!</span>(<span class="string">&quot;NFKD&quot;</span>) =&gt; Normalization::Nfkd,
+                <span class="comment">// 5. If f is not one of &quot;NFC&quot;, &quot;NFD&quot;, &quot;NFKC&quot;, or &quot;NFKD&quot;, throw a RangeError exception.
+                </span><span class="kw">_ </span>=&gt; {
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::range()
+                        .with_message(
+                            <span class="string">&quot;The normalization form should be one of NFC, NFD, NFKC, NFKD.&quot;</span>,
+                        )
+                        .into());
+                }
+            },
+        };
+
+        <span class="kw">let </span>normalizers = {
+            <span class="attr">#[cfg(not(feature = <span class="string">&quot;intl&quot;</span>))]
+            </span>{
+                <span class="kw">use </span>once_cell::sync::Lazy;
+                <span class="kw">static </span>NORMALIZERS: Lazy&lt;StringNormalizers&gt; = Lazy::new(|| {
+                    <span class="kw">let </span>provider = <span class="kw-2">&amp;</span>boa_icu_provider::minimal();
+                    <span class="kw">let </span>nfc = ComposingNormalizer::try_new_nfc_unstable(provider)
+                        .expect(<span class="string">&quot;minimal data should always be updated&quot;</span>);
+                    <span class="kw">let </span>nfkc = ComposingNormalizer::try_new_nfkc_unstable(provider)
+                        .expect(<span class="string">&quot;minimal data should always be updated&quot;</span>);
+                    <span class="kw">let </span>nfd = DecomposingNormalizer::try_new_nfd_unstable(provider)
+                        .expect(<span class="string">&quot;minimal data should always be updated&quot;</span>);
+                    <span class="kw">let </span>nfkd = DecomposingNormalizer::try_new_nfkd_unstable(provider)
+                        .expect(<span class="string">&quot;minimal data should always be updated&quot;</span>);
+
+                    StringNormalizers {
+                        nfc,
+                        nfkc,
+                        nfd,
+                        nfkd,
+                    }
+                });
+                <span class="kw-2">&amp;*</span>NORMALIZERS
+            }
+            <span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+            </span>{
+                context.icu().string_normalizers()
             }
         };
 
-        <span class="kw">let </span><span class="kw-2">mut </span>code_points = s.code_points();
-        <span class="kw">let </span><span class="kw-2">mut </span>result = Vec::with_capacity(s.len());
-
-        <span class="kw">let </span><span class="kw-2">mut </span>next_unpaired_surrogate = <span class="prelude-val">None</span>;
-        <span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">2</span>];
-
-        <span class="kw">loop </span>{
-            <span class="kw">let </span>only_chars = code_points.by_ref().map_while(|cpoint| <span class="kw">match </span>cpoint {
-                CodePoint::Unicode(c) =&gt; <span class="prelude-val">Some</span>(c),
-                CodePoint::UnpairedSurrogate(s) =&gt; {
-                    next_unpaired_surrogate = <span class="prelude-val">Some</span>(s);
-                    <span class="prelude-val">None
-                </span>}
-            });
-
-            <span class="kw">match </span>normalization {
-                Normalization::Nfc =&gt; {
-                    <span class="kw">for </span>mapped <span class="kw">in </span>only_chars.nfc() {
-                        result.extend_from_slice(mapped.encode_utf16(<span class="kw-2">&amp;mut </span>buf));
-                    }
-                }
-                Normalization::Nfd =&gt; {
-                    <span class="kw">for </span>mapped <span class="kw">in </span>only_chars.nfd() {
-                        result.extend_from_slice(mapped.encode_utf16(<span class="kw-2">&amp;mut </span>buf));
-                    }
-                }
-                Normalization::Nfkc =&gt; {
-                    <span class="kw">for </span>mapped <span class="kw">in </span>only_chars.nfkc() {
-                        result.extend_from_slice(mapped.encode_utf16(<span class="kw-2">&amp;mut </span>buf));
-                    }
-                }
-                Normalization::Nfkd =&gt; {
-                    <span class="kw">for </span>mapped <span class="kw">in </span>only_chars.nfkd() {
-                        result.extend_from_slice(mapped.encode_utf16(<span class="kw-2">&amp;mut </span>buf));
-                    }
-                }
-            }
-
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(surr) = next_unpaired_surrogate.take() {
-                result.push(surr);
-            } <span class="kw">else </span>{
-                <span class="kw">break</span>;
-            }
-        }
+        <span class="kw">let </span>result = <span class="kw">match </span>normalization {
+            Normalization::Nfc =&gt; normalizers.nfc.normalize_utf16(<span class="kw-2">&amp;</span>s),
+            Normalization::Nfd =&gt; normalizers.nfd.normalize_utf16(<span class="kw-2">&amp;</span>s),
+            Normalization::Nfkc =&gt; normalizers.nfkc.normalize_utf16(<span class="kw-2">&amp;</span>s),
+            Normalization::Nfkd =&gt; normalizers.nfkd.normalize_utf16(<span class="kw-2">&amp;</span>s),
+        };
 
         <span class="comment">// 7. Return ns.
         </span><span class="prelude-val">Ok</span>(<span class="macro">js_string!</span>(result).into())
@@ -5572,4 +5576,4 @@
     </span><span class="prelude-val">Ok</span>(argument.is_regexp())
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.2 (9eb3afe9e 2023-03-27)" data-search-js="search-98d53477a794af0b.js" data-settings-js="settings-c3c521c753752a1a.js" data-settings-css="settings-08ddfdda51b8ee2e.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0 (84c898d65 2023-04-16)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
