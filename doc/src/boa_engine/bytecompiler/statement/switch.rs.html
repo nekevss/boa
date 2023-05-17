@@ -53,22 +53,33 @@
 <a href="#52" id="52">52</a>
 <a href="#53" id="53">53</a>
 <a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
 </pre><pre class="rust"><code><span class="kw">use crate</span>::{bytecompiler::ByteCompiler, vm::Opcode};
 <span class="kw">use </span>boa_ast::statement::Switch;
 
 <span class="kw">impl </span>ByteCompiler&lt;<span class="lifetime">&#39;_</span>, <span class="lifetime">&#39;_</span>&gt; {
     <span class="doccomment">/// Compile a [`Switch`] `boa_ast` node
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>compile_switch(<span class="kw-2">&amp;mut </span><span class="self">self</span>, switch: <span class="kw-2">&amp;</span>Switch, configurable_globals: bool) {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>compile_switch(<span class="kw-2">&amp;mut </span><span class="self">self</span>, switch: <span class="kw-2">&amp;</span>Switch, use_expr: bool) {
         <span class="self">self</span>.compile_expr(switch.val(), <span class="bool-val">true</span>);
 
         <span class="self">self</span>.push_compile_environment(<span class="bool-val">false</span>);
         <span class="kw">let </span>push_env = <span class="self">self</span>.emit_opcode_with_two_operands(Opcode::PushDeclarativeEnvironment);
-        <span class="kw">for </span>case <span class="kw">in </span>switch.cases() {
-            <span class="self">self</span>.create_declarations(case.body(), configurable_globals);
-        }
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(body) = switch.default() {
-            <span class="self">self</span>.create_declarations(body, configurable_globals);
-        }
+
+        <span class="self">self</span>.block_declaration_instantiation(switch);
+
         <span class="kw">let </span>(start_label, end_label) = <span class="self">self</span>.emit_opcode_with_two_operands(Opcode::LoopStart);
 
         <span class="kw">let </span>start_address = <span class="self">self</span>.next_opcode_location();
@@ -77,29 +88,46 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>labels = Vec::with_capacity(switch.cases().len());
         <span class="kw">for </span>case <span class="kw">in </span>switch.cases() {
-            <span class="self">self</span>.compile_expr(case.condition(), <span class="bool-val">true</span>);
-            labels.push(<span class="self">self</span>.emit_opcode_with_operand(Opcode::Case));
+            <span class="comment">// If it does not have a condition it is the default case.
+            </span><span class="kw">let </span>label = <span class="kw">if let </span><span class="prelude-val">Some</span>(condition) = case.condition() {
+                <span class="self">self</span>.compile_expr(condition, <span class="bool-val">true</span>);
+
+                <span class="self">self</span>.emit_opcode_with_operand(Opcode::Case)
+            } <span class="kw">else </span>{
+                <span class="self">Self</span>::DUMMY_LABEL
+            };
+
+            labels.push(label);
         }
 
-        <span class="kw">let </span>exit = <span class="self">self</span>.emit_opcode_with_operand(Opcode::Default);
+        <span class="kw">let </span>default_label = <span class="self">self</span>.emit_opcode_with_operand(Opcode::Default);
+        <span class="kw">let </span><span class="kw-2">mut </span>default_label_set = <span class="bool-val">false</span>;
 
         <span class="kw">for </span>(label, case) <span class="kw">in </span>labels.into_iter().zip(switch.cases()) {
+            <span class="comment">// Check if it&#39;s the default case.
+            </span><span class="kw">let </span>label = <span class="kw">if </span>label == <span class="self">Self</span>::DUMMY_LABEL {
+                default_label_set = <span class="bool-val">true</span>;
+                default_label
+            } <span class="kw">else </span>{
+                label
+            };
             <span class="self">self</span>.patch_jump(label);
-            <span class="kw">for </span>item <span class="kw">in </span>case.body().statements() {
-                <span class="self">self</span>.compile_stmt_list_item(item, <span class="bool-val">false</span>, configurable_globals);
+            <span class="self">self</span>.compile_statement_list(case.body(), <span class="bool-val">true</span>, <span class="bool-val">true</span>);
+            <span class="kw">if </span>!case.body().statements().is_empty() {
+                <span class="self">self</span>.emit_opcode(Opcode::LoopUpdateReturnValue);
             }
         }
 
-        <span class="self">self</span>.patch_jump(exit);
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(body) = switch.default() {
-            <span class="kw">for </span>item <span class="kw">in </span>body.statements() {
-                <span class="self">self</span>.compile_stmt_list_item(item, <span class="bool-val">false</span>, configurable_globals);
-            }
+        <span class="kw">if </span>!default_label_set {
+            <span class="self">self</span>.patch_jump(default_label);
         }
 
         <span class="self">self</span>.pop_switch_control_info();
         <span class="self">self</span>.patch_jump(end_label);
         <span class="self">self</span>.emit_opcode(Opcode::LoopEnd);
+        <span class="kw">if </span>!use_expr {
+            <span class="self">self</span>.emit_opcode(Opcode::Pop);
+        }
 
         <span class="kw">let </span>env_info = <span class="self">self</span>.pop_compile_environment();
         <span class="self">self</span>.patch_jump_with_target(push_env.<span class="number">0</span>, env_info.num_bindings <span class="kw">as </span>u32);

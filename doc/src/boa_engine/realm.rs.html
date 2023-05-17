@@ -103,6 +103,25 @@
 <a href="#102" id="102">102</a>
 <a href="#103" id="103">103</a>
 <a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
 </pre><pre class="rust"><code><span class="doccomment">//! Boa&#39;s implementation of ECMAScript&#39;s `Realm Records`
 //!
 //! Conceptually, a realm consists of a set of intrinsic objects, an ECMAScript global environment,
@@ -111,15 +130,15 @@
 //!
 //! A realm is represented in this implementation as a Realm struct with the fields specified from the spec.
 
-</span><span class="kw">use </span>std::fmt;
-
-<span class="kw">use crate</span>::{
+</span><span class="kw">use crate</span>::{
     context::{intrinsics::Intrinsics, HostHooks},
     environments::DeclarativeEnvironment,
     object::{shape::shared_shape::SharedShape, JsObject},
 };
-<span class="kw">use </span>boa_gc::{Finalize, Gc, Trace};
+<span class="kw">use </span>boa_gc::{Finalize, Gc, GcRefCell, Trace};
 <span class="kw">use </span>boa_profiler::Profiler;
+<span class="kw">use </span>rustc_hash::FxHashMap;
+<span class="kw">use </span>std::fmt;
 
 <span class="doccomment">/// Representation of a Realm.
 ///
@@ -127,6 +146,14 @@
 </span><span class="attr">#[derive(Clone, Trace, Finalize)]
 </span><span class="kw">pub struct </span>Realm {
     inner: Gc&lt;Inner&gt;,
+}
+
+<span class="kw">impl </span>Eq <span class="kw">for </span>Realm {}
+
+<span class="kw">impl </span>PartialEq <span class="kw">for </span>Realm {
+    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
+        Gc::ptr_eq(<span class="kw-2">&amp;</span><span class="self">self</span>.inner, <span class="kw-2">&amp;</span>other.inner)
+    }
 }
 
 <span class="kw">impl </span>fmt::Debug <span class="kw">for </span>Realm {
@@ -140,18 +167,13 @@
     }
 }
 
-<span class="kw">impl </span>PartialEq <span class="kw">for </span>Realm {
-    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
-        std::ptr::eq(<span class="kw-2">&amp;*</span><span class="self">self</span>.inner, <span class="kw-2">&amp;*</span>other.inner)
-    }
-}
-
 <span class="attr">#[derive(Trace, Finalize)]
 </span><span class="kw">struct </span>Inner {
     intrinsics: Intrinsics,
     environment: Gc&lt;DeclarativeEnvironment&gt;,
     global_object: JsObject,
     global_this: JsObject,
+    template_map: GcRefCell&lt;FxHashMap&lt;u64, JsObject&gt;&gt;,
 }
 
 <span class="kw">impl </span>Realm {
@@ -165,13 +187,15 @@
         <span class="kw">let </span>global_this = hooks
             .create_global_this(<span class="kw-2">&amp;</span>intrinsics)
             .unwrap_or_else(|| global_object.clone());
+        <span class="kw">let </span>environment = Gc::new(DeclarativeEnvironment::global(global_this.clone()));
 
         <span class="kw">let </span>realm = <span class="self">Self </span>{
             inner: Gc::new(Inner {
                 intrinsics,
-                environment: Gc::new(DeclarativeEnvironment::new_global()),
+                environment,
                 global_object,
                 global_this,
+                template_map: GcRefCell::new(FxHashMap::default()),
             }),
         };
 
@@ -200,11 +224,25 @@
     <span class="doccomment">/// Resizes the number of bindings on the global environment.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>resize_global_env(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         <span class="kw">let </span>binding_number = <span class="self">self</span>.environment().compile_env().borrow().num_bindings();
+        <span class="kw">let </span>env = <span class="self">self
+            </span>.environment()
+            .kind()
+            .as_global()
+            .expect(<span class="string">&quot;Realm should only store global environments&quot;</span>)
+            .poisonable_environment();
+        <span class="kw">let </span><span class="kw-2">mut </span>bindings = env.bindings().borrow_mut();
 
-        <span class="kw">let </span><span class="kw-2">mut </span>bindings = <span class="self">self</span>.environment().bindings().borrow_mut();
         <span class="kw">if </span>bindings.len() &lt; binding_number {
             bindings.resize(binding_number, <span class="prelude-val">None</span>);
         }
+    }
+
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>push_template(<span class="kw-2">&amp;</span><span class="self">self</span>, site: u64, template: JsObject) {
+        <span class="self">self</span>.inner.template_map.borrow_mut().insert(site, template);
+    }
+
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>lookup_template(<span class="kw-2">&amp;</span><span class="self">self</span>, site: u64) -&gt; <span class="prelude-ty">Option</span>&lt;JsObject&gt; {
+        <span class="self">self</span>.inner.template_map.borrow().get(<span class="kw-2">&amp;</span>site).cloned()
     }
 }
 </code></pre></div>

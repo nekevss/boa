@@ -1371,10 +1371,6 @@
 <a href="#1370" id="1370">1370</a>
 <a href="#1371" id="1371">1371</a>
 <a href="#1372" id="1372">1372</a>
-<a href="#1373" id="1373">1373</a>
-<a href="#1374" id="1374">1374</a>
-<a href="#1375" id="1375">1375</a>
-<a href="#1376" id="1376">1376</a>
 </pre><pre class="rust"><code><span class="doccomment">//! `CodeBlock`
 //!
 //! This module is for the `CodeBlock` which implements a function representation in the VM
@@ -1387,7 +1383,7 @@
         promise::PromiseCapability,
     },
     context::intrinsics::StandardConstructors,
-    environments::{BindingLocator, CompileTimeEnvironment},
+    environments::{BindingLocator, CompileTimeEnvironment, FunctionSlots, ThisBindingStatus},
     error::JsNativeError,
     object::{internal_methods::get_prototype_from_constructor, JsObject, ObjectData, PROTOTYPE},
     property::PropertyDescriptor,
@@ -1395,10 +1391,7 @@
     vm::CallFrame,
     Context, JsError, JsResult, JsString, JsValue,
 };
-<span class="kw">use </span>boa_ast::{
-    expression::Identifier,
-    function::{FormalParameterList, PrivateName},
-};
+<span class="kw">use </span>boa_ast::function::{FormalParameterList, PrivateName};
 <span class="kw">use </span>boa_gc::{Finalize, Gc, GcRefCell, Trace};
 <span class="kw">use </span>boa_interner::Sym;
 <span class="kw">use </span>boa_profiler::Profiler;
@@ -1466,8 +1459,7 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) literals: Box&lt;[JsValue]&gt;,
 
     <span class="doccomment">/// Property field names.
-    </span><span class="attr">#[unsafe_ignore_trace]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) names: Box&lt;[Identifier]&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) names: Box&lt;[JsString]&gt;,
 
     <span class="doccomment">/// Private names.
     </span><span class="attr">#[unsafe_ignore_trace]
@@ -1671,7 +1663,6 @@
             | Opcode::CopyDataProperties
             | Opcode::Break
             | Opcode::Continue
-            | Opcode::LoopContinue
             | Opcode::LoopStart
             | Opcode::TryStart
             | Opcode::AsyncGeneratorNext
@@ -1680,6 +1671,13 @@
                 <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
                 <span class="kw">let </span>operand2 = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
                 <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
+                <span class="macro">format!</span>(<span class="string">&quot;{operand1}, {operand2}&quot;</span>)
+            }
+            Opcode::TemplateLookup | Opcode::TemplateCreate =&gt; {
+                <span class="kw">let </span>operand1 = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
+                <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
+                <span class="kw">let </span>operand2 = <span class="self">self</span>.read::&lt;u64&gt;(<span class="kw-2">*</span>pc);
+                <span class="kw-2">*</span>pc += size_of::&lt;u64&gt;();
                 <span class="macro">format!</span>(<span class="string">&quot;{operand1}, {operand2}&quot;</span>)
             }
             Opcode::GeneratorAsyncDelegateResume =&gt; {
@@ -1694,9 +1692,7 @@
             Opcode::GetArrowFunction
             | Opcode::GetAsyncArrowFunction
             | Opcode::GetFunction
-            | Opcode::GetFunctionAsync
-            | Opcode::GetGenerator
-            | Opcode::GetGeneratorAsync =&gt; {
+            | Opcode::GetFunctionAsync =&gt; {
                 <span class="kw">let </span>operand = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
                 <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;() + size_of::&lt;u8&gt;();
                 <span class="macro">format!</span>(
@@ -1705,12 +1701,17 @@
                     <span class="self">self</span>.functions[operand <span class="kw">as </span>usize].length
                 )
             }
-            Opcode::DefInitArg
-            | Opcode::DefVar
+            Opcode::GetGenerator | Opcode::GetGeneratorAsync =&gt; {
+                <span class="kw">let </span>operand = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;{operand:04}: &#39;{}&#39; (length: {})&quot;</span>,
+                    interner.resolve_expect(<span class="self">self</span>.functions[operand <span class="kw">as </span>usize].name),
+                    <span class="self">self</span>.functions[operand <span class="kw">as </span>usize].length
+                )
+            }
+            Opcode::DefVar
             | Opcode::DefInitVar
-            | Opcode::DefLet
-            | Opcode::DefInitLet
-            | Opcode::DefInitConst
+            | Opcode::PutLexicalValue
             | Opcode::GetName
             | Opcode::GetLocator
             | Opcode::GetNameAndLocator
@@ -1742,7 +1743,7 @@
                 <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
                 <span class="macro">format!</span>(
                     <span class="string">&quot;{operand:04}: &#39;{}&#39;&quot;</span>,
-                    interner.resolve_expect(<span class="self">self</span>.names[operand <span class="kw">as </span>usize].sym()),
+                    <span class="self">self</span>.names[operand <span class="kw">as </span>usize].to_std_string_escaped(),
                 )
             }
             Opcode::SetPrivateField
@@ -1838,6 +1839,8 @@
             | Opcode::Return
             | Opcode::PopEnvironment
             | Opcode::LoopEnd
+            | Opcode::LoopContinue
+            | Opcode::LoopUpdateReturnValue
             | Opcode::LabelledEnd
             | Opcode::CreateForInIterator
             | Opcode::GetIterator
@@ -1963,17 +1966,10 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_function_object(
     code: Gc&lt;CodeBlock&gt;,
     r#async: bool,
-    arrow: bool,
-    prototype: <span class="prelude-ty">Option</span>&lt;JsObject&gt;,
-    method: bool,
+    prototype: JsObject,
     context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
 ) -&gt; JsObject {
     <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;create_function_object&quot;</span>, <span class="string">&quot;vm&quot;</span>);
-
-    <span class="kw">let </span><span class="prelude-val">Some</span>(prototype) = prototype <span class="kw">else </span>{
-        <span class="comment">// fast path
-        </span><span class="kw">return </span>create_function_object_fast(code, r#async, arrow, method, context);
-    };
 
     <span class="kw">let </span>name: JsValue = context
         .interner()
@@ -2008,11 +2004,11 @@
         )
     };
 
-    <span class="kw">let </span>data = ObjectData::function(function);
+    <span class="kw">let </span>data = ObjectData::function(function, !r#async);
 
     <span class="kw">let </span>templates = context.intrinsics().templates();
 
-    <span class="kw">let </span>(<span class="kw-2">mut </span>template, storage, constructor_prototype) = <span class="kw">if </span>r#async || arrow || method {
+    <span class="kw">let </span>(<span class="kw-2">mut </span>template, storage, constructor_prototype) = <span class="kw">if </span>r#async {
         (
             templates.function_without_proto().clone(),
             <span class="macro">vec!</span>[length, name],
@@ -2034,12 +2030,12 @@
 
     template.set_prototype(prototype);
 
-    <span class="kw">let </span>contructor = template.create(data, storage);
+    <span class="kw">let </span>constructor = template.create(data, storage);
 
     <span class="kw">if let </span><span class="prelude-val">Some</span>(constructor_prototype) = <span class="kw-2">&amp;</span>constructor_prototype {
-        constructor_prototype.borrow_mut().properties_mut().storage[<span class="number">0</span>] = contructor.clone().into();
+        constructor_prototype.borrow_mut().properties_mut().storage[<span class="number">0</span>] = constructor.clone().into();
     }
-    contructor
+    constructor
 }
 
 <span class="doccomment">/// Creates a new function object.
@@ -2085,7 +2081,7 @@
 
     <span class="kw">let </span>function = Function::new(function, context.realm().clone());
 
-    <span class="kw">let </span>data = ObjectData::function(function);
+    <span class="kw">let </span>data = ObjectData::function(function, !method &amp;&amp; !arrow &amp;&amp; !r#async);
 
     <span class="kw">if </span>r#async {
         context
@@ -2122,7 +2118,6 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_generator_function_object(
     code: Gc&lt;CodeBlock&gt;,
     r#async: bool,
-    method: bool,
     prototype: <span class="prelude-ty">Option</span>&lt;JsObject&gt;,
     context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
 ) -&gt; JsObject {
@@ -2210,11 +2205,9 @@
         .configurable(<span class="bool-val">false</span>)
         .build();
 
-    <span class="kw">if </span>!method {
-        constructor
-            .define_property_or_throw(PROTOTYPE, prototype_property, context)
-            .expect(<span class="string">&quot;failed to define the prototype property of the generator function&quot;</span>);
-    }
+    constructor
+        .define_property_or_throw(PROTOTYPE, prototype_property, context)
+        .expect(<span class="string">&quot;failed to define the prototype property of the generator function&quot;</span>);
     constructor
         .define_property_or_throw(<span class="macro">utf16!</span>(<span class="string">&quot;name&quot;</span>), name_property, context)
         .expect(<span class="string">&quot;failed to define the name property of the generator function&quot;</span>);
@@ -2339,13 +2332,13 @@
         <span class="kw">let </span>lexical_this_mode = code.this_mode == ThisMode::Lexical;
 
         <span class="kw">let </span>this = <span class="kw">if </span>lexical_this_mode {
-            <span class="prelude-val">None
-        </span>} <span class="kw">else if </span>code.strict {
-            <span class="prelude-val">Some</span>(this.clone())
+            ThisBindingStatus::Lexical
+        } <span class="kw">else if </span>code.strict {
+            ThisBindingStatus::Initialized(this.clone())
         } <span class="kw">else if </span>this.is_null_or_undefined() {
-            <span class="prelude-val">Some</span>(context.global_object().into())
+            ThisBindingStatus::Initialized(context.realm().global_this().clone().into())
         } <span class="kw">else </span>{
-            <span class="prelude-val">Some</span>(
+            ThisBindingStatus::Initialized(
                 this.to_object(context)
                     .expect(<span class="string">&quot;conversion cannot fail&quot;</span>)
                     .into(),
@@ -2358,11 +2351,11 @@
             <span class="kw">let </span>index = context
                 .vm
                 .environments
-                .push_declarative(<span class="number">1</span>, code.compile_environments[last_env].clone());
+                .push_lexical(<span class="number">1</span>, code.compile_environments[last_env].clone());
             context
                 .vm
                 .environments
-                .put_declarative_value(index, <span class="number">0</span>, class_object.into());
+                .put_lexical_value(index, <span class="number">0</span>, class_object.into());
             last_env -= <span class="number">1</span>;
         }
 
@@ -2370,21 +2363,18 @@
             <span class="kw">let </span>index = context
                 .vm
                 .environments
-                .push_declarative(<span class="number">1</span>, code.compile_environments[last_env].clone());
+                .push_lexical(<span class="number">1</span>, code.compile_environments[last_env].clone());
             context
                 .vm
                 .environments
-                .put_declarative_value(index, <span class="number">0</span>, <span class="self">self</span>.clone().into());
+                .put_lexical_value(index, <span class="number">0</span>, <span class="self">self</span>.clone().into());
             last_env -= <span class="number">1</span>;
         }
 
         context.vm.environments.push_function(
             code.num_bindings,
             code.compile_environments[last_env].clone(),
-            this,
-            <span class="self">self</span>.clone(),
-            <span class="prelude-val">None</span>,
-            lexical_this_mode,
+            FunctionSlots::new(this, <span class="self">self</span>.clone(), <span class="prelude-val">None</span>),
         );
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(bindings) = code.parameters_env_bindings {
@@ -2392,7 +2382,7 @@
             context
                 .vm
                 .environments
-                .push_declarative(bindings, code.compile_environments[last_env].clone());
+                .push_lexical(bindings, code.compile_environments[last_env].clone());
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(binding) = code.arguments_binding {
@@ -2408,7 +2398,7 @@
                     context,
                 )
             };
-            context.vm.environments.put_declarative_value(
+            context.vm.environments.put_lexical_value(
                 binding.environment_index(),
                 binding.binding_index(),
                 arguments_obj.into(),
@@ -2626,28 +2616,31 @@
                     <span class="kw">let </span>index = context
                         .vm
                         .environments
-                        .push_declarative(<span class="number">1</span>, code.compile_environments[last_env].clone());
+                        .push_lexical(<span class="number">1</span>, code.compile_environments[last_env].clone());
                     context
                         .vm
                         .environments
-                        .put_declarative_value(index, <span class="number">0</span>, <span class="self">self</span>.clone().into());
+                        .put_lexical_value(index, <span class="number">0</span>, <span class="self">self</span>.clone().into());
                     last_env -= <span class="number">1</span>;
                 }
 
                 context.vm.environments.push_function(
                     code.num_bindings,
                     code.compile_environments[last_env].clone(),
-                    this.clone().map(Into::into),
-                    <span class="self">self</span>.clone(),
-                    <span class="prelude-val">Some</span>(new_target.clone()),
-                    <span class="bool-val">false</span>,
+                    FunctionSlots::new(
+                        this.clone().map_or(ThisBindingStatus::Uninitialized, |o| {
+                            ThisBindingStatus::Initialized(o.into())
+                        }),
+                        <span class="self">self</span>.clone(),
+                        <span class="prelude-val">Some</span>(new_target.clone()),
+                    ),
                 );
 
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(bindings) = code.parameters_env_bindings {
                     context
                         .vm
                         .environments
-                        .push_declarative(bindings, code.compile_environments[<span class="number">0</span>].clone());
+                        .push_lexical(bindings, code.compile_environments[<span class="number">0</span>].clone());
                 }
 
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(binding) = code.arguments_binding {
@@ -2663,7 +2656,7 @@
                             context,
                         )
                     };
-                    context.vm.environments.put_declarative_value(
+                    context.vm.environments.put_lexical_value(
                         binding.environment_index(),
                         binding.binding_index(),
                         arguments_obj.into(),
@@ -2728,15 +2721,14 @@
                 } <span class="kw">else </span>{
                     <span class="kw">let </span>function_env = environment
                         .declarative_expect()
-                        .slots()
-                        .expect(<span class="string">&quot;must be function environment&quot;</span>)
-                        .as_function_slots()
+                        .kind()
+                        .as_function()
                         .expect(<span class="string">&quot;must be function environment&quot;</span>);
                     function_env
-                        .borrow()
                         .get_this_binding()
-                        .map(|this| {
-                            this.as_object()
+                        .map(|v| {
+                            v.expect(<span class="string">&quot;constructors cannot be arrow functions&quot;</span>)
+                                .as_object()
                                 .expect(<span class="string">&quot;this binding must be object&quot;</span>)
                                 .clone()
                         })

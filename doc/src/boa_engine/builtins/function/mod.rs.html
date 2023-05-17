@@ -1101,32 +1101,6 @@
 <a href="#1100" id="1100">1100</a>
 <a href="#1101" id="1101">1101</a>
 <a href="#1102" id="1102">1102</a>
-<a href="#1103" id="1103">1103</a>
-<a href="#1104" id="1104">1104</a>
-<a href="#1105" id="1105">1105</a>
-<a href="#1106" id="1106">1106</a>
-<a href="#1107" id="1107">1107</a>
-<a href="#1108" id="1108">1108</a>
-<a href="#1109" id="1109">1109</a>
-<a href="#1110" id="1110">1110</a>
-<a href="#1111" id="1111">1111</a>
-<a href="#1112" id="1112">1112</a>
-<a href="#1113" id="1113">1113</a>
-<a href="#1114" id="1114">1114</a>
-<a href="#1115" id="1115">1115</a>
-<a href="#1116" id="1116">1116</a>
-<a href="#1117" id="1117">1117</a>
-<a href="#1118" id="1118">1118</a>
-<a href="#1119" id="1119">1119</a>
-<a href="#1120" id="1120">1120</a>
-<a href="#1121" id="1121">1121</a>
-<a href="#1122" id="1122">1122</a>
-<a href="#1123" id="1123">1123</a>
-<a href="#1124" id="1124">1124</a>
-<a href="#1125" id="1125">1125</a>
-<a href="#1126" id="1126">1126</a>
-<a href="#1127" id="1127">1127</a>
-<a href="#1128" id="1128">1128</a>
 </pre><pre class="rust"><code><span class="doccomment">//! Boa&#39;s implementation of ECMAScript&#39;s global `Function` object and Native Functions.
 //!
 //! Objects wrap `Function`s and expose them via call/construct slots.
@@ -1144,7 +1118,7 @@
     builtins::BuiltInObject,
     bytecompiler::FunctionCompiler,
     context::intrinsics::{Intrinsics, StandardConstructor, StandardConstructors},
-    environments::DeclarativeEnvironmentStack,
+    environments::EnvironmentStack,
     error::JsNativeError,
     js_string,
     native_function::NativeFunction,
@@ -1289,7 +1263,7 @@
         </span>code: Gc&lt;CodeBlock&gt;,
 
         <span class="doccomment">/// The `[[Environment]]` internal slot.
-        </span>environments: DeclarativeEnvironmentStack,
+        </span>environments: EnvironmentStack,
 
         <span class="doccomment">/// The `[[ConstructorKind]]` internal slot.
         </span>constructor_kind: ConstructorKind,
@@ -1313,7 +1287,7 @@
         </span>code: Gc&lt;CodeBlock&gt;,
 
         <span class="doccomment">/// The `[[Environment]]` internal slot.
-        </span>environments: DeclarativeEnvironmentStack,
+        </span>environments: EnvironmentStack,
 
         <span class="doccomment">/// The `[[HomeObject]]` internal slot.
         </span>home_object: <span class="prelude-ty">Option</span>&lt;JsObject&gt;,
@@ -1328,7 +1302,7 @@
         </span>code: Gc&lt;CodeBlock&gt;,
 
         <span class="doccomment">/// The `[[Environment]]` internal slot.
-        </span>environments: DeclarativeEnvironmentStack,
+        </span>environments: EnvironmentStack,
 
         <span class="doccomment">/// The `[[HomeObject]]` internal slot.
         </span>home_object: <span class="prelude-ty">Option</span>&lt;JsObject&gt;,
@@ -1343,7 +1317,7 @@
         </span>code: Gc&lt;CodeBlock&gt;,
 
         <span class="doccomment">/// The `[[Environment]]` internal slot.
-        </span>environments: DeclarativeEnvironmentStack,
+        </span>environments: EnvironmentStack,
 
         <span class="doccomment">/// The `[[HomeObject]]` internal slot.
         </span>home_object: <span class="prelude-ty">Option</span>&lt;JsObject&gt;,
@@ -1421,17 +1395,6 @@
 }
 
 <span class="kw">impl </span>Function {
-    <span class="doccomment">/// Returns true if the function object is a constructor.
-    </span><span class="kw">pub fn </span>is_constructor(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-        <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.kind {
-            FunctionKind::Native { constructor, .. } =&gt; constructor.is_some(),
-            FunctionKind::Generator { .. }
-            | FunctionKind::AsyncGenerator { .. }
-            | FunctionKind::Async { .. } =&gt; <span class="bool-val">false</span>,
-            FunctionKind::Ordinary { code, .. } =&gt; !(code.this_mode == ThisMode::Lexical),
-        }
-    }
-
     <span class="doccomment">/// Returns the codeblock of the function, or `None` if the function is a [`NativeFunction`].
     </span><span class="kw">pub fn </span>codeblock(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>CodeBlock&gt; {
         <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.kind {
@@ -1572,7 +1535,7 @@
         <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="string">&quot;function&quot;</span>, <span class="string">&quot;init&quot;</span>);
 
         <span class="kw">let </span>has_instance = BuiltInBuilder::callable(realm, <span class="self">Self</span>::has_instance)
-            .name(<span class="string">&quot;[Symbol.iterator]&quot;</span>)
+            .name(<span class="string">&quot;[Symbol.hasInstance]&quot;</span>)
             .length(<span class="number">1</span>)
             .build();
 
@@ -1726,17 +1689,22 @@
                 <span class="kw">let </span>parameters = parameters.join(<span class="macro">utf16!</span>(<span class="string">&quot;,&quot;</span>));
 
                 <span class="comment">// TODO: make parser generic to u32 iterators
-                </span><span class="kw">let </span>parameters =
-                    <span class="kw">match </span>Parser::new(Source::from_bytes(<span class="kw-2">&amp;</span>String::from_utf16_lossy(<span class="kw-2">&amp;</span>parameters)))
-                        .parse_formal_parameters(context.interner_mut(), generator, r#async)
-                    {
-                        <span class="prelude-val">Ok</span>(parameters) =&gt; parameters,
-                        <span class="prelude-val">Err</span>(e) =&gt; {
-                            <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::syntax()
-                                .with_message(<span class="macro">format!</span>(<span class="string">&quot;failed to parse function parameters: {e}&quot;</span>))
-                                .into())
-                        }
-                    };
+                </span><span class="kw">let </span>parameters = String::from_utf16_lossy(<span class="kw-2">&amp;</span>parameters);
+                <span class="kw">let </span><span class="kw-2">mut </span>parser = Parser::new(Source::from_bytes(<span class="kw-2">&amp;</span>parameters));
+                parser.set_identifier(context.next_parser_identifier());
+
+                <span class="kw">let </span>parameters = <span class="kw">match </span>parser.parse_formal_parameters(
+                    context.interner_mut(),
+                    generator,
+                    r#async,
+                ) {
+                    <span class="prelude-val">Ok</span>(parameters) =&gt; parameters,
+                    <span class="prelude-val">Err</span>(e) =&gt; {
+                        <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::syntax()
+                            .with_message(<span class="macro">format!</span>(<span class="string">&quot;failed to parse function parameters: {e}&quot;</span>))
+                            .into())
+                    }
+                };
 
                 <span class="kw">if </span>generator &amp;&amp; contains(<span class="kw-2">&amp;</span>parameters, ContainsSymbol::YieldExpression) {
                     <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::syntax().with_message(
@@ -1766,11 +1734,11 @@
             <span class="kw">let </span>body = <span class="string">b&quot;\n&quot;</span>.chain(body_arg.as_bytes()).chain(<span class="string">b&quot;\n&quot;</span>.as_slice());
 
             <span class="comment">// TODO: make parser generic to u32 iterators
-            </span><span class="kw">let </span>body = <span class="kw">match </span>Parser::new(Source::from_reader(body, <span class="prelude-val">None</span>)).parse_function_body(
-                context.interner_mut(),
-                generator,
-                r#async,
-            ) {
+            </span><span class="kw">let </span><span class="kw-2">mut </span>parser = Parser::new(Source::from_reader(body, <span class="prelude-val">None</span>));
+            parser.set_identifier(context.next_parser_identifier());
+
+            <span class="kw">let </span>body = <span class="kw">match </span>parser.parse_function_body(context.interner_mut(), generator, r#async)
+            {
                 <span class="prelude-val">Ok</span>(statement_list) =&gt; statement_list,
                 <span class="prelude-val">Err</span>(e) =&gt; {
                     <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::syntax()
@@ -1854,22 +1822,9 @@
             <span class="kw">let </span>environments = context.vm.environments.pop_to_global();
 
             <span class="kw">let </span>function_object = <span class="kw">if </span>generator {
-                <span class="kw">crate</span>::vm::create_generator_function_object(
-                    code,
-                    r#async,
-                    <span class="bool-val">false</span>,
-                    <span class="prelude-val">Some</span>(prototype),
-                    context,
-                )
+                <span class="kw">crate</span>::vm::create_generator_function_object(code, r#async, <span class="prelude-val">Some</span>(prototype), context)
             } <span class="kw">else </span>{
-                <span class="kw">crate</span>::vm::create_function_object(
-                    code,
-                    r#async,
-                    <span class="bool-val">false</span>,
-                    <span class="prelude-val">Some</span>(prototype),
-                    <span class="bool-val">false</span>,
-                    context,
-                )
+                <span class="kw">crate</span>::vm::create_function_object(code, r#async, prototype, context)
             };
 
             context.vm.environments.extend(environments);
@@ -1890,7 +1845,6 @@
             <span class="kw">let </span>function_object = <span class="kw">crate</span>::vm::create_generator_function_object(
                 code,
                 r#async,
-                <span class="bool-val">false</span>,
                 <span class="prelude-val">Some</span>(prototype),
                 context,
             );
@@ -1906,14 +1860,8 @@
             );
 
             <span class="kw">let </span>environments = context.vm.environments.pop_to_global();
-            <span class="kw">let </span>function_object = <span class="kw">crate</span>::vm::create_function_object(
-                code,
-                r#async,
-                <span class="bool-val">false</span>,
-                <span class="prelude-val">Some</span>(prototype),
-                <span class="bool-val">false</span>,
-                context,
-            );
+            <span class="kw">let </span>function_object =
+                <span class="kw">crate</span>::vm::create_function_object(code, r#async, prototype, context);
             context.vm.environments.extend(environments);
 
             <span class="prelude-val">Ok</span>(function_object)

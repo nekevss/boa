@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["LoopContinue","LoopEnd","LoopStart"]};
+window.SIDEBAR_ITEMS = {"struct":["LoopContinue","LoopEnd","LoopStart","LoopUpdateReturnValue"]};

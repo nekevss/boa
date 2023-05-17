@@ -1641,6 +1641,7 @@
 <a href="#1640" id="1640">1640</a>
 <a href="#1641" id="1641">1641</a>
 <a href="#1642" id="1642">1642</a>
+<a href="#1643" id="1643">1643</a>
 </pre><pre class="rust"><code><span class="doccomment">/// The opcodes of the vm.
 </span><span class="kw">use crate</span>::{vm::CompletionType, Context, JsResult};
 
@@ -1670,6 +1671,7 @@
 <span class="kw">mod </span>set;
 <span class="kw">mod </span>swap;
 <span class="kw">mod </span>switch;
+<span class="kw">mod </span>templates;
 <span class="kw">mod </span>to;
 <span class="kw">mod </span>unary_ops;
 <span class="kw">mod </span>value;
@@ -1721,6 +1723,8 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>swap::<span class="kw-2">*</span>;
 <span class="attr">#[doc(inline)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>switch::<span class="kw-2">*</span>;
+<span class="attr">#[doc(inline)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>templates::<span class="kw-2">*</span>;
 <span class="attr">#[doc(inline)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>to::<span class="kw-2">*</span>;
 <span class="attr">#[doc(inline)]
@@ -1807,7 +1811,7 @@
 }
 
 <span class="macro">generate_impl! </span>{
-    <span class="attr">#[derive(Debug, Clone, Copy, TryFromPrimitive)]
+    <span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
     #[repr(u8)]
     </span><span class="kw">pub enum </span>Opcode {
         <span class="doccomment">/// Pop the top value from the stack.
@@ -2281,13 +2285,6 @@
         /// Stack: value **=&gt;** (ToNumeric(value)), (value - 1)
         </span>DecPost,
 
-        <span class="doccomment">/// Declare and initialize a function argument.
-        ///
-        /// Operands: name_index: `u32`
-        ///
-        /// Stack: value **=&gt;**
-        </span>DefInitArg,
-
         <span class="doccomment">/// Declare `var` type variable.
         ///
         /// Operands: name_index: `u32`
@@ -2302,26 +2299,12 @@
         /// Stack: value **=&gt;**
         </span>DefInitVar,
 
-        <span class="doccomment">/// Declare `let` type variable.
-        ///
-        /// Operands: name_index: `u32`
-        ///
-        /// Stack: **=&gt;**
-        </span>DefLet,
-
-        <span class="doccomment">/// Declare and initialize `let` type variable.
+        <span class="doccomment">/// Initialize a lexical binding.
         ///
         /// Operands: name_index: `u32`
         ///
         /// Stack: value **=&gt;**
-        </span>DefInitLet,
-
-        <span class="doccomment">/// Declare and initialize `const` type variable.
-        ///
-        /// Operands: name_index: `u32`
-        ///
-        /// Stack: value **=&gt;**
-        </span>DefInitConst,
+        </span>PutLexicalValue,
 
         <span class="doccomment">/// Find a binding on the environment chain and push its value.
         ///
@@ -2832,14 +2815,14 @@
         ///
         /// Operands: Jump Address: u32, Target address: u32
         ///
-        /// Stack: **=&gt;**
+        /// Stack: loop_return_value **=&gt;**
         </span>Break,
 
         <span class="doccomment">/// Sets the `AbruptCompletionRecord` for a delayed continue
         ///
         /// Operands: Jump Address: u32, Target address: u32,
         ///
-        /// Stack: **=&gt;**
+        /// Stack: loop_return_value **=&gt;**
         </span>Continue,
 
         <span class="doccomment">/// Pops value converts it to boolean and pushes it back.
@@ -2936,14 +2919,14 @@
 
         <span class="doccomment">/// Get generator function from the pre-compiled inner functions.
         ///
-        /// Operands: address: `u32`, method: `u8`
+        /// Operands: address: `u32`,
         ///
         /// Stack: **=&gt;** func
         </span>GetGenerator,
 
         <span class="doccomment">/// Get async generator function from the pre-compiled inner functions.
         ///
-        /// Operands: address: `u32`, method: `u8`
+        /// Operands: address: `u32`,
         ///
         /// Stack: **=&gt;** func
         </span>GetGeneratorAsync,
@@ -3034,17 +3017,24 @@
 
         <span class="doccomment">/// Clean up environments when a loop continues.
         ///
-        /// Operands: Start Address: `u32`, Exit Address: `u32`
+        /// Operands:
         ///
         /// Stack: **=&gt;**
         </span>LoopContinue,
 
-        <span class="doccomment">/// Clean up environments at the end of a loop.
+        <span class="doccomment">/// Clean up environments at the end of a loop and return it&#39;s value.
         ///
         /// Operands:
         ///
-        /// Stack: **=&gt;**
+        /// Stack: **=&gt;** value
         </span>LoopEnd,
+
+        <span class="doccomment">/// Update the return value of a loop.
+        ///
+        /// Operands:
+        ///
+        /// Stack: loop_return_value **=&gt;**
+        </span>LoopUpdateReturnValue,
 
         <span class="doccomment">/// Push labelled start marker.
         ///
@@ -3259,6 +3249,20 @@
         /// Stack: value **=&gt;** is_object
         </span>IsObject,
 
+        <span class="doccomment">/// Lookup if a tagged template object is cached and skip the creation if it is.
+        ///
+        /// Operands: jump: `u32`, site: `u64`
+        ///
+        /// Stack: **=&gt;** template (if cached)
+        </span>TemplateLookup,
+
+        <span class="doccomment">/// Create a new tagged template object and cache it.
+        ///
+        /// Operands: count: `u32`, site: `u64`
+        ///
+        /// Stack: count * (cooked_value, raw_value) **=&gt;** template
+        </span>TemplateCreate,
+
         <span class="doccomment">/// No-operation instruction, does nothing.
         ///
         /// Operands:
@@ -3276,10 +3280,8 @@
 </span><span class="attr">#[derive(Clone, Copy, Debug)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>BindingOpcode {
     Var,
-    Let,
     InitVar,
     InitLet,
-    InitArg,
     InitConst,
     SetName,
 }
