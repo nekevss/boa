@@ -1105,14 +1105,21 @@
 <a href="#1104" id="1104">1104</a>
 <a href="#1105" id="1105">1105</a>
 <a href="#1106" id="1106">1106</a>
+<a href="#1107" id="1107">1107</a>
+<a href="#1108" id="1108">1108</a>
+<a href="#1109" id="1109">1109</a>
+<a href="#1110" id="1110">1110</a>
+<a href="#1111" id="1111">1111</a>
+<a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
 </pre><pre class="rust"><code><span class="doccomment">//! This module implements the `JsObject` structure.
 //!
 //! The `JsObject` is a garbage collected Object.
 
 </span><span class="kw">use super</span>::{
     internal_methods::{InternalObjectMethods, ARRAY_EXOTIC_INTERNAL_METHODS},
-    shape::{shared_shape::SharedShape, Shape},
-    JsPrototype, NativeObject, Object, PropertyMap,
+    shape::RootShape,
+    JsPrototype, NativeObject, Object, PrivateName, PropertyMap,
 };
 <span class="kw">use crate</span>::{
     context::intrinsics::Intrinsics,
@@ -1124,6 +1131,7 @@
     Context, JsResult, JsValue,
 };
 <span class="kw">use </span>boa_gc::{<span class="self">self</span>, Finalize, Gc, GcRefCell, Trace};
+<span class="kw">use </span>boa_interner::Sym;
 <span class="kw">use </span>std::{
     cell::RefCell,
     collections::HashMap,
@@ -1234,7 +1242,7 @@
     ///
     /// [`OrdinaryObjectCreate`]: https://tc39.es/ecma262/#sec-ordinaryobjectcreate
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>from_proto_and_data_with_shared_shape&lt;O: Into&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;&gt;&gt;(
-        root_shape: SharedShape,
+        root_shape: <span class="kw-2">&amp;</span>RootShape,
         prototype: O,
         data: ObjectData,
     ) -&gt; <span class="self">Self </span>{
@@ -1243,7 +1251,7 @@
                 object: GcRefCell::new(Object {
                     kind: data.kind,
                     properties: PropertyMap::from_prototype_with_shared_shape(
-                        Shape::shared(root_shape),
+                        root_shape,
                         prototype.into(),
                     ),
                     extensible: <span class="bool-val">true</span>,
@@ -1344,7 +1352,7 @@
         // a recursive structure
         // We can follow v8 &amp; SpiderMonkey&#39;s lead and return a default value for the hint in this situation
         // (see https://repl.it/repls/IvoryCircularCertification#index.js)
-        </span><span class="kw">let </span>recursion_limiter = RecursionLimiter::new(<span class="self">self</span>);
+        </span><span class="kw">let </span>recursion_limiter = RecursionLimiter::new(<span class="self">self</span>.as_ref());
         <span class="kw">if </span>recursion_limiter.live {
             <span class="comment">// we&#39;re in a recursive object, bail
             </span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="kw">match </span>hint {
@@ -2051,6 +2059,12 @@ Cannot both specify accessors and a value or writable attribute&quot;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>inner(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Gc&lt;VTableObject&gt; {
         <span class="kw-2">&amp;</span><span class="self">self</span>.inner
     }
+
+    <span class="doccomment">/// Create a new private name with this object as the unique identifier.
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>private_name(<span class="kw-2">&amp;</span><span class="self">self</span>, description: Sym) -&gt; PrivateName {
+        <span class="kw">let </span>ptr: <span class="kw-2">*const </span><span class="kw">_ </span>= <span class="self">self</span>.as_ref();
+        PrivateName::new(description, ptr <span class="kw">as </span>usize)
+    }
 }
 
 <span class="kw">impl </span>AsRef&lt;GcRefCell&lt;Object&gt;&gt; <span class="kw">for </span>JsObject {
@@ -2160,15 +2174,15 @@ Cannot both specify accessors and a value or writable attribute&quot;</span>,
 }
 
 <span class="kw">impl </span>RecursionLimiter {
-    <span class="doccomment">/// Determines if the specified `JsObject` has been visited, and returns a struct that will free it when dropped.
+    <span class="doccomment">/// Determines if the specified `T` has been visited, and returns a struct that will free it when dropped.
     ///
-    /// This is done by maintaining a thread-local hashset containing the pointers of `JsObject` values that have been
-    /// visited. The first `JsObject` visited will clear the hashset, while any others will check if they are contained
+    /// This is done by maintaining a thread-local hashset containing the pointers of `T` values that have been
+    /// visited. The first `T` visited will clear the hashset, while any others will check if they are contained
     /// by the hashset.
-    </span><span class="kw">pub fn </span>new(o: <span class="kw-2">&amp;</span>JsObject) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new&lt;T&gt;(o: <span class="kw-2">&amp;</span>T) -&gt; <span class="self">Self </span>{
         <span class="comment">// We shouldn&#39;t have to worry too much about this being moved during Debug::fmt.
         </span><span class="attr">#[allow(trivial_casts)]
-        </span><span class="kw">let </span>ptr = (o.as_ref() <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_</span>) <span class="kw">as </span>usize;
+        </span><span class="kw">let </span>ptr = (o <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_</span>) <span class="kw">as </span>usize;
         <span class="kw">let </span>(top_level, visited, live) = SEEN.with(|hm| {
             <span class="kw">let </span><span class="kw-2">mut </span>hm = hm.borrow_mut();
             <span class="kw">let </span>top_level = hm.is_empty();
@@ -2193,7 +2207,7 @@ Cannot both specify accessors and a value or writable attribute&quot;</span>,
 <span class="kw">impl </span>Debug <span class="kw">for </span>JsObject {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
         <span class="kw">let </span>ptr: <span class="kw-2">*const </span><span class="kw">_ </span>= <span class="self">self</span>.vtable();
-        <span class="kw">let </span>limiter = RecursionLimiter::new(<span class="self">self</span>);
+        <span class="kw">let </span>limiter = RecursionLimiter::new(<span class="self">self</span>.as_ref());
 
         <span class="comment">// Typically, using `!limiter.live` would be good enough here.
         // However, the JS object hierarchy involves quite a bit of repitition, and the sheer amount of data makes
