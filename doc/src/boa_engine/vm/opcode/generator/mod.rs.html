@@ -1,5 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/vm/opcode/generator/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" disabled href="../../../../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" disabled href="../../../../../static.files/ayu-be46fdc453a55015.css"><script src="../../../../../static.files/storage-3891ce972e3a2bf8.js"></script><script defer src="../../../../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../../../../source-files.js"></script><script defer src="../../../../../static.files/main-98a684e84ae5b08b.js"></script><noscript><link rel="stylesheet" href="../../../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/vm/opcode/generator/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../../../" data-static-root-path="../../../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0 (90c541806 2023-05-31)" data-search-js="search-e077946657036a58.js" data-settings-js="settings-298e1ea74db45b39.js" data-settings-css="settings-7bfb4c59cc6bc502.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../../../static.files/source-script-905937fbbdc8e9ea.js"></script><script defer src="../../../../../source-files.js"></script><script defer src="../../../../../static.files/main-f61008743c98d196.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../../boa_engine/index.html"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -408,7 +407,7 @@
 <a href="#407" id="407">407</a>
 <a href="#408" id="408">408</a>
 <a href="#409" id="409">409</a>
-</pre><pre class="rust"><code><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>yield_stm;
+</pre></div><pre class="rust"><code><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>yield_stm;
 
 <span class="kw">use crate</span>::{
     builtins::{
@@ -450,8 +449,8 @@
                     .iter()
                     .filter(|entry| entry.is_finally_env());
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(next_finally) = finally_entries.rev().next() {
-                    <span class="kw">if </span>context.vm.frame().pc &lt; next_finally.start_address() <span class="kw">as </span>usize {
-                        context.vm.frame_mut().pc = next_finally.start_address() <span class="kw">as </span>usize;
+                    <span class="kw">if </span>context.vm.frame().pc &lt; next_finally.start_address() {
+                        context.vm.frame_mut().pc = next_finally.start_address();
                         <span class="kw">let </span>return_record = AbruptCompletionRecord::new_return();
                         context.vm.frame_mut().abrupt_completion = <span class="prelude-val">Some</span>(return_record);
                         <span class="kw">return </span><span class="prelude-val">Ok</span>(CompletionType::Normal);
@@ -517,10 +516,10 @@
                     <span class="prelude-val">Err</span>(e) =&gt; e.clone().to_opaque(context),
                 };
                 context.vm.push(value);
-                context.vm.frame_mut().pc = skip_yield <span class="kw">as </span>usize;
+                context.vm.frame_mut().pc = skip_yield;
             } <span class="kw">else </span>{
                 context.vm.push(completion.clone()<span class="question-mark">?</span>);
-                context.vm.frame_mut().pc = skip_yield_await <span class="kw">as </span>usize;
+                context.vm.frame_mut().pc = skip_yield_await;
             }
         } <span class="kw">else </span>{
             gen.state = AsyncGeneratorState::SuspendedYield;
@@ -545,7 +544,7 @@
 
         <span class="kw">match </span>context.vm.frame().generator_resume_kind {
             GeneratorResumeKind::Normal =&gt; {
-                context.vm.frame_mut().pc = normal_completion <span class="kw">as </span>usize;
+                context.vm.frame_mut().pc = normal_completion;
                 <span class="prelude-val">Ok</span>(CompletionType::Normal)
             }
             GeneratorResumeKind::Throw =&gt; <span class="prelude-val">Err</span>(JsError::from_opaque(context.vm.pop())),
@@ -600,7 +599,7 @@
                 })<span class="question-mark">?</span>;
                 <span class="kw">let </span>done = result.get(<span class="macro">utf16!</span>(<span class="string">&quot;done&quot;</span>), context)<span class="question-mark">?</span>.to_boolean();
                 <span class="kw">if </span>done {
-                    context.vm.frame_mut().pc = done_address <span class="kw">as </span>usize;
+                    context.vm.frame_mut().pc = done_address;
                     <span class="kw">let </span>value = result.get(<span class="macro">utf16!</span>(<span class="string">&quot;value&quot;</span>), context)<span class="question-mark">?</span>;
                     context.vm.push(value);
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(CompletionType::Normal);
@@ -621,7 +620,7 @@
                     })<span class="question-mark">?</span>;
                     <span class="kw">let </span>done = result_object.get(<span class="macro">utf16!</span>(<span class="string">&quot;done&quot;</span>), context)<span class="question-mark">?</span>.to_boolean();
                     <span class="kw">if </span>done {
-                        context.vm.frame_mut().pc = done_address <span class="kw">as </span>usize;
+                        context.vm.frame_mut().pc = done_address;
                         <span class="kw">let </span>value = result_object.get(<span class="macro">utf16!</span>(<span class="string">&quot;value&quot;</span>), context)<span class="question-mark">?</span>;
                         context.vm.push(value);
                         <span class="kw">return </span><span class="prelude-val">Ok</span>(CompletionType::Normal);
@@ -632,7 +631,7 @@
                     context.vm.frame_mut().r#yield = <span class="bool-val">true</span>;
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(CompletionType::Return);
                 }
-                context.vm.frame_mut().pc = done_address <span class="kw">as </span>usize;
+                context.vm.frame_mut().pc = done_address;
                 <span class="kw">let </span>iterator_record = IteratorRecord::new(iterator.clone(), next_method, <span class="bool-val">false</span>);
                 iterator_record.close(<span class="prelude-val">Ok</span>(JsValue::Undefined), context)<span class="question-mark">?</span>;
 
@@ -712,7 +711,7 @@
                     context.vm.push(iterator.clone());
                     context.vm.push(next_method.clone());
                     context.vm.push(<span class="bool-val">false</span>);
-                    context.vm.frame_mut().pc = throw_method_undefined <span class="kw">as </span>usize;
+                    context.vm.frame_mut().pc = throw_method_undefined;
                 }
 
                 <span class="prelude-val">Ok</span>(CompletionType::Normal)
@@ -730,7 +729,7 @@
                 context.vm.push(iterator.clone());
                 context.vm.push(next_method.clone());
                 context.vm.push(received);
-                context.vm.frame_mut().pc = return_method_undefined <span class="kw">as </span>usize;
+                context.vm.frame_mut().pc = return_method_undefined;
                 <span class="prelude-val">Ok</span>(CompletionType::Normal)
             }
         }
@@ -772,7 +771,7 @@
                 <span class="kw">return </span>Return::execute(context);
             }
 
-            context.vm.frame_mut().pc = exit <span class="kw">as </span>usize;
+            context.vm.frame_mut().pc = exit;
             <span class="kw">return </span><span class="prelude-val">Ok</span>(CompletionType::Normal);
         }
 
@@ -806,10 +805,10 @@
                     <span class="prelude-val">Err</span>(e) =&gt; e.clone().to_opaque(context),
                 };
                 context.vm.push(value);
-                context.vm.frame_mut().pc = skip_yield <span class="kw">as </span>usize;
+                context.vm.frame_mut().pc = skip_yield;
             } <span class="kw">else </span>{
                 context.vm.push(completion.clone()<span class="question-mark">?</span>);
-                context.vm.frame_mut().pc = normal_completion <span class="kw">as </span>usize;
+                context.vm.frame_mut().pc = normal_completion;
             }
         } <span class="kw">else </span>{
             gen.state = AsyncGeneratorState::SuspendedYield;
@@ -817,5 +816,4 @@
         <span class="prelude-val">Ok</span>(CompletionType::Normal)
     }
 }
-</code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../../../../" data-static-root-path="../../../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0 (84c898d65 2023-04-16)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+</code></pre></div></section></main></body></html>

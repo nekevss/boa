@@ -1,5 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/module/source.rs`."><title>source.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" disabled href="../../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" disabled href="../../../static.files/ayu-be46fdc453a55015.css"><script src="../../../static.files/storage-3891ce972e3a2bf8.js"></script><script defer src="../../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-98a684e84ae5b08b.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html">
-                        <img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/module/source.rs`."><title>source.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0 (90c541806 2023-05-31)" data-search-js="search-e077946657036a58.js" data-settings-js="settings-298e1ea74db45b39.js" data-settings-css="settings-7bfb4c59cc6bc502.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../static.files/source-script-905937fbbdc8e9ea.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f61008743c98d196.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1909,7 +1908,74 @@
 <a href="#1908" id="1908">1908</a>
 <a href="#1909" id="1909">1909</a>
 <a href="#1910" id="1910">1910</a>
-</pre><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashSet, hash::Hash, rc::Rc};
+<a href="#1911" id="1911">1911</a>
+<a href="#1912" id="1912">1912</a>
+<a href="#1913" id="1913">1913</a>
+<a href="#1914" id="1914">1914</a>
+<a href="#1915" id="1915">1915</a>
+<a href="#1916" id="1916">1916</a>
+<a href="#1917" id="1917">1917</a>
+<a href="#1918" id="1918">1918</a>
+<a href="#1919" id="1919">1919</a>
+<a href="#1920" id="1920">1920</a>
+<a href="#1921" id="1921">1921</a>
+<a href="#1922" id="1922">1922</a>
+<a href="#1923" id="1923">1923</a>
+<a href="#1924" id="1924">1924</a>
+<a href="#1925" id="1925">1925</a>
+<a href="#1926" id="1926">1926</a>
+<a href="#1927" id="1927">1927</a>
+<a href="#1928" id="1928">1928</a>
+<a href="#1929" id="1929">1929</a>
+<a href="#1930" id="1930">1930</a>
+<a href="#1931" id="1931">1931</a>
+<a href="#1932" id="1932">1932</a>
+<a href="#1933" id="1933">1933</a>
+<a href="#1934" id="1934">1934</a>
+<a href="#1935" id="1935">1935</a>
+<a href="#1936" id="1936">1936</a>
+<a href="#1937" id="1937">1937</a>
+<a href="#1938" id="1938">1938</a>
+<a href="#1939" id="1939">1939</a>
+<a href="#1940" id="1940">1940</a>
+<a href="#1941" id="1941">1941</a>
+<a href="#1942" id="1942">1942</a>
+<a href="#1943" id="1943">1943</a>
+<a href="#1944" id="1944">1944</a>
+<a href="#1945" id="1945">1945</a>
+<a href="#1946" id="1946">1946</a>
+<a href="#1947" id="1947">1947</a>
+<a href="#1948" id="1948">1948</a>
+<a href="#1949" id="1949">1949</a>
+<a href="#1950" id="1950">1950</a>
+<a href="#1951" id="1951">1951</a>
+<a href="#1952" id="1952">1952</a>
+<a href="#1953" id="1953">1953</a>
+<a href="#1954" id="1954">1954</a>
+<a href="#1955" id="1955">1955</a>
+<a href="#1956" id="1956">1956</a>
+<a href="#1957" id="1957">1957</a>
+<a href="#1958" id="1958">1958</a>
+<a href="#1959" id="1959">1959</a>
+<a href="#1960" id="1960">1960</a>
+<a href="#1961" id="1961">1961</a>
+<a href="#1962" id="1962">1962</a>
+<a href="#1963" id="1963">1963</a>
+<a href="#1964" id="1964">1964</a>
+<a href="#1965" id="1965">1965</a>
+<a href="#1966" id="1966">1966</a>
+<a href="#1967" id="1967">1967</a>
+<a href="#1968" id="1968">1968</a>
+<a href="#1969" id="1969">1969</a>
+<a href="#1970" id="1970">1970</a>
+<a href="#1971" id="1971">1971</a>
+<a href="#1972" id="1972">1972</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+    cell::Cell,
+    collections::HashSet,
+    hash::{BuildHasherDefault, Hash},
+    rc::Rc,
+};
 
 <span class="kw">use </span>boa_ast::{
     declaration::{
@@ -1918,22 +1984,25 @@
     },
     operations::{
         bound_names, contains, lexically_scoped_declarations, var_scoped_declarations,
-        ContainsSymbol,
+        ContainsSymbol, LexicallyScopedDeclaration,
     },
-    Declaration, ModuleItemList,
 };
 <span class="kw">use </span>boa_gc::{custom_trace, empty_trace, Finalize, Gc, GcRefCell, Trace};
 <span class="kw">use </span>boa_interner::Sym;
-<span class="kw">use </span>rustc_hash::{FxHashMap, FxHashSet};
+<span class="kw">use </span>indexmap::IndexSet;
+<span class="kw">use </span>rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 
 <span class="kw">use crate</span>::{
     builtins::{promise::PromiseCapability, Promise},
-    bytecompiler::{ByteCompiler, NodeKind},
+    bytecompiler::{ByteCompiler, FunctionSpec},
     environments::{BindingLocator, CompileTimeEnvironment, EnvironmentStack},
     module::ModuleKind,
     object::{FunctionObjectBuilder, JsPromise, RecursionLimiter},
     realm::Realm,
-    vm::{CallFrame, CodeBlock, CompletionRecord, Opcode},
+    vm::{
+        create_function_object_fast, create_generator_function_object, ActiveRunnable, CallFrame,
+        CodeBlock, CompletionRecord, Opcode,
+    },
     Context, JsArgs, JsError, JsNativeError, JsObject, JsResult, JsString, JsValue, NativeFunction,
 };
 
@@ -2185,8 +2254,8 @@
 <span class="attr">#[derive(Debug)]
 </span><span class="kw">struct </span>ModuleCode {
     has_tla: bool,
-    requested_modules: FxHashSet&lt;Sym&gt;,
-    node: ModuleItemList,
+    requested_modules: IndexSet&lt;Sym, BuildHasherDefault&lt;FxHasher&gt;&gt;,
+    source: boa_ast::Module,
     import_entries: Vec&lt;ImportEntry&gt;,
     local_export_entries: Vec&lt;LocalExportEntry&gt;,
     indirect_export_entries: Vec&lt;IndirectExportEntry&gt;,
@@ -2208,16 +2277,16 @@
             .expect(<span class="string">&quot;parent module must be initialized&quot;</span>)
     }
 
-    <span class="doccomment">/// Creates a new `SourceTextModule` from a parsed `ModuleItemList`.
+    <span class="doccomment">/// Creates a new `SourceTextModule` from a parsed `ModuleSource`.
     ///
     /// Contains part of the abstract operation [`ParseModule`][parse].
     ///
     /// [parse]: https://tc39.es/ecma262/#sec-parsemodule
-    </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>new(code: ModuleItemList) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>new(code: boa_ast::Module) -&gt; <span class="self">Self </span>{
         <span class="comment">// 3. Let requestedModules be the ModuleRequests of body.
-        </span><span class="kw">let </span>requested_modules = code.requests();
+        </span><span class="kw">let </span>requested_modules = code.items().requests();
         <span class="comment">// 4. Let importEntries be ImportEntries of body.
-        </span><span class="kw">let </span>import_entries = code.import_entries();
+        </span><span class="kw">let </span>import_entries = code.items().import_entries();
 
         <span class="comment">// 5. Let importedBoundNames be ImportedLocalNames(importEntries).
         // Can be ignored because this is just a simple `Iter::map`
@@ -2230,7 +2299,7 @@
         </span><span class="kw">let </span><span class="kw-2">mut </span>star_export_entries = Vec::new();
 
         <span class="comment">// 10. For each ExportEntry Record ee of exportEntries, do
-        </span><span class="kw">for </span>ee <span class="kw">in </span>code.export_entries() {
+        </span><span class="kw">for </span>ee <span class="kw">in </span>code.items().export_entries() {
             <span class="kw">match </span>ee {
                 <span class="comment">// a. If ee.[[ModuleRequest]] is null, then
                 </span>ExportEntry::Ordinary(entry) =&gt; {
@@ -2300,7 +2369,7 @@
                 async_parent_modules: GcRefCell::default(),
                 import_meta: GcRefCell::default(),
                 code: ModuleCode {
-                    node: code,
+                    source: code,
                     requested_modules,
                     has_tla,
                     import_entries,
@@ -2526,8 +2595,8 @@
                     <span class="comment">// iii. Else,
                     //    1. Assert: module imports a specific binding for this export.
                     //    2. Return importedModule.ResolveExport(e.[[ImportName]], resolveSet).
-                    </span>ReExportImportName::Name(<span class="kw">_</span>) =&gt; {
-                        imported_module.resolve_export(export_name, resolve_set)
+                    </span>ReExportImportName::Name(name) =&gt; {
+                        imported_module.resolve_export(name, resolve_set)
                     }
                 };
             }
@@ -3315,7 +3384,7 @@
             ByteCompiler::new(Sym::MAIN, <span class="bool-val">true</span>, <span class="bool-val">false</span>, module_compile_env.clone(), context);
         <span class="kw">let </span><span class="kw-2">mut </span>imports = Vec::new();
 
-        <span class="kw">let </span>codeblock = {
+        <span class="kw">let </span>(codeblock, functions) = {
             <span class="comment">// 7. For each ImportEntry Record in of module.[[ImportEntries]], do
             </span><span class="kw">for </span>entry <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.inner.code.import_entries {
                 <span class="comment">// a. Let importedModule be GetImportedModule(module, in.[[ModuleRequest]]).
@@ -3360,7 +3429,7 @@
                         // deferred to initialization below
                         </span>imports.push(ImportBinding::Namespace {
                             locator,
-                            module: imported_module,
+                            module: resolution.module,
                         });
                     }
                 } <span class="kw">else </span>{
@@ -3381,7 +3450,7 @@
 
             <span class="comment">// 18. Let code be module.[[ECMAScriptCode]].
             // 19. Let varDeclarations be the VarScopedDeclarations of code.
-            </span><span class="kw">let </span>var_declarations = var_scoped_declarations(<span class="kw-2">&amp;</span><span class="self">self</span>.inner.code.node);
+            </span><span class="kw">let </span>var_declarations = var_scoped_declarations(<span class="kw-2">&amp;</span><span class="self">self</span>.inner.code.source);
             <span class="comment">// 20. Let declaredVarNames be a new empty List.
             </span><span class="kw">let </span><span class="kw-2">mut </span>declared_var_names = Vec::new();
             <span class="comment">// 21. For each element d of varDeclarations, do
@@ -3405,79 +3474,99 @@
 
             <span class="comment">// 22. Let lexDeclarations be the LexicallyScopedDeclarations of code.
             // 23. Let privateEnv be null.
-            </span><span class="kw">let </span>lex_declarations = lexically_scoped_declarations(<span class="kw-2">&amp;</span><span class="self">self</span>.inner.code.node);
+            </span><span class="kw">let </span>lex_declarations = lexically_scoped_declarations(<span class="kw-2">&amp;</span><span class="self">self</span>.inner.code.source);
+            <span class="kw">let </span><span class="kw-2">mut </span>functions = Vec::new();
             <span class="comment">// 24. For each element d of lexDeclarations, do
-            </span><span class="kw">for </span>declaration <span class="kw">in </span>lex_declarations {
-                <span class="kw">match </span><span class="kw-2">&amp;</span>declaration {
+            </span><span class="kw">for </span>declaration <span class="kw">in </span><span class="kw-2">&amp;</span>lex_declarations {
+                <span class="comment">// ii. Else,
+                // a. For each element dn of the BoundNames of d, do
+                // 1. Perform ! env.CreateMutableBinding(dn, false).
+                //
+                // iii. If d is either a FunctionDeclaration, a GeneratorDeclaration, an
+                //      AsyncFunctionDeclaration, or an AsyncGeneratorDeclaration, then
+                // 1. Let fo be InstantiateFunctionObject of d with arguments env and privateEnv.
+                // 2. Perform ! env.InitializeBinding(dn, fo).
+                //
+                // deferred to below.
+                </span><span class="kw">let </span>(spec, locator): (FunctionSpec&lt;<span class="lifetime">&#39;_</span>&gt;, <span class="kw">_</span>) = <span class="kw">match </span>declaration {
+                    LexicallyScopedDeclaration::Function(f) =&gt; {
+                        <span class="kw">let </span>name = bound_names(f)[<span class="number">0</span>];
+                        compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
+                        <span class="kw">let </span>locator = compiler.initialize_mutable_binding(name, <span class="bool-val">false</span>);
+
+                        (f.into(), locator)
+                    }
+                    LexicallyScopedDeclaration::Generator(g) =&gt; {
+                        <span class="kw">let </span>name = bound_names(g)[<span class="number">0</span>];
+                        compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
+                        <span class="kw">let </span>locator = compiler.initialize_mutable_binding(name, <span class="bool-val">false</span>);
+
+                        (g.into(), locator)
+                    }
+                    LexicallyScopedDeclaration::AsyncFunction(af) =&gt; {
+                        <span class="kw">let </span>name = bound_names(af)[<span class="number">0</span>];
+                        compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
+                        <span class="kw">let </span>locator = compiler.initialize_mutable_binding(name, <span class="bool-val">false</span>);
+
+                        (af.into(), locator)
+                    }
+                    LexicallyScopedDeclaration::AsyncGenerator(ag) =&gt; {
+                        <span class="kw">let </span>name = bound_names(ag)[<span class="number">0</span>];
+                        compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
+                        <span class="kw">let </span>locator = compiler.initialize_mutable_binding(name, <span class="bool-val">false</span>);
+
+                        (ag.into(), locator)
+                    }
+                    LexicallyScopedDeclaration::Class(class) =&gt; {
+                        <span class="kw">for </span>name <span class="kw">in </span>bound_names(class) {
+                            compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
+                        }
+                        <span class="kw">continue</span>;
+                    }
                     <span class="comment">// i. If IsConstantDeclaration of d is true, then
-                    </span>Declaration::Lexical(LexicalDeclaration::Const(declaration)) =&gt; {
+                    </span>LexicallyScopedDeclaration::LexicalDeclaration(LexicalDeclaration::Const(
+                        c,
+                    )) =&gt; {
                         <span class="comment">// a. For each element dn of the BoundNames of d, do
-                        </span><span class="kw">for </span>name <span class="kw">in </span>bound_names(declaration) {
+                        </span><span class="kw">for </span>name <span class="kw">in </span>bound_names(c) {
                             <span class="comment">// 1. Perform ! env.CreateImmutableBinding(dn, true).
                             </span>compiler.create_immutable_binding(name, <span class="bool-val">true</span>);
                         }
+                        <span class="kw">continue</span>;
                     }
-                    <span class="comment">// ii. Else,
-                    </span>Declaration::Lexical(LexicalDeclaration::Let(declaration)) =&gt; {
-                        <span class="comment">// a. For each element dn of the BoundNames of d, do
-                        </span><span class="kw">for </span>name <span class="kw">in </span>bound_names(declaration) {
-                            <span class="comment">// 1. Perform ! env.CreateMutableBinding(dn, false).
-                            </span>compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
-                        }
-                    }
-                    <span class="comment">// iii. If d is either a FunctionDeclaration, a GeneratorDeclaration, an
-                    //      AsyncFunctionDeclaration, or an AsyncGeneratorDeclaration, then
-                    </span>Declaration::Function(function) =&gt; {
-                        <span class="comment">// 1. Let fo be InstantiateFunctionObject of d with arguments env and privateEnv.
-                        // 2. Perform ! env.InitializeBinding(dn, fo).
-                        </span><span class="kw">for </span>name <span class="kw">in </span>bound_names(function) {
+                    LexicallyScopedDeclaration::LexicalDeclaration(LexicalDeclaration::Let(l)) =&gt; {
+                        <span class="kw">for </span>name <span class="kw">in </span>bound_names(l) {
                             compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
                         }
-                        compiler.function(function.into(), NodeKind::Declaration, <span class="bool-val">false</span>);
+                        <span class="kw">continue</span>;
                     }
-                    Declaration::Generator(function) =&gt; {
-                        <span class="comment">// 1. Let fo be InstantiateFunctionObject of d with arguments env and privateEnv.
-                        // 2. Perform ! env.InitializeBinding(dn, fo).
-                        </span><span class="kw">for </span>name <span class="kw">in </span>bound_names(function) {
+                    LexicallyScopedDeclaration::AssignmentExpression(expr) =&gt; {
+                        <span class="kw">for </span>name <span class="kw">in </span>bound_names(expr) {
                             compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
                         }
-                        compiler.function(function.into(), NodeKind::Declaration, <span class="bool-val">false</span>);
+                        <span class="kw">continue</span>;
                     }
-                    Declaration::AsyncFunction(function) =&gt; {
-                        <span class="comment">// 1. Let fo be InstantiateFunctionObject of d with arguments env and privateEnv.
-                        // 2. Perform ! env.InitializeBinding(dn, fo).
-                        </span><span class="kw">for </span>name <span class="kw">in </span>bound_names(function) {
-                            compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
-                        }
-                        compiler.function(function.into(), NodeKind::Declaration, <span class="bool-val">false</span>);
-                    }
-                    Declaration::AsyncGenerator(function) =&gt; {
-                        <span class="comment">// 1. Let fo be InstantiateFunctionObject of d with arguments env and privateEnv.
-                        // 2. Perform ! env.InitializeBinding(dn, fo).
-                        </span><span class="kw">for </span>name <span class="kw">in </span>bound_names(function) {
-                            compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
-                        }
-                        compiler.function(function.into(), NodeKind::Declaration, <span class="bool-val">false</span>);
-                    }
-                    Declaration::Class(class) =&gt; {
-                        <span class="comment">// 1. Let fo be InstantiateFunctionObject of d with arguments env and privateEnv.
-                        // 2. Perform ! env.InitializeBinding(dn, fo).
-                        </span><span class="kw">for </span>name <span class="kw">in </span>bound_names(class) {
-                            compiler.create_mutable_binding(name, <span class="bool-val">false</span>);
-                        }
-                    }
-                }
+                };
+
+                <span class="kw">let </span>kind = spec.kind;
+
+                functions.push((compiler.function(spec), locator, kind));
             }
 
-            compiler.compile_module_item_list(<span class="kw-2">&amp;</span><span class="self">self</span>.inner.code.node);
+            compiler.compile_module_item_list(<span class="self">self</span>.inner.code.source.items());
 
-            Gc::new(compiler.finish())
+            (Gc::new(compiler.finish()), functions)
         };
 
         <span class="comment">// 8. Let moduleContext be a new ECMAScript code execution context.
-        // 12. Set the ScriptOrModule of moduleContext to module.
         </span><span class="kw">let </span><span class="kw-2">mut </span>envs = EnvironmentStack::new(global_env);
         envs.push_module(module_compile_env);
+
+        <span class="comment">// 12. Set the ScriptOrModule of moduleContext to module.
+        </span><span class="kw">let </span>active_runnable = context
+            .vm
+            .active_runnable
+            .replace(ActiveRunnable::Module(parent.clone()));
 
         <span class="comment">// 13. Set the VariableEnvironment of moduleContext to module.[[Environment]].
         // 14. Set the LexicalEnvironment of moduleContext to module.[[Environment]].
@@ -3530,10 +3619,28 @@
             }
         }
 
+        <span class="comment">// deferred initialization of function exports
+        </span><span class="kw">for </span>(index, locator, kind) <span class="kw">in </span>functions {
+            <span class="kw">let </span>code = codeblock.functions[index <span class="kw">as </span>usize].clone();
+
+            <span class="kw">let </span>function = <span class="kw">if </span>kind.is_generator() {
+                create_generator_function_object(code, kind.is_async(), <span class="prelude-val">None</span>, context)
+            } <span class="kw">else </span>{
+                create_function_object_fast(code, kind.is_async(), <span class="bool-val">false</span>, <span class="bool-val">false</span>, context)
+            };
+
+            context.vm.environments.put_lexical_value(
+                locator.environment_index(),
+                locator.binding_index(),
+                function.into(),
+            );
+        }
+
         <span class="comment">// 25. Remove moduleContext from the execution context stack.
         </span>std::mem::swap(<span class="kw-2">&amp;mut </span>context.vm.environments, <span class="kw-2">&amp;mut </span>envs);
         context.vm.stack = stack;
         context.vm.active_function = active_function;
+        context.vm.active_runnable = active_runnable;
         context.swap_realm(<span class="kw-2">&amp;mut </span>realm);
 
         <span class="macro">debug_assert!</span>(envs.current().as_declarative().is_some());
@@ -3585,7 +3692,12 @@
         callframe.promise_capability = capability;
 
         <span class="comment">// 4. Set the ScriptOrModule of moduleContext to module.
-        // 5. Assert: module has been linked and declarations in its module environment have been instantiated.
+        </span><span class="kw">let </span>active_runnable = context
+            .vm
+            .active_runnable
+            .replace(ActiveRunnable::Module(<span class="self">self</span>.parent()));
+
+        <span class="comment">// 5. Assert: module has been linked and declarations in its module environment have been instantiated.
         // 6. Set the VariableEnvironment of moduleContext to module.[[Environment]].
         // 7. Set the LexicalEnvironment of moduleContext to module.[[Environment]].
         </span>std::mem::swap(<span class="kw-2">&amp;mut </span>context.vm.environments, <span class="kw-2">&amp;mut </span>environments);
@@ -3611,6 +3723,7 @@
         std::mem::swap(<span class="kw-2">&amp;mut </span>context.vm.environments, <span class="kw-2">&amp;mut </span>environments);
         context.vm.stack = stack;
         context.vm.active_function = function;
+        context.vm.active_runnable = active_runnable;
         context.swap_realm(<span class="kw-2">&amp;mut </span>realm);
         context.vm.pop_frame();
 
@@ -3622,6 +3735,16 @@
             <span class="comment">// 11. Return unused.
             </span><span class="prelude-val">Ok</span>(())
         }
+    }
+
+    <span class="doccomment">/// Gets the loaded modules of this module.
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>loaded_modules(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>GcRefCell&lt;FxHashMap&lt;Sym, Module&gt;&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.inner.loaded_modules
+    }
+
+    <span class="doccomment">/// Gets the import meta object of this module.
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>import_meta(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>GcRefCell&lt;<span class="prelude-ty">Option</span>&lt;JsObject&gt;&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.inner.import_meta
     }
 }
 
@@ -3819,5 +3942,4 @@
         std::ptr::hash(<span class="self">self</span>.inner.as_ref(), state);
     }
 }
-</code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0 (84c898d65 2023-04-16)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+</code></pre></div></section></main></body></html>
