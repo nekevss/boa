@@ -1524,6 +1524,15 @@
 <a href="#1524" id="1524">1524</a>
 <a href="#1525" id="1525">1525</a>
 <a href="#1526" id="1526">1526</a>
+<a href="#1527" id="1527">1527</a>
+<a href="#1528" id="1528">1528</a>
+<a href="#1529" id="1529">1529</a>
+<a href="#1530" id="1530">1530</a>
+<a href="#1531" id="1531">1531</a>
+<a href="#1532" id="1532">1532</a>
+<a href="#1533" id="1533">1533</a>
+<a href="#1534" id="1534">1534</a>
+<a href="#1535" id="1535">1535</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! `CodeBlock`
 //!
 //! This module is for the `CodeBlock` which implements a function representation in the VM
@@ -1545,11 +1554,16 @@
     Context, JsError, JsResult, JsString, JsValue,
 };
 <span class="kw">use </span>bitflags::bitflags;
-<span class="kw">use </span>boa_ast::function::{FormalParameterList, PrivateName};
-<span class="kw">use </span>boa_gc::{empty_trace, Finalize, Gc, GcRefCell, Trace};
+<span class="kw">use </span>boa_ast::function::FormalParameterList;
+<span class="kw">use </span>boa_gc::{empty_trace, Finalize, Gc, Trace};
 <span class="kw">use </span>boa_interner::Sym;
 <span class="kw">use </span>boa_profiler::Profiler;
-<span class="kw">use </span>std::{cell::Cell, collections::VecDeque, mem::size_of};
+<span class="kw">use </span>std::{
+    cell::{Cell, RefCell},
+    collections::VecDeque,
+    mem::size_of,
+    rc::Rc,
+};
 <span class="kw">use </span>thin_vec::ThinVec;
 
 <span class="attr">#[cfg(any(feature = <span class="string">&quot;trace&quot;</span>, feature = <span class="string">&quot;flowgraph&quot;</span>))]
@@ -1600,6 +1614,9 @@
         /// The `&quot;arguments&quot;` binding is the first binding.
         </span><span class="kw">const </span>NEEDS_ARGUMENTS_OBJECT = <span class="number">0b0001_0000</span>;
 
+        <span class="doccomment">/// The `[[ClassFieldInitializerName]]` internal slot.
+        </span><span class="kw">const </span>IN_CLASS_FIELD_INITIALIZER = <span class="number">0b0010_0000</span>;
+
         <span class="doccomment">/// Trace instruction execution to `stdout`.
         </span><span class="attr">#[cfg(feature = <span class="string">&quot;trace&quot;</span>)]
         </span><span class="kw">const </span>TRACEABLE = <span class="number">0b1000_0000</span>;
@@ -1641,12 +1658,8 @@
     <span class="doccomment">/// Literals
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) literals: Box&lt;[JsValue]&gt;,
 
-    <span class="doccomment">/// Property field names.
+    <span class="doccomment">/// Property field names and private names `[[description]]`s.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) names: Box&lt;[JsString]&gt;,
-
-    <span class="doccomment">/// Private names.
-    </span><span class="attr">#[unsafe_ignore_trace]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) private_names: Box&lt;[PrivateName]&gt;,
 
     <span class="doccomment">/// Locators for all bindings in the codeblock.
     </span><span class="attr">#[unsafe_ignore_trace]
@@ -1656,11 +1669,12 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) functions: Box&lt;[Gc&lt;<span class="self">Self</span>&gt;]&gt;,
 
     <span class="doccomment">/// Compile time environments in this function.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) compile_environments: Box&lt;[Gc&lt;GcRefCell&lt;CompileTimeEnvironment&gt;&gt;]&gt;,
-
-    <span class="doccomment">/// The `[[ClassFieldInitializerName]]` internal slot.
+    ///
+    </span><span class="comment">// Safety: Nothing in CompileTimeEnvironment needs tracing, so this is safe.
+    //
+    // TODO(#3034): Maybe changing this to Gc after garbage collection would be better than Rc.
     </span><span class="attr">#[unsafe_ignore_trace]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) class_field_initializer_name: <span class="prelude-ty">Option</span>&lt;Sym&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) compile_environments: Box&lt;[Rc&lt;RefCell&lt;CompileTimeEnvironment&gt;&gt;]&gt;,
 }
 
 <span class="doccomment">/// ---- `CodeBlock` public API ----
@@ -1674,7 +1688,6 @@
             bytecode: Box::default(),
             literals: Box::default(),
             names: Box::default(),
-            private_names: Box::default(),
             bindings: Box::default(),
             functions: Box::default(),
             name,
@@ -1683,7 +1696,6 @@
             this_mode: ThisMode::Global,
             params: FormalParameterList::default(),
             compile_environments: Box::default(),
-            class_field_initializer_name: <span class="prelude-val">None</span>,
         }
     }
 
@@ -1738,6 +1750,13 @@
         <span class="self">self</span>.flags
             .get()
             .contains(CodeBlockFlags::NEEDS_ARGUMENTS_OBJECT)
+    }
+
+    <span class="doccomment">/// Does this function have the `[[ClassFieldInitializerName]]` internal slot set to non-empty value.
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>in_class_field_initializer(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="self">self</span>.flags
+            .get()
+            .contains(CodeBlockFlags::IN_CLASS_FIELD_INITIALIZER)
     }
 }
 
@@ -1831,7 +1850,6 @@
             | Opcode::JumpIfFalse
             | Opcode::JumpIfNotUndefined
             | Opcode::JumpIfNullOrUndefined
-            | Opcode::CatchStart
             | Opcode::FinallyStart
             | Opcode::LabelledStart
             | Opcode::Case
@@ -1843,10 +1861,7 @@
             | Opcode::Call
             | Opcode::New
             | Opcode::SuperCall
-            | Opcode::IteratorUnwrapNextOrJump
-            | Opcode::ConcatToString
-            | Opcode::GeneratorAsyncResumeYield
-            | Opcode::GeneratorNextDelegate =&gt; {
+            | Opcode::ConcatToString =&gt; {
                 <span class="kw">let </span>result = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc).to_string();
                 <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
                 result
@@ -1860,9 +1875,10 @@
             | Opcode::Break
             | Opcode::Continue
             | Opcode::LoopStart
+            | Opcode::IteratorLoopStart
             | Opcode::TryStart
-            | Opcode::AsyncGeneratorNext
-            | Opcode::GeneratorAsyncDelegateNext =&gt; {
+            | Opcode::GeneratorDelegateNext
+            | Opcode::GeneratorDelegateResume =&gt; {
                 <span class="kw">let </span>operand1 = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
                 <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
                 <span class="kw">let </span>operand2 = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
@@ -1875,15 +1891,6 @@
                 <span class="kw">let </span>operand2 = <span class="self">self</span>.read::&lt;u64&gt;(<span class="kw-2">*</span>pc);
                 <span class="kw-2">*</span>pc += size_of::&lt;u64&gt;();
                 <span class="macro">format!</span>(<span class="string">&quot;{operand1}, {operand2}&quot;</span>)
-            }
-            Opcode::GeneratorAsyncDelegateResume =&gt; {
-                <span class="kw">let </span>operand1 = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
-                <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
-                <span class="kw">let </span>operand2 = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
-                <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
-                <span class="kw">let </span>operand3 = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
-                <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
-                <span class="macro">format!</span>(<span class="string">&quot;{operand1}, {operand2}, {operand3}&quot;</span>)
             }
             Opcode::GetArrowFunction
             | Opcode::GetAsyncArrowFunction
@@ -1899,6 +1906,7 @@
             }
             Opcode::GetGenerator | Opcode::GetGeneratorAsync =&gt; {
                 <span class="kw">let </span>operand = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
+                <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
                 <span class="macro">format!</span>(
                     <span class="string">&quot;{operand:04}: &#39;{}&#39; (length: {})&quot;</span>,
                     interner.resolve_expect(<span class="self">self</span>.functions[operand <span class="kw">as </span>usize].name),
@@ -1934,15 +1942,8 @@
             | Opcode::SetPropertySetterByName
             | Opcode::DefineClassStaticSetterByName
             | Opcode::DefineClassSetterByName
-            | Opcode::DeletePropertyByName =&gt; {
-                <span class="kw">let </span>operand = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
-                <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
-                <span class="macro">format!</span>(
-                    <span class="string">&quot;{operand:04}: &#39;{}&#39;&quot;</span>,
-                    <span class="self">self</span>.names[operand <span class="kw">as </span>usize].to_std_string_escaped(),
-                )
-            }
-            Opcode::SetPrivateField
+            | Opcode::DeletePropertyByName
+            | Opcode::SetPrivateField
             | Opcode::DefinePrivateField
             | Opcode::SetPrivateMethod
             | Opcode::SetPrivateSetter
@@ -1952,12 +1953,13 @@
             | Opcode::PushClassPrivateGetter
             | Opcode::PushClassPrivateSetter
             | Opcode::PushClassPrivateMethod
-            | Opcode::InPrivate =&gt; {
+            | Opcode::InPrivate
+            | Opcode::ThrowMutateImmutable =&gt; {
                 <span class="kw">let </span>operand = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
                 <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
                 <span class="macro">format!</span>(
                     <span class="string">&quot;{operand:04}: &#39;{}&#39;&quot;</span>,
-                    interner.resolve_expect(<span class="self">self</span>.private_names[operand <span class="kw">as </span>usize].description()),
+                    <span class="self">self</span>.names[operand <span class="kw">as </span>usize].to_std_string_escaped(),
                 )
             }
             Opcode::PushPrivateEnvironment =&gt; {
@@ -1965,8 +1967,21 @@
                 <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;() * (count <span class="kw">as </span>usize + <span class="number">1</span>);
                 String::new()
             }
+            Opcode::GeneratorJumpOnResumeKind =&gt; {
+                <span class="kw">let </span>normal = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
+                <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
+                <span class="kw">let </span>throw = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
+                <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
+                <span class="kw">let </span>r#return = <span class="self">self</span>.read::&lt;u32&gt;(<span class="kw-2">*</span>pc);
+                <span class="kw-2">*</span>pc += size_of::&lt;u32&gt;();
+                <span class="macro">format!</span>(<span class="string">&quot;n: {normal}, t: {throw}, r: {return}&quot;</span>)
+            }
+            Opcode::CreateIteratorResult =&gt; {
+                <span class="kw">let </span>done = <span class="self">self</span>.read::&lt;u8&gt;(<span class="kw-2">*</span>pc) != <span class="number">0</span>;
+                <span class="kw-2">*</span>pc += size_of::&lt;u8&gt;();
+                <span class="macro">format!</span>(<span class="string">&quot;done: {done}&quot;</span>)
+            }
             Opcode::Pop
-            | Opcode::PopIfThrown
             | Opcode::Dup
             | Opcode::Swap
             | Opcode::PushZero
@@ -1982,6 +1997,7 @@
             | Opcode::PushClassPrototype
             | Opcode::SetClassPrototype
             | Opcode::SetHomeObject
+            | Opcode::SetHomeObjectClass
             | Opcode::Add
             | Opcode::Sub
             | Opcode::Div
@@ -2032,8 +2048,6 @@
             | Opcode::ToBoolean
             | Opcode::Throw
             | Opcode::TryEnd
-            | Opcode::CatchEnd
-            | Opcode::CatchEnd2
             | Opcode::FinallyEnd
             | Opcode::This
             | Opcode::Super
@@ -2041,19 +2055,20 @@
             | Opcode::PopEnvironment
             | Opcode::LoopEnd
             | Opcode::LoopContinue
-            | Opcode::LoopUpdateReturnValue
             | Opcode::LabelledEnd
             | Opcode::CreateForInIterator
             | Opcode::GetIterator
             | Opcode::GetAsyncIterator
             | Opcode::GeneratorResumeReturn
             | Opcode::IteratorNext
-            | Opcode::IteratorNextSetDone
-            | Opcode::IteratorUnwrapNext
-            | Opcode::IteratorUnwrapValue
+            | Opcode::IteratorFinishAsyncNext
+            | Opcode::IteratorValue
+            | Opcode::IteratorResult
+            | Opcode::IteratorDone
             | Opcode::IteratorToArray
-            | Opcode::IteratorClosePush
-            | Opcode::IteratorClosePop
+            | Opcode::IteratorPop
+            | Opcode::IteratorReturn
+            | Opcode::IteratorStackEmpty
             | Opcode::RequireObjectCoercible
             | Opcode::ValueNotNullOrUndefined
             | Opcode::RestParameterInit
@@ -2062,10 +2077,10 @@
             | Opcode::PushElisionToArray
             | Opcode::PushIteratorToArray
             | Opcode::PushNewArray
-            | Opcode::PopOnReturnAdd
-            | Opcode::PopOnReturnSub
-            | Opcode::Yield
+            | Opcode::GeneratorYield
+            | Opcode::AsyncGeneratorYield
             | Opcode::GeneratorNext
+            | Opcode::GeneratorSetReturn
             | Opcode::PushClassField
             | Opcode::SuperCallDerived
             | Opcode::Await
@@ -2082,6 +2097,8 @@
             | Opcode::SetNameByLocator
             | Opcode::PopPrivateEnvironment
             | Opcode::ImportCall
+            | Opcode::GetReturnValue
+            | Opcode::SetReturnValue
             | Opcode::Nop =&gt; String::new(),
             Opcode::Reserved1
             | Opcode::Reserved2
@@ -2931,10 +2948,11 @@
                 );
 
                 <span class="kw">if </span>code.has_parameters_env_bindings() {
+                    last_env -= <span class="number">1</span>;
                     context
                         .vm
                         .environments
-                        .push_lexical(code.compile_environments[<span class="number">0</span>].clone());
+                        .push_lexical(code.compile_environments[last_env].clone());
                 }
 
                 <span class="comment">// Taken from: `FunctionDeclarationInstantiation` abstract function.

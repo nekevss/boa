@@ -1166,8 +1166,37 @@
 <a href="#1166" id="1166">1166</a>
 <a href="#1167" id="1167">1167</a>
 <a href="#1168" id="1168">1168</a>
+<a href="#1169" id="1169">1169</a>
+<a href="#1170" id="1170">1170</a>
+<a href="#1171" id="1171">1171</a>
+<a href="#1172" id="1172">1172</a>
+<a href="#1173" id="1173">1173</a>
+<a href="#1174" id="1174">1174</a>
+<a href="#1175" id="1175">1175</a>
+<a href="#1176" id="1176">1176</a>
+<a href="#1177" id="1177">1177</a>
+<a href="#1178" id="1178">1178</a>
+<a href="#1179" id="1179">1179</a>
+<a href="#1180" id="1180">1180</a>
+<a href="#1181" id="1181">1181</a>
+<a href="#1182" id="1182">1182</a>
+<a href="#1183" id="1183">1183</a>
+<a href="#1184" id="1184">1184</a>
+<a href="#1185" id="1185">1185</a>
+<a href="#1186" id="1186">1186</a>
+<a href="#1187" id="1187">1187</a>
+<a href="#1188" id="1188">1188</a>
+<a href="#1189" id="1189">1189</a>
+<a href="#1190" id="1190">1190</a>
+<a href="#1191" id="1191">1191</a>
+<a href="#1192" id="1192">1192</a>
+<a href="#1193" id="1193">1193</a>
+<a href="#1194" id="1194">1194</a>
+<a href="#1195" id="1195">1195</a>
+<a href="#1196" id="1196">1196</a>
 </pre></div><pre class="rust"><code><span class="kw">use crate</span>::{
     bytecompiler::{ByteCompiler, FunctionCompiler, FunctionSpec, Label, NodeKind},
+    environments::BindingLocatorError,
     vm::{
         create_function_object_fast, create_generator_function_object, BindingOpcode,
         CodeBlockFlags, Opcode,
@@ -1440,6 +1469,9 @@
                     <span class="self">self</span>.context,
                 );
 
+            <span class="comment">// Ensures global functions are printed when generating the global flowgraph.
+            </span><span class="self">self</span>.functions.push(code.clone());
+
             <span class="comment">// b. Let fo be InstantiateFunctionObject of f with arguments env and privateEnv.
             </span><span class="kw">let </span>function = <span class="kw">if </span>generator {
                 create_generator_function_object(code, r#async, <span class="prelude-val">None</span>, <span class="self">self</span>.context)
@@ -1602,6 +1634,15 @@
         //            append binding.[[Description]] to privateIdentifiers.
         //     b. Set pointer to pointer.[[OuterPrivateEnvironment]].
         </span><span class="kw">let </span>private_identifiers = <span class="self">self</span>.context.vm.environments.private_name_descriptions();
+        <span class="kw">let </span>private_identifiers = private_identifiers
+            .into_iter()
+            .map(|ident| {
+                <span class="self">self</span>.context
+                    .interner()
+                    .get(ident.as_slice())
+                    .expect(<span class="string">&quot;string should be in interner&quot;</span>)
+            })
+            .collect();
 
         <span class="comment">// 7. If AllPrivateIdentifiersValid of body with argument privateIdentifiers is false, throw a SyntaxError exception.
         </span><span class="kw">if </span>!all_private_identifiers_valid(body, private_identifiers) {
@@ -1854,6 +1895,9 @@
 
             <span class="comment">// c. If varEnv is a Global Environment Record, then
             </span><span class="kw">if </span>var_environment_is_global {
+                <span class="comment">// Ensures global functions are printed when generating the global flowgraph.
+                </span><span class="self">self</span>.functions.push(code.clone());
+
                 <span class="comment">// b. Let fo be InstantiateFunctionObject of f with arguments lexEnv and privateEnv.
                 </span><span class="kw">let </span>function = <span class="kw">if </span>generator {
                     create_generator_function_object(code, r#async, <span class="prelude-val">None</span>, <span class="self">self</span>.context)
@@ -1890,9 +1934,19 @@
                 // iii. Else,
                 </span><span class="kw">if </span>binding_exists {
                     <span class="comment">// 1. Perform ! varEnv.SetMutableBinding(fn, fo, false).
-                    </span><span class="kw">let </span>binding = <span class="self">self</span>.set_mutable_binding(name);
-                    <span class="kw">let </span>index = <span class="self">self</span>.get_or_insert_binding(binding);
-                    <span class="self">self</span>.emit(Opcode::SetName, <span class="kw-2">&amp;</span>[index]);
+                    </span><span class="kw">match </span><span class="self">self</span>.set_mutable_binding(name) {
+                        <span class="prelude-val">Ok</span>(binding) =&gt; {
+                            <span class="kw">let </span>index = <span class="self">self</span>.get_or_insert_binding(binding);
+                            <span class="self">self</span>.emit(Opcode::SetName, <span class="kw-2">&amp;</span>[index]);
+                        }
+                        <span class="prelude-val">Err</span>(BindingLocatorError::MutateImmutable) =&gt; {
+                            <span class="kw">let </span>index = <span class="self">self</span>.get_or_insert_name(name);
+                            <span class="self">self</span>.emit(Opcode::ThrowMutateImmutable, <span class="kw-2">&amp;</span>[index]);
+                        }
+                        <span class="prelude-val">Err</span>(BindingLocatorError::Silent) =&gt; {
+                            <span class="self">self</span>.emit(Opcode::Pop, <span class="kw-2">&amp;</span>[]);
+                        }
+                    }
                 } <span class="kw">else </span>{
                     <span class="comment">// 1. NOTE: The following invocation cannot return an abrupt completion because of the validation preceding step 14.
                     // 2. Perform ! varEnv.CreateMutableBinding(fn, true).
@@ -2156,7 +2210,9 @@
         }
         <span class="kw">if </span>generator {
             <span class="self">self</span>.emit_opcode(Opcode::PushUndefined);
-            <span class="self">self</span>.emit_opcode(Opcode::Yield);
+            <span class="comment">// Don&#39;t need to use `AsyncGeneratorYield` since
+            // we just want to stop the execution of the generator.
+            </span><span class="self">self</span>.emit_opcode(Opcode::GeneratorYield);
         }
 
         <span class="comment">// 27. If hasParameterExpressions is false, then
