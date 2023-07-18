@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/environments/compile.rs`."><title>compile.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0 (90c541806 2023-05-31)" data-search-js="search-e077946657036a58.js" data-settings-js="settings-298e1ea74db45b39.js" data-settings-css="settings-7bfb4c59cc6bc502.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../static.files/source-script-905937fbbdc8e9ea.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f61008743c98d196.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/environments/compile.rs`."><title>compile.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0 (8ede3aae2 2023-07-12)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -297,15 +297,6 @@
 <a href="#297" id="297">297</a>
 <a href="#298" id="298">298</a>
 <a href="#299" id="299">299</a>
-<a href="#300" id="300">300</a>
-<a href="#301" id="301">301</a>
-<a href="#302" id="302">302</a>
-<a href="#303" id="303">303</a>
-<a href="#304" id="304">304</a>
-<a href="#305" id="305">305</a>
-<a href="#306" id="306">306</a>
-<a href="#307" id="307">307</a>
-<a href="#308" id="308">308</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::RefCell, rc::Rc};
 
 <span class="kw">use </span><span class="kw">crate</span>::environments::runtime::BindingLocator;
@@ -332,9 +323,9 @@
 /// A compile time environment also indicates, if it is a function environment.
 </span><span class="attr">#[derive(Debug, Finalize)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>CompileTimeEnvironment {
-    outer: <span class="prelude-ty">Option</span>&lt;Rc&lt;RefCell&lt;<span class="self">Self</span>&gt;&gt;&gt;,
+    outer: <span class="prelude-ty">Option</span>&lt;Rc&lt;<span class="self">Self</span>&gt;&gt;,
     environment_index: u32,
-    bindings: FxHashMap&lt;Identifier, CompileTimeBinding&gt;,
+    bindings: RefCell&lt;FxHashMap&lt;Identifier, CompileTimeBinding&gt;&gt;,
     function_scope: bool,
 }
 
@@ -349,18 +340,18 @@
         <span class="self">Self </span>{
             outer: <span class="prelude-val">None</span>,
             environment_index: <span class="number">0</span>,
-            bindings: FxHashMap::default(),
+            bindings: RefCell::default(),
             function_scope: <span class="bool-val">true</span>,
         }
     }
 
     <span class="doccomment">/// Creates a new compile time environment.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(parent: Rc&lt;RefCell&lt;<span class="self">Self</span>&gt;&gt;, function_scope: bool) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span>index = parent.borrow().environment_index + <span class="number">1</span>;
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(parent: Rc&lt;<span class="self">Self</span>&gt;, function_scope: bool) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>index = parent.environment_index + <span class="number">1</span>;
         <span class="self">Self </span>{
             outer: <span class="prelude-val">Some</span>(parent),
             environment_index: index,
-            bindings: FxHashMap::default(),
+            bindings: RefCell::default(),
             function_scope,
         }
     }
@@ -368,6 +359,7 @@
     <span class="doccomment">/// Check if environment has a lexical binding with the given name.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>has_lex_binding(<span class="kw-2">&amp;</span><span class="self">self</span>, name: Identifier) -&gt; bool {
         <span class="self">self</span>.bindings
+            .borrow()
             .get(<span class="kw-2">&amp;</span>name)
             .map_or(<span class="bool-val">false</span>, |binding| binding.lex)
     }
@@ -375,15 +367,15 @@
     <span class="attr">#[cfg(feature = <span class="string">&quot;annex-b&quot;</span>)]
     </span><span class="doccomment">/// Check if the environment has a binding with the given name.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>has_binding(<span class="kw-2">&amp;</span><span class="self">self</span>, name: Identifier) -&gt; bool {
-        <span class="self">self</span>.bindings.contains_key(<span class="kw-2">&amp;</span>name)
+        <span class="self">self</span>.bindings.borrow().contains_key(<span class="kw-2">&amp;</span>name)
     }
 
     <span class="doccomment">/// Checks if `name` is a lexical binding.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>is_lex_binding(<span class="kw-2">&amp;</span><span class="self">self</span>, name: Identifier) -&gt; bool {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(binding) = <span class="self">self</span>.bindings.get(<span class="kw-2">&amp;</span>name) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(binding) = <span class="self">self</span>.bindings.borrow().get(<span class="kw-2">&amp;</span>name) {
             binding.lex
         } <span class="kw">else if let </span><span class="prelude-val">Some</span>(outer) = <span class="kw-2">&amp;</span><span class="self">self</span>.outer {
-            outer.borrow().is_lex_binding(name)
+            outer.is_lex_binding(name)
         } <span class="kw">else </span>{
             <span class="bool-val">false
         </span>}
@@ -391,7 +383,7 @@
 
     <span class="doccomment">/// Returns the number of bindings in this environment.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>num_bindings(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32 {
-        <span class="self">self</span>.bindings.len() <span class="kw">as </span>u32
+        <span class="self">self</span>.bindings.borrow().len() <span class="kw">as </span>u32
     }
 
     <span class="doccomment">/// Check if the environment is a function environment.
@@ -402,16 +394,17 @@
     <span class="doccomment">/// Get the locator for a binding name.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_binding(<span class="kw-2">&amp;</span><span class="self">self</span>, name: Identifier) -&gt; <span class="prelude-ty">Option</span>&lt;BindingLocator&gt; {
         <span class="self">self</span>.bindings
+            .borrow()
             .get(<span class="kw-2">&amp;</span>name)
             .map(|binding| BindingLocator::declarative(name, <span class="self">self</span>.environment_index, binding.index))
     }
 
     <span class="doccomment">/// Get the locator for a binding name in this and all outer environments.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_binding_recursive(<span class="kw-2">&amp;</span><span class="self">self</span>, name: Identifier) -&gt; BindingLocator {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(binding) = <span class="self">self</span>.bindings.get(<span class="kw-2">&amp;</span>name) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(binding) = <span class="self">self</span>.bindings.borrow().get(<span class="kw-2">&amp;</span>name) {
             BindingLocator::declarative(name, <span class="self">self</span>.environment_index, binding.index)
         } <span class="kw">else if let </span><span class="prelude-val">Some</span>(outer) = <span class="kw-2">&amp;</span><span class="self">self</span>.outer {
-            outer.borrow().get_binding_recursive(name)
+            outer.get_binding_recursive(name)
         } <span class="kw">else </span>{
             BindingLocator::global(name)
         }
@@ -419,10 +412,10 @@
 
     <span class="doccomment">/// Check if a binding name exists in this and all outer environments.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>has_binding_recursive(<span class="kw-2">&amp;</span><span class="self">self</span>, name: Identifier) -&gt; bool {
-        <span class="kw">if </span><span class="self">self</span>.bindings.contains_key(<span class="kw-2">&amp;</span>name) {
+        <span class="kw">if </span><span class="self">self</span>.bindings.borrow().contains_key(<span class="kw-2">&amp;</span>name) {
             <span class="bool-val">true
         </span>} <span class="kw">else if let </span><span class="prelude-val">Some</span>(outer) = <span class="kw-2">&amp;</span><span class="self">self</span>.outer {
-            outer.borrow().has_binding_recursive(name)
+            outer.has_binding_recursive(name)
         } <span class="kw">else </span>{
             <span class="bool-val">false
         </span>}
@@ -431,7 +424,7 @@
     <span class="doccomment">/// Check if a binding name exists in a environment.
     /// If strict is `false` check until a function scope is reached.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>has_binding_eval(<span class="kw-2">&amp;</span><span class="self">self</span>, name: Identifier, strict: bool) -&gt; bool {
-        <span class="kw">let </span>exists = <span class="self">self</span>.bindings.contains_key(<span class="kw-2">&amp;</span>name);
+        <span class="kw">let </span>exists = <span class="self">self</span>.bindings.borrow().contains_key(<span class="kw-2">&amp;</span>name);
         <span class="kw">if </span>exists || strict {
             <span class="kw">return </span>exists;
         }
@@ -439,7 +432,7 @@
             <span class="kw">return </span><span class="bool-val">false</span>;
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(outer) = <span class="kw-2">&amp;</span><span class="self">self</span>.outer {
-            outer.borrow().has_binding_eval(name, <span class="bool-val">false</span>)
+            outer.has_binding_eval(name, <span class="bool-val">false</span>)
         } <span class="kw">else </span>{
             <span class="bool-val">false
         </span>}
@@ -452,11 +445,11 @@
         <span class="kw">if </span><span class="self">self</span>.function_scope {
             <span class="kw">return </span><span class="bool-val">false</span>;
         }
-        <span class="kw">if </span><span class="self">self</span>.bindings.contains_key(<span class="kw-2">&amp;</span>name) {
+        <span class="kw">if </span><span class="self">self</span>.bindings.borrow().contains_key(<span class="kw-2">&amp;</span>name) {
             <span class="kw">return </span><span class="bool-val">true</span>;
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(outer) = <span class="kw-2">&amp;</span><span class="self">self</span>.outer {
-            outer.borrow().has_binding_until_var(name)
+            outer.has_binding_until_var(name)
         } <span class="kw">else </span>{
             <span class="bool-val">false
         </span>}
@@ -465,16 +458,12 @@
     <span class="doccomment">/// Create a mutable binding.
     ///
     /// If the binding is a function scope binding and this is a declarative environment, try the outer environment.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_mutable_binding(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        name: Identifier,
-        function_scope: bool,
-    ) -&gt; bool {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_mutable_binding(<span class="kw-2">&amp;</span><span class="self">self</span>, name: Identifier, function_scope: bool) -&gt; bool {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(outer) = <span class="kw-2">&amp;</span><span class="self">self</span>.outer {
             <span class="kw">if </span>!function_scope || <span class="self">self</span>.function_scope {
-                <span class="kw">if </span>!<span class="self">self</span>.bindings.contains_key(<span class="kw-2">&amp;</span>name) {
-                    <span class="kw">let </span>binding_index = <span class="self">self</span>.bindings.len() <span class="kw">as </span>u32;
-                    <span class="self">self</span>.bindings.insert(
+                <span class="kw">if </span>!<span class="self">self</span>.bindings.borrow().contains_key(<span class="kw-2">&amp;</span>name) {
+                    <span class="kw">let </span>binding_index = <span class="self">self</span>.bindings.borrow().len() <span class="kw">as </span>u32;
+                    <span class="self">self</span>.bindings.borrow_mut().insert(
                         name,
                         CompileTimeBinding {
                             index: binding_index,
@@ -486,16 +475,14 @@
                 }
                 <span class="bool-val">true
             </span>} <span class="kw">else </span>{
-                <span class="kw">return </span>outer
-                    .borrow_mut()
-                    .create_mutable_binding(name, function_scope);
+                outer.create_mutable_binding(name, function_scope)
             }
         } <span class="kw">else if </span>function_scope {
             <span class="bool-val">false
         </span>} <span class="kw">else </span>{
-            <span class="kw">if </span>!<span class="self">self</span>.bindings.contains_key(<span class="kw-2">&amp;</span>name) {
-                <span class="kw">let </span>binding_index = <span class="self">self</span>.bindings.len() <span class="kw">as </span>u32;
-                <span class="self">self</span>.bindings.insert(
+            <span class="kw">if </span>!<span class="self">self</span>.bindings.borrow().contains_key(<span class="kw-2">&amp;</span>name) {
+                <span class="kw">let </span>binding_index = <span class="self">self</span>.bindings.borrow().len() <span class="kw">as </span>u32;
+                <span class="self">self</span>.bindings.borrow_mut().insert(
                     name,
                     CompileTimeBinding {
                         index: binding_index,
@@ -510,9 +497,9 @@
     }
 
     <span class="doccomment">/// Crate an immutable binding.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_immutable_binding(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: Identifier, strict: bool) {
-        <span class="kw">let </span>binding_index = <span class="self">self</span>.bindings.len() <span class="kw">as </span>u32;
-        <span class="self">self</span>.bindings.insert(
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_immutable_binding(<span class="kw-2">&amp;</span><span class="self">self</span>, name: Identifier, strict: bool) {
+        <span class="kw">let </span>binding_index = <span class="self">self</span>.bindings.borrow().len() <span class="kw">as </span>u32;
+        <span class="self">self</span>.bindings.borrow_mut().insert(
             name,
             CompileTimeBinding {
                 index: binding_index,
@@ -531,19 +518,13 @@
     ) -&gt; BindingLocator {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(outer) = <span class="kw-2">&amp;</span><span class="self">self</span>.outer {
             <span class="kw">if </span>function_scope &amp;&amp; !<span class="self">self</span>.function_scope {
-                <span class="kw">return </span>outer
-                    .borrow()
-                    .initialize_mutable_binding(name, function_scope);
+                <span class="kw">return </span>outer.initialize_mutable_binding(name, function_scope);
             }
-            <span class="self">self</span>.bindings.get(<span class="kw-2">&amp;</span>name).map_or_else(
-                || {
-                    outer
-                        .borrow()
-                        .initialize_mutable_binding(name, function_scope)
-                },
+            <span class="self">self</span>.bindings.borrow().get(<span class="kw-2">&amp;</span>name).map_or_else(
+                || outer.initialize_mutable_binding(name, function_scope),
                 |binding| BindingLocator::declarative(name, <span class="self">self</span>.environment_index, binding.index),
             )
-        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(binding) = <span class="self">self</span>.bindings.get(<span class="kw-2">&amp;</span>name) {
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(binding) = <span class="self">self</span>.bindings.borrow().get(<span class="kw-2">&amp;</span>name) {
             BindingLocator::declarative(name, <span class="self">self</span>.environment_index, binding.index)
         } <span class="kw">else </span>{
             BindingLocator::global(name)
@@ -556,7 +537,8 @@
     ///
     /// Panics if the binding is not in the current environment.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>initialize_immutable_binding(<span class="kw-2">&amp;</span><span class="self">self</span>, name: Identifier) -&gt; BindingLocator {
-        <span class="kw">let </span>binding = <span class="self">self</span>.bindings.get(<span class="kw-2">&amp;</span>name).expect(<span class="string">&quot;binding must exist&quot;</span>);
+        <span class="kw">let </span>bindings = <span class="self">self</span>.bindings.borrow();
+        <span class="kw">let </span>binding = bindings.get(<span class="kw-2">&amp;</span>name).expect(<span class="string">&quot;binding must exist&quot;</span>);
         BindingLocator::declarative(name, <span class="self">self</span>.environment_index, binding.index)
     }
 
@@ -565,7 +547,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         name: Identifier,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;BindingLocator, BindingLocatorError&gt; {
-        <span class="prelude-val">Ok</span>(<span class="kw">match </span><span class="self">self</span>.bindings.get(<span class="kw-2">&amp;</span>name) {
+        <span class="prelude-val">Ok</span>(<span class="kw">match </span><span class="self">self</span>.bindings.borrow().get(<span class="kw-2">&amp;</span>name) {
             <span class="prelude-val">Some</span>(binding) <span class="kw">if </span>binding.mutable =&gt; {
                 BindingLocator::declarative(name, <span class="self">self</span>.environment_index, binding.index)
             }
@@ -573,7 +555,7 @@
             <span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(BindingLocatorError::Silent),
             <span class="prelude-val">None </span>=&gt; <span class="self">self</span>.outer.as_ref().map_or_else(
                 || <span class="prelude-val">Ok</span>(BindingLocator::global(name)),
-                |outer| outer.borrow().set_mutable_binding_recursive(name),
+                |outer| outer.set_mutable_binding_recursive(name),
             )<span class="question-mark">?</span>,
         })
     }
@@ -587,11 +569,11 @@
         <span class="kw">if </span>!<span class="self">self</span>.is_function() {
             <span class="kw">return </span><span class="self">self</span>.outer.as_ref().map_or_else(
                 || <span class="prelude-val">Ok</span>(BindingLocator::global(name)),
-                |outer| outer.borrow().set_mutable_binding_var_recursive(name),
+                |outer| outer.set_mutable_binding_var_recursive(name),
             );
         }
 
-        <span class="prelude-val">Ok</span>(<span class="kw">match </span><span class="self">self</span>.bindings.get(<span class="kw-2">&amp;</span>name) {
+        <span class="prelude-val">Ok</span>(<span class="kw">match </span><span class="self">self</span>.bindings.borrow().get(<span class="kw-2">&amp;</span>name) {
             <span class="prelude-val">Some</span>(binding) <span class="kw">if </span>binding.mutable =&gt; {
                 BindingLocator::declarative(name, <span class="self">self</span>.environment_index, binding.index)
             }
@@ -599,13 +581,13 @@
             <span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(BindingLocatorError::Silent),
             <span class="prelude-val">None </span>=&gt; <span class="self">self</span>.outer.as_ref().map_or_else(
                 || <span class="prelude-val">Ok</span>(BindingLocator::global(name)),
-                |outer| outer.borrow().set_mutable_binding_var_recursive(name),
+                |outer| outer.set_mutable_binding_var_recursive(name),
             )<span class="question-mark">?</span>,
         })
     }
 
     <span class="doccomment">/// Gets the outer environment of this environment.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>outer(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Rc&lt;RefCell&lt;<span class="self">Self</span>&gt;&gt;&gt; {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>outer(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Rc&lt;<span class="self">Self</span>&gt;&gt; {
         <span class="self">self</span>.outer.clone()
     }
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/builtins/typed_array/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.70.0 (90c541806 2023-05-31)" data-search-js="search-e077946657036a58.js" data-settings-js="settings-298e1ea74db45b39.js" data-settings-css="settings-7bfb4c59cc6bc502.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../../static.files/source-script-905937fbbdc8e9ea.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../static.files/main-f61008743c98d196.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../boa_engine/index.html"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `boa_engine/src/builtins/typed_array/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0 (8ede3aae2 2023-07-12)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../boa_engine/index.html"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -3575,6 +3575,70 @@
 <a href="#3575" id="3575">3575</a>
 <a href="#3576" id="3576">3576</a>
 <a href="#3577" id="3577">3577</a>
+<a href="#3578" id="3578">3578</a>
+<a href="#3579" id="3579">3579</a>
+<a href="#3580" id="3580">3580</a>
+<a href="#3581" id="3581">3581</a>
+<a href="#3582" id="3582">3582</a>
+<a href="#3583" id="3583">3583</a>
+<a href="#3584" id="3584">3584</a>
+<a href="#3585" id="3585">3585</a>
+<a href="#3586" id="3586">3586</a>
+<a href="#3587" id="3587">3587</a>
+<a href="#3588" id="3588">3588</a>
+<a href="#3589" id="3589">3589</a>
+<a href="#3590" id="3590">3590</a>
+<a href="#3591" id="3591">3591</a>
+<a href="#3592" id="3592">3592</a>
+<a href="#3593" id="3593">3593</a>
+<a href="#3594" id="3594">3594</a>
+<a href="#3595" id="3595">3595</a>
+<a href="#3596" id="3596">3596</a>
+<a href="#3597" id="3597">3597</a>
+<a href="#3598" id="3598">3598</a>
+<a href="#3599" id="3599">3599</a>
+<a href="#3600" id="3600">3600</a>
+<a href="#3601" id="3601">3601</a>
+<a href="#3602" id="3602">3602</a>
+<a href="#3603" id="3603">3603</a>
+<a href="#3604" id="3604">3604</a>
+<a href="#3605" id="3605">3605</a>
+<a href="#3606" id="3606">3606</a>
+<a href="#3607" id="3607">3607</a>
+<a href="#3608" id="3608">3608</a>
+<a href="#3609" id="3609">3609</a>
+<a href="#3610" id="3610">3610</a>
+<a href="#3611" id="3611">3611</a>
+<a href="#3612" id="3612">3612</a>
+<a href="#3613" id="3613">3613</a>
+<a href="#3614" id="3614">3614</a>
+<a href="#3615" id="3615">3615</a>
+<a href="#3616" id="3616">3616</a>
+<a href="#3617" id="3617">3617</a>
+<a href="#3618" id="3618">3618</a>
+<a href="#3619" id="3619">3619</a>
+<a href="#3620" id="3620">3620</a>
+<a href="#3621" id="3621">3621</a>
+<a href="#3622" id="3622">3622</a>
+<a href="#3623" id="3623">3623</a>
+<a href="#3624" id="3624">3624</a>
+<a href="#3625" id="3625">3625</a>
+<a href="#3626" id="3626">3626</a>
+<a href="#3627" id="3627">3627</a>
+<a href="#3628" id="3628">3628</a>
+<a href="#3629" id="3629">3629</a>
+<a href="#3630" id="3630">3630</a>
+<a href="#3631" id="3631">3631</a>
+<a href="#3632" id="3632">3632</a>
+<a href="#3633" id="3633">3633</a>
+<a href="#3634" id="3634">3634</a>
+<a href="#3635" id="3635">3635</a>
+<a href="#3636" id="3636">3636</a>
+<a href="#3637" id="3637">3637</a>
+<a href="#3638" id="3638">3638</a>
+<a href="#3639" id="3639">3639</a>
+<a href="#3640" id="3640">3640</a>
+<a href="#3641" id="3641">3641</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Boa&#39;s implementation of ECMAScript&#39;s global `TypedArray` objects.
 //!
 //! A `TypedArray` object describes an array-like view of an underlying binary data buffer.
@@ -3591,7 +3655,7 @@
 
 </span><span class="kw">use crate</span>::{
     builtins::{
-        array::ArrayIterator,
+        array::{find_via_predicate, ArrayIterator, Direction},
         array_buffer::{ArrayBuffer, SharedMemoryOrder},
         iterable::iterable_to_list,
         typed_array::integer_indexed_object::{ContentType, IntegerIndexed},
@@ -3855,7 +3919,7 @@
             )
             .property(
                 JsSymbol::iterator(),
-                values_function,
+                values_function.clone(),
                 Attribute::WRITABLE | Attribute::NON_ENUMERABLE | Attribute::CONFIGURABLE,
             )
             .accessor(
@@ -3897,7 +3961,9 @@
             .method(<span class="self">Self</span>::fill, <span class="string">&quot;fill&quot;</span>, <span class="number">1</span>)
             .method(<span class="self">Self</span>::filter, <span class="string">&quot;filter&quot;</span>, <span class="number">1</span>)
             .method(<span class="self">Self</span>::find, <span class="string">&quot;find&quot;</span>, <span class="number">1</span>)
-            .method(<span class="self">Self</span>::findindex, <span class="string">&quot;findIndex&quot;</span>, <span class="number">1</span>)
+            .method(<span class="self">Self</span>::find_index, <span class="string">&quot;findIndex&quot;</span>, <span class="number">1</span>)
+            .method(<span class="self">Self</span>::find_last, <span class="string">&quot;findLast&quot;</span>, <span class="number">1</span>)
+            .method(<span class="self">Self</span>::find_last_index, <span class="string">&quot;findLastIndex&quot;</span>, <span class="number">1</span>)
             .method(<span class="self">Self</span>::foreach, <span class="string">&quot;forEach&quot;</span>, <span class="number">1</span>)
             .method(<span class="self">Self</span>::includes, <span class="string">&quot;includes&quot;</span>, <span class="number">1</span>)
             .method(<span class="self">Self</span>::index_of, <span class="string">&quot;indexOf&quot;</span>, <span class="number">1</span>)
@@ -3913,7 +3979,11 @@
             .method(<span class="self">Self</span>::some, <span class="string">&quot;some&quot;</span>, <span class="number">1</span>)
             .method(<span class="self">Self</span>::sort, <span class="string">&quot;sort&quot;</span>, <span class="number">1</span>)
             .method(<span class="self">Self</span>::subarray, <span class="string">&quot;subarray&quot;</span>, <span class="number">2</span>)
-            .method(<span class="self">Self</span>::values, <span class="string">&quot;values&quot;</span>, <span class="number">0</span>)
+            .property(
+                <span class="string">&quot;values&quot;</span>,
+                values_function,
+                Attribute::WRITABLE | Attribute::NON_ENUMERABLE | Attribute::CONFIGURABLE,
+            )
             <span class="comment">// 23.2.3.29 %TypedArray%.prototype.toString ( )
             // The initial value of the %TypedArray%.prototype.toString data property is the same
             // built-in function object as the Array.prototype.toString method defined in 23.1.3.30.
@@ -4733,41 +4803,22 @@
         <span class="comment">// 3. Let len be O.[[ArrayLength]].
         </span><span class="kw">let </span>len = o.array_length();
 
-        <span class="comment">// 4. If IsCallable(predicate) is false, throw a TypeError exception.
-        </span><span class="kw">let </span>predicate = <span class="kw">match </span>args.get_or_undefined(<span class="number">0</span>).as_object() {
-            <span class="prelude-val">Some</span>(obj) <span class="kw">if </span>obj.is_callable() =&gt; obj,
-            <span class="kw">_ </span>=&gt; {
-                <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::typ()
-                    .with_message(
-                        <span class="string">&quot;TypedArray.prototype.find called with non-callable predicate function&quot;</span>,
-                    )
-                    .into())
-            }
-        };
+        <span class="kw">let </span>predicate = args.get_or_undefined(<span class="number">0</span>);
+        <span class="kw">let </span>this_arg = args.get_or_undefined(<span class="number">1</span>);
 
-        <span class="comment">// 5. Let k be 0.
-        // 6. Repeat, while k &lt; len,
-        </span><span class="kw">for </span>k <span class="kw">in </span><span class="number">0</span>..len {
-            <span class="comment">// a. Let Pk be ! ToString(𝔽(k)).
-            // b. Let kValue be ! Get(O, Pk).
-            </span><span class="kw">let </span>k_value = obj.get(k, context).expect(<span class="string">&quot;Get cannot fail here&quot;</span>);
+        <span class="comment">// 4. Let findRec be ? FindViaPredicate(O, len, ascending, predicate, thisArg).
+        </span><span class="kw">let </span>(<span class="kw">_</span>, value) = find_via_predicate(
+            obj,
+            len,
+            Direction::Ascending,
+            predicate,
+            this_arg,
+            context,
+            <span class="string">&quot;TypedArray.prototype.find&quot;</span>,
+        )<span class="question-mark">?</span>;
 
-            <span class="comment">// c. Let testResult be ! ToBoolean(? Call(predicate, thisArg, « kValue, 𝔽(k), O »)).
-            // d. If testResult is true, return kValue.
-            </span><span class="kw">if </span>predicate
-                .call(
-                    args.get_or_undefined(<span class="number">1</span>),
-                    <span class="kw-2">&amp;</span>[k_value.clone(), k.into(), this.clone()],
-                    context,
-                )<span class="question-mark">?
-                </span>.to_boolean()
-            {
-                <span class="kw">return </span><span class="prelude-val">Ok</span>(k_value);
-            }
-        }
-
-        <span class="comment">// 7. Return undefined.
-        </span><span class="prelude-val">Ok</span>(JsValue::undefined())
+        <span class="comment">// 5. Return findRec.[[Value]].
+        </span><span class="prelude-val">Ok</span>(value)
     }
 
     <span class="doccomment">/// `23.2.3.12 %TypedArray%.prototype.findIndex ( predicate [ , thisArg ] )`
@@ -4776,7 +4827,7 @@
     ///  - [ECMAScript reference][spec]
     ///
     /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.findindex
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>findindex(
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>find_index(
         this: <span class="kw-2">&amp;</span>JsValue,
         args: <span class="kw-2">&amp;</span>[JsValue],
         context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
@@ -4799,42 +4850,119 @@
         <span class="comment">// 3. Let len be O.[[ArrayLength]].
         </span><span class="kw">let </span>len = o.array_length();
 
-        <span class="comment">// 4. If IsCallable(predicate) is false, throw a TypeError exception.
-        </span><span class="kw">let </span>predicate = <span class="kw">match </span>args.get_or_undefined(<span class="number">0</span>).as_object() {
-            <span class="prelude-val">Some</span>(obj) <span class="kw">if </span>obj.is_callable() =&gt; obj,
-            <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::typ()
-                .with_message(
-                    <span class="string">&quot;TypedArray.prototype.findindex called with non-callable predicate function&quot;</span>,
-                )
-                .into()),
-        };
+        <span class="kw">let </span>predicate = args.get_or_undefined(<span class="number">0</span>);
+        <span class="kw">let </span>this_arg = args.get_or_undefined(<span class="number">1</span>);
 
-        <span class="comment">// 5. Let k be 0.
-        // 6. Repeat, while k &lt; len,
-        </span><span class="kw">for </span>k <span class="kw">in </span><span class="number">0</span>..len {
-            <span class="comment">// a. Let Pk be ! ToString(𝔽(k)).
-            // b. Let kValue be ! Get(O, Pk).
-            </span><span class="kw">let </span>k_value = obj.get(k, context).expect(<span class="string">&quot;Get cannot fail here&quot;</span>);
+        <span class="comment">// 4. Let findRec be ? FindViaPredicate(O, len, ascending, predicate, thisArg).
+        </span><span class="kw">let </span>(index, <span class="kw">_</span>) = find_via_predicate(
+            obj,
+            len,
+            Direction::Ascending,
+            predicate,
+            this_arg,
+            context,
+            <span class="string">&quot;TypedArray.prototype.findIndex&quot;</span>,
+        )<span class="question-mark">?</span>;
 
-            <span class="comment">// c. Let testResult be ! ToBoolean(? Call(predicate, thisArg, « kValue, 𝔽(k), O »)).
-            // d. If testResult is true, return 𝔽(k).
-            </span><span class="kw">if </span>predicate
-                .call(
-                    args.get_or_undefined(<span class="number">1</span>),
-                    <span class="kw-2">&amp;</span>[k_value.clone(), k.into(), this.clone()],
-                    context,
-                )<span class="question-mark">?
-                </span>.to_boolean()
-            {
-                <span class="kw">return </span><span class="prelude-val">Ok</span>(k.into());
-            }
-        }
-
-        <span class="comment">// 7. Return -1𝔽.
-        </span><span class="prelude-val">Ok</span>((-<span class="number">1</span>).into())
+        <span class="comment">// 5. Return findRec.[[Index]].
+        </span><span class="prelude-val">Ok</span>(index)
     }
 
-    <span class="doccomment">/// `23.2.3.13 %TypedArray%.prototype.forEach ( callbackfn [ , thisArg ] )`
+    <span class="doccomment">/// `23.2.3.13 %TypedArray%.prototype.findLast ( predicate [ , thisArg ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.findlast
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>find_last(
+        this: <span class="kw-2">&amp;</span>JsValue,
+        args: <span class="kw-2">&amp;</span>[JsValue],
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
+    ) -&gt; JsResult&lt;JsValue&gt; {
+        <span class="comment">// 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        </span><span class="kw">let </span>obj = this.as_object().ok_or_else(|| {
+            JsNativeError::typ().with_message(<span class="string">&quot;Value is not a typed array object&quot;</span>)
+        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>obj_borrow = obj.borrow();
+        <span class="kw">let </span>o = obj_borrow.as_typed_array().ok_or_else(|| {
+            JsNativeError::typ().with_message(<span class="string">&quot;Value is not a typed array object&quot;</span>)
+        })<span class="question-mark">?</span>;
+        <span class="kw">if </span>o.is_detached() {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::typ()
+                .with_message(<span class="string">&quot;Buffer of the typed array is detached&quot;</span>)
+                .into());
+        }
+
+        <span class="comment">// 3. Let len be O.[[ArrayLength]].
+        </span><span class="kw">let </span>len = o.array_length();
+
+        <span class="kw">let </span>predicate = args.get_or_undefined(<span class="number">0</span>);
+        <span class="kw">let </span>this_arg = args.get_or_undefined(<span class="number">1</span>);
+
+        <span class="comment">// 4. Let findRec be ? FindViaPredicate(O, len, descending, predicate, thisArg).
+        </span><span class="kw">let </span>(<span class="kw">_</span>, value) = find_via_predicate(
+            obj,
+            len,
+            Direction::Descending,
+            predicate,
+            this_arg,
+            context,
+            <span class="string">&quot;TypedArray.prototype.findLast&quot;</span>,
+        )<span class="question-mark">?</span>;
+
+        <span class="comment">// 5. Return findRec.[[Value]].
+        </span><span class="prelude-val">Ok</span>(value)
+    }
+
+    <span class="doccomment">/// `23.2.3.14 %TypedArray%.prototype.findLastIndex ( predicate [ , thisArg ] )`
+    ///
+    /// More information:
+    ///  - [ECMAScript reference][spec]
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-%typedarray%.prototype.findlastindex
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>find_last_index(
+        this: <span class="kw-2">&amp;</span>JsValue,
+        args: <span class="kw-2">&amp;</span>[JsValue],
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
+    ) -&gt; JsResult&lt;JsValue&gt; {
+        <span class="comment">// 1. Let O be the this value.
+        // 2. Perform ? ValidateTypedArray(O).
+        </span><span class="kw">let </span>obj = this.as_object().ok_or_else(|| {
+            JsNativeError::typ().with_message(<span class="string">&quot;Value is not a typed array object&quot;</span>)
+        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>obj_borrow = obj.borrow();
+        <span class="kw">let </span>o = obj_borrow.as_typed_array().ok_or_else(|| {
+            JsNativeError::typ().with_message(<span class="string">&quot;Value is not a typed array object&quot;</span>)
+        })<span class="question-mark">?</span>;
+        <span class="kw">if </span>o.is_detached() {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(JsNativeError::typ()
+                .with_message(<span class="string">&quot;Buffer of the typed array is detached&quot;</span>)
+                .into());
+        }
+
+        <span class="comment">// 3. Let len be O.[[ArrayLength]].
+        </span><span class="kw">let </span>len = o.array_length();
+
+        <span class="kw">let </span>predicate = args.get_or_undefined(<span class="number">0</span>);
+        <span class="kw">let </span>this_arg = args.get_or_undefined(<span class="number">1</span>);
+
+        <span class="comment">// 4. Let findRec be ? FindViaPredicate(O, len, descending, predicate, thisArg).
+        </span><span class="kw">let </span>(index, <span class="kw">_</span>) = find_via_predicate(
+            obj,
+            len,
+            Direction::Descending,
+            predicate,
+            this_arg,
+            context,
+            <span class="string">&quot;TypedArray.prototype.findLastIndex&quot;</span>,
+        )<span class="question-mark">?</span>;
+
+        <span class="comment">// 5. Return findRec.[[Index]].
+        </span><span class="prelude-val">Ok</span>(index)
+    }
+
+    <span class="doccomment">/// `23.2.3.15 %TypedArray%.prototype.forEach ( callbackfn [ , thisArg ] )`
     ///
     /// More information:
     ///  - [ECMAScript reference][spec]
