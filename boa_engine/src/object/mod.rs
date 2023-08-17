@@ -1985,6 +1985,16 @@ impl Object {
         matches!(self.kind, ObjectKind::Calendar(_))
     }
 
+    /// Gets the `Calendar` data if the object is a `Temporal.Calendar`.
+    #[inline]
+    #[cfg(feature = "temporal")]
+    pub fn as_calendar(&self) -> Option<&Calendar> {
+        match &self.kind {
+            ObjectKind::Calendar(calendar) => Some(calendar),
+            _ => None,
+        }
+    }
+
     /// Return `true` if it is a native object and the native type is `T`.
     pub fn is<T>(&self) -> bool
     where
