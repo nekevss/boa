@@ -60,6 +60,57 @@ pub struct VmTrace {
     options: Cell<TraceOptions>,
 }
 
+// --- `VmTrace` public API --
+
+impl VmTrace {
+    #[must_use]
+    /// Create a new `VmTrace`
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[must_use]
+    /// Creates a partial `VmTrace`.
+    pub fn partial() -> Self {
+        Self {
+            compiled_action: None,
+            trace_action: None,
+            options: Cell::new(TraceOptions::empty()),
+        }
+    }
+
+    #[must_use]
+    /// Add an action to be completed when the `Vm` traces the compiled `CodeBlock`s
+    pub fn with_compiled_action(mut self, f: ActionFunction) -> Self {
+        self.set_trace_action(f);
+        self
+    }
+
+    #[must_use]
+    /// Add an action to be completed when the `Vm` traces intruction execution.
+    pub fn with_trace_action(mut self, f: ActionFunction) -> Self {
+        self.set_trace_action(f);
+        self
+    }
+
+    /// Sets the `compiled_action` of `VmTrace` to a custom user-defined action.
+    pub fn set_compiled_action(&mut self, f: Box<dyn Fn(&str)>) {
+        self.compiled_action = Some(f);
+    }
+
+    /// Sets the `trace_action` of `VmTrace` to a custom user-defined action.
+    pub fn set_trace_action(&mut self, f: Box<dyn Fn(&str)>) {
+        self.trace_action = Some(f);
+    }
+
+    /// Set the `VmTrace` to a partial trace.
+    pub fn set_as_partial(&mut self) {
+        self.options.set(TraceOptions::empty());
+    }
+}
+
+// -- `VmTrace` internal methods --
+
 impl VmTrace {
     pub(crate) fn new_partial() -> Self {
         Self {
@@ -101,16 +152,6 @@ impl VmTrace {
     pub(crate) fn should_trace(&self) -> bool {
         self.is_full_trace() || self.is_active()
     }
-
-    /// Sets the `compiled_action` of `VmTrace` to a custom user-defined action.
-    pub fn set_compiled_action(&mut self, f: Box<dyn Fn(&str)>) {
-        self.compiled_action = Some(f);
-    }
-
-    /// Sets the `trace_action` of `VmTrace` to a custom user-defined action.
-    pub fn set_trace_action(&mut self, f: Box<dyn Fn(&str)>) {
-        self.trace_action = Some(f);
-    }
 }
 
 // ---- Trace Event/Action Methods ----
@@ -141,7 +182,7 @@ impl VmTrace {
 impl VmTrace {
     /// Trace the current `CallFrame` according to current state
     pub(crate) fn trace_call_frame(&self, vm: &Vm, interner: &Interner) {
-        if self.is_full_trace() {
+        if self.is_full_trace() && vm.frames.len() == 1 {
             self.trace_compiled_bytecode(vm, interner);
             self.call_frame_header(vm);
         } else if self.is_partial_trace() && vm.frame().code_block().traceable() {
@@ -187,17 +228,15 @@ impl VmTrace {
     /// Searches traces all of the current `CallFrame`'s available `CodeBlock`s.
     pub(crate) fn trace_compiled_bytecode(&self, vm: &Vm, interner: &Interner) {
         // We only continue to the compiled output if we are on the global.
-        if vm.frames.len() == 1 {
-            let mut queue = VecDeque::new();
-            queue.push_back(vm.frame().code_block.clone());
+        let mut queue = VecDeque::new();
+        queue.push_back(vm.frame().code_block.clone());
 
-            while !queue.is_empty() {
-                let block = queue.pop_front().expect("queue must have a value.");
+        while !queue.is_empty() {
+            let block = queue.pop_front().expect("queue must have a value.");
 
-                queue.extend(block.functions.iter().cloned());
+            queue.extend(block.functions.iter().cloned());
 
-                self.trigger_compiled_output_action(&block.to_interned_string(interner));
-            }
+            self.trigger_compiled_output_action(&block.to_interned_string(interner));
         }
     }
 
@@ -207,8 +246,11 @@ impl VmTrace {
     }
 
     /// Emits an exit message for the current `CallFrame`.
-    pub(crate) fn trace_frame_end(&self, return_msg: &str) {
-        let msg = format!(" Call Frame -- <Exiting frame via {return_msg}> ");
+    pub(crate) fn trace_frame_end(&self, vm: &Vm, return_msg: &str) {
+        let msg = format!(
+            " Call Frame -- <Exiting {} via {return_msg}> ",
+            vm.frame().code_block().name().to_std_string_escaped()
+        );
         let frame_footer = format!(
             "{msg:-^width$}",
             width = Self::COLUMN_WIDTH * Self::NUMBER_OF_COLUMNS - 10

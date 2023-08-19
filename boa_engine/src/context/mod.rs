@@ -27,7 +27,7 @@ use crate::{
     property::{Attribute, PropertyDescriptor, PropertyKey},
     realm::Realm,
     script::Script,
-    vm::{CallFrame, Vm},
+    vm::{CallFrame, Vm, trace::VmTrace},
     JsResult, JsValue, Source,
 };
 use boa_ast::{expression::Identifier, StatementList};
@@ -374,6 +374,27 @@ impl<'host> Context<'host> {
     #[must_use]
     pub const fn realm(&self) -> &Realm {
         &self.realm
+    }
+
+    /// Evaluates the given source code with while running an active trace.
+    #[cfg(feature = "trace")]
+    #[allow(clippy::unit_arg, dropping_copy_types)]
+    pub fn eval_with_trace<R: Read>(&mut self, src: Source<'_, R>, trace: VmTrace) -> JsResult<JsValue> {
+        let main_timer = Profiler::global().start_event("Script evaluation", "Main");
+
+        thread_local!(static VM_TRACE: std::cell::RefCell<VmTrace> = std::cell::RefCell::new(VmTrace::default()));
+
+        VM_TRACE.with(|t| {
+            let _dummy = t.replace(trace);
+        });
+
+        let result = Script::parse(src, None, self)?.evaluate(self);
+
+        // The main_timer needs to be dropped before the Profiler is.
+        drop(main_timer);
+        Profiler::global().drop();
+
+        result
     }
 
     /// Initializes a `Vm` trace from the context
