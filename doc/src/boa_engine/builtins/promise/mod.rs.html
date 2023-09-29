@@ -2299,6 +2299,75 @@
 <a href="#2299" id="2299">2299</a>
 <a href="#2300" id="2300">2300</a>
 <a href="#2301" id="2301">2301</a>
+<a href="#2302" id="2302">2302</a>
+<a href="#2303" id="2303">2303</a>
+<a href="#2304" id="2304">2304</a>
+<a href="#2305" id="2305">2305</a>
+<a href="#2306" id="2306">2306</a>
+<a href="#2307" id="2307">2307</a>
+<a href="#2308" id="2308">2308</a>
+<a href="#2309" id="2309">2309</a>
+<a href="#2310" id="2310">2310</a>
+<a href="#2311" id="2311">2311</a>
+<a href="#2312" id="2312">2312</a>
+<a href="#2313" id="2313">2313</a>
+<a href="#2314" id="2314">2314</a>
+<a href="#2315" id="2315">2315</a>
+<a href="#2316" id="2316">2316</a>
+<a href="#2317" id="2317">2317</a>
+<a href="#2318" id="2318">2318</a>
+<a href="#2319" id="2319">2319</a>
+<a href="#2320" id="2320">2320</a>
+<a href="#2321" id="2321">2321</a>
+<a href="#2322" id="2322">2322</a>
+<a href="#2323" id="2323">2323</a>
+<a href="#2324" id="2324">2324</a>
+<a href="#2325" id="2325">2325</a>
+<a href="#2326" id="2326">2326</a>
+<a href="#2327" id="2327">2327</a>
+<a href="#2328" id="2328">2328</a>
+<a href="#2329" id="2329">2329</a>
+<a href="#2330" id="2330">2330</a>
+<a href="#2331" id="2331">2331</a>
+<a href="#2332" id="2332">2332</a>
+<a href="#2333" id="2333">2333</a>
+<a href="#2334" id="2334">2334</a>
+<a href="#2335" id="2335">2335</a>
+<a href="#2336" id="2336">2336</a>
+<a href="#2337" id="2337">2337</a>
+<a href="#2338" id="2338">2338</a>
+<a href="#2339" id="2339">2339</a>
+<a href="#2340" id="2340">2340</a>
+<a href="#2341" id="2341">2341</a>
+<a href="#2342" id="2342">2342</a>
+<a href="#2343" id="2343">2343</a>
+<a href="#2344" id="2344">2344</a>
+<a href="#2345" id="2345">2345</a>
+<a href="#2346" id="2346">2346</a>
+<a href="#2347" id="2347">2347</a>
+<a href="#2348" id="2348">2348</a>
+<a href="#2349" id="2349">2349</a>
+<a href="#2350" id="2350">2350</a>
+<a href="#2351" id="2351">2351</a>
+<a href="#2352" id="2352">2352</a>
+<a href="#2353" id="2353">2353</a>
+<a href="#2354" id="2354">2354</a>
+<a href="#2355" id="2355">2355</a>
+<a href="#2356" id="2356">2356</a>
+<a href="#2357" id="2357">2357</a>
+<a href="#2358" id="2358">2358</a>
+<a href="#2359" id="2359">2359</a>
+<a href="#2360" id="2360">2360</a>
+<a href="#2361" id="2361">2361</a>
+<a href="#2362" id="2362">2362</a>
+<a href="#2363" id="2363">2363</a>
+<a href="#2364" id="2364">2364</a>
+<a href="#2365" id="2365">2365</a>
+<a href="#2366" id="2366">2366</a>
+<a href="#2367" id="2367">2367</a>
+<a href="#2368" id="2368">2368</a>
+<a href="#2369" id="2369">2369</a>
+<a href="#2370" id="2370">2370</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Boa&#39;s implementation of ECMAScript&#39;s global `Promise` object.
 
 </span><span class="attr">#[cfg(test)]
@@ -2310,6 +2379,7 @@
     context::intrinsics::{Intrinsics, StandardConstructor, StandardConstructors},
     error::JsNativeError,
     job::{JobCallback, NativeJob},
+    js_string,
     native_function::NativeFunction,
     object::{
         internal_methods::get_prototype_from_constructor, FunctionObjectBuilder, JsFunction,
@@ -2317,10 +2387,10 @@
     },
     property::Attribute,
     realm::Realm,
-    string::utf16,
+    string::{common::StaticJsStrings, utf16},
     symbol::JsSymbol,
     value::JsValue,
-    Context, JsArgs, JsError, JsResult,
+    Context, JsArgs, JsError, JsResult, JsString,
 };
 <span class="kw">use </span>boa_gc::{custom_trace, Finalize, Gc, GcRefCell, Trace};
 <span class="kw">use </span>boa_profiler::Profiler;
@@ -2410,12 +2480,20 @@
 /// the resolution value.
 ///
 /// [`Promise()`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/Promise
-</span><span class="attr">#[derive(Debug, Clone)]
+</span><span class="attr">#[derive(Debug, Clone, Finalize)]
 </span><span class="kw">pub struct </span>ResolvingFunctions {
     <span class="doccomment">/// The `resolveFunc` parameter of the executor passed to `Promise()`.
     </span><span class="kw">pub </span>resolve: JsFunction,
     <span class="doccomment">/// The `rejectFunc` parameter of the executor passed to `Promise()`.
     </span><span class="kw">pub </span>reject: JsFunction,
+}
+
+<span class="comment">// Manually implementing `Trace` to allow destructuring.
+</span><span class="kw">unsafe impl </span>Trace <span class="kw">for </span>ResolvingFunctions {
+    <span class="macro">custom_trace!</span>(this, {
+        mark(<span class="kw-2">&amp;</span>this.resolve);
+        mark(<span class="kw-2">&amp;</span>this.reject);
+    });
 }
 
 <span class="comment">// ==================== Private API ====================
@@ -2456,16 +2534,21 @@
 ///  - [ECMAScript reference][spec]
 ///
 /// [spec]: https://tc39.es/ecma262/#sec-promisecapability-records
-</span><span class="attr">#[derive(Debug, Clone, Trace, Finalize)]
+</span><span class="attr">#[derive(Debug, Clone, Finalize)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>PromiseCapability {
     <span class="doccomment">/// The `[[Promise]]` field.
     </span>promise: JsObject,
 
-    <span class="doccomment">/// The `[[Resolve]]` field.
-    </span>resolve: JsFunction,
+    <span class="doccomment">/// The resolving functions,
+    </span>functions: ResolvingFunctions,
+}
 
-    <span class="doccomment">/// The `[[Reject]]` field.
-    </span>reject: JsFunction,
+<span class="comment">// SAFETY: manually implementing `Trace` to allow destructuring.
+</span><span class="kw">unsafe impl </span>Trace <span class="kw">for </span>PromiseCapability {
+    <span class="macro">custom_trace!</span>(this, {
+        mark(<span class="kw-2">&amp;</span>this.promise);
+        mark(<span class="kw-2">&amp;</span>this.functions);
+    });
 }
 
 <span class="doccomment">/// The internal `PromiseReaction` data type.
@@ -2530,7 +2613,7 @@
         <span class="comment">// 4. Let executorClosure be a new Abstract Closure with parameters (resolve, reject) that captures promiseCapability and performs the following steps when called:
         // 5. Let executor be CreateBuiltinFunction(executorClosure, 2, &quot;&quot;, « »).
         </span><span class="kw">let </span>executor = FunctionObjectBuilder::new(
-            context,
+            context.realm(),
             NativeFunction::from_copy_closure_with_captures(
                 |_this, args: <span class="kw-2">&amp;</span>[JsValue], captures, <span class="kw">_</span>| {
                     <span class="kw">let </span><span class="kw-2">mut </span>promise_capability = captures.borrow_mut();
@@ -2598,8 +2681,7 @@
         // 10. Return promiseCapability.
         </span><span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             promise,
-            resolve,
-            reject,
+            functions: ResolvingFunctions { resolve, reject },
         })
     }
 
@@ -2610,46 +2692,51 @@
 
     <span class="doccomment">/// Returns the resolve function.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>resolve(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>JsFunction {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.resolve
+        <span class="kw-2">&amp;</span><span class="self">self</span>.functions.resolve
     }
 
     <span class="doccomment">/// Returns the reject function.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>reject(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>JsFunction {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.reject
+        <span class="kw-2">&amp;</span><span class="self">self</span>.functions.reject
     }
 }
 
 <span class="kw">impl </span>IntrinsicObject <span class="kw">for </span>Promise {
     <span class="kw">fn </span>init(realm: <span class="kw-2">&amp;</span>Realm) {
-        <span class="kw">let </span>_timer = Profiler::global().start_event(<span class="self">Self</span>::NAME, <span class="string">&quot;init&quot;</span>);
+        <span class="kw">let </span>_timer = Profiler::global().start_event(std::any::type_name::&lt;<span class="self">Self</span>&gt;(), <span class="string">&quot;init&quot;</span>);
 
         <span class="kw">let </span>get_species = BuiltInBuilder::callable(realm, <span class="self">Self</span>::get_species)
-            .name(<span class="string">&quot;get [Symbol.species]&quot;</span>)
+            .name(<span class="macro">js_string!</span>(<span class="string">&quot;get [Symbol.species]&quot;</span>))
             .build();
 
-        BuiltInBuilder::from_standard_constructor::&lt;<span class="self">Self</span>&gt;(realm)
-            .static_method(<span class="self">Self</span>::all, <span class="string">&quot;all&quot;</span>, <span class="number">1</span>)
-            .static_method(<span class="self">Self</span>::all_settled, <span class="string">&quot;allSettled&quot;</span>, <span class="number">1</span>)
-            .static_method(<span class="self">Self</span>::any, <span class="string">&quot;any&quot;</span>, <span class="number">1</span>)
-            .static_method(<span class="self">Self</span>::race, <span class="string">&quot;race&quot;</span>, <span class="number">1</span>)
-            .static_method(<span class="self">Self</span>::reject, <span class="string">&quot;reject&quot;</span>, <span class="number">1</span>)
-            .static_method(<span class="self">Self</span>::resolve, <span class="string">&quot;resolve&quot;</span>, <span class="number">1</span>)
+        <span class="kw">let </span>builder = BuiltInBuilder::from_standard_constructor::&lt;<span class="self">Self</span>&gt;(realm)
+            .static_method(<span class="self">Self</span>::all, <span class="macro">js_string!</span>(<span class="string">&quot;all&quot;</span>), <span class="number">1</span>)
+            .static_method(<span class="self">Self</span>::all_settled, <span class="macro">js_string!</span>(<span class="string">&quot;allSettled&quot;</span>), <span class="number">1</span>)
+            .static_method(<span class="self">Self</span>::any, <span class="macro">js_string!</span>(<span class="string">&quot;any&quot;</span>), <span class="number">1</span>)
+            .static_method(<span class="self">Self</span>::race, <span class="macro">js_string!</span>(<span class="string">&quot;race&quot;</span>), <span class="number">1</span>)
+            .static_method(<span class="self">Self</span>::reject, <span class="macro">js_string!</span>(<span class="string">&quot;reject&quot;</span>), <span class="number">1</span>)
+            .static_method(<span class="self">Self</span>::resolve, <span class="macro">js_string!</span>(<span class="string">&quot;resolve&quot;</span>), <span class="number">1</span>)
             .static_accessor(
                 JsSymbol::species(),
                 <span class="prelude-val">Some</span>(get_species),
                 <span class="prelude-val">None</span>,
                 Attribute::CONFIGURABLE,
             )
-            .method(<span class="self">Self</span>::then, <span class="string">&quot;then&quot;</span>, <span class="number">2</span>)
-            .method(<span class="self">Self</span>::catch, <span class="string">&quot;catch&quot;</span>, <span class="number">1</span>)
-            .method(<span class="self">Self</span>::finally, <span class="string">&quot;finally&quot;</span>, <span class="number">1</span>)
+            .method(<span class="self">Self</span>::then, <span class="macro">js_string!</span>(<span class="string">&quot;then&quot;</span>), <span class="number">2</span>)
+            .method(<span class="self">Self</span>::catch, <span class="macro">js_string!</span>(<span class="string">&quot;catch&quot;</span>), <span class="number">1</span>)
+            .method(<span class="self">Self</span>::finally, <span class="macro">js_string!</span>(<span class="string">&quot;finally&quot;</span>), <span class="number">1</span>)
             <span class="comment">// &lt;https://tc39.es/ecma262/#sec-promise.prototype-@@tostringtag&gt;
             </span>.property(
                 JsSymbol::to_string_tag(),
                 <span class="self">Self</span>::NAME,
                 Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::CONFIGURABLE,
-            )
-            .build();
+            );
+
+        <span class="attr">#[cfg(feature = <span class="string">&quot;experimental&quot;</span>)]
+        </span><span class="kw">let </span>builder =
+            builder.static_method(<span class="self">Self</span>::with_resolvers, <span class="macro">crate::js_string!</span>(<span class="string">&quot;withResolvers&quot;</span>), <span class="number">0</span>);
+
+        builder.build();
     }
 
     <span class="kw">fn </span>get(intrinsics: <span class="kw-2">&amp;</span>Intrinsics) -&gt; JsObject {
@@ -2658,7 +2745,7 @@
 }
 
 <span class="kw">impl </span>BuiltInObject <span class="kw">for </span>Promise {
-    <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str = <span class="string">&quot;Promise&quot;</span>;
+    <span class="kw">const </span>NAME: JsString = StaticJsStrings::PROMISE;
 }
 
 <span class="kw">impl </span>BuiltInConstructor <span class="kw">for </span>Promise {
@@ -2746,6 +2833,42 @@
     <span class="doccomment">/// Gets the current state of the promise.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>PromiseState {
         <span class="kw-2">&amp;</span><span class="self">self</span>.state
+    }
+
+    <span class="doccomment">/// [`Promise.withResolvers ( )`][spec]
+    ///
+    /// Creates a new promise that is pending, and returns that promise plus the resolve and reject
+    /// functions associated with it.
+    ///
+    /// [spec]: https://tc39.es/proposal-promise-with-resolvers/#sec-promise.withResolvers
+    </span><span class="attr">#[cfg(feature = <span class="string">&quot;experimental&quot;</span>)]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>with_resolvers(
+        this: <span class="kw-2">&amp;</span>JsValue,
+        _args: <span class="kw-2">&amp;</span>[JsValue],
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
+    ) -&gt; JsResult&lt;JsValue&gt; {
+        <span class="comment">// 1. Let C be the this value.
+        </span><span class="kw">let </span>c = this.as_object().ok_or_else(|| {
+            JsNativeError::typ().with_message(<span class="string">&quot;Promise.all() called on a non-object&quot;</span>)
+        })<span class="question-mark">?</span>;
+
+        <span class="comment">// 2. Let promiseCapability be ? NewPromiseCapability(C).
+        </span><span class="kw">let </span>PromiseCapability {
+            promise,
+            functions: ResolvingFunctions { resolve, reject },
+        } = PromiseCapability::new(c, context)<span class="question-mark">?</span>;
+
+        <span class="comment">// 3. Let obj be OrdinaryObjectCreate(%Object.prototype%).
+        // 4. Perform ! CreateDataPropertyOrThrow(obj, &quot;promise&quot;, promiseCapability.[[Promise]]).
+        // 5. Perform ! CreateDataPropertyOrThrow(obj, &quot;resolve&quot;, promiseCapability.[[Resolve]]).
+        // 6. Perform ! CreateDataPropertyOrThrow(obj, &quot;reject&quot;, promiseCapability.[[Reject]]).
+        </span><span class="kw">let </span>obj = context.intrinsics().templates().with_resolvers().create(
+            ObjectData::ordinary(),
+            <span class="macro">vec!</span>[promise.into(), resolve.into(), reject.into()],
+        );
+
+        <span class="comment">// 7. Return obj.
+        </span><span class="prelude-val">Ok</span>(obj.into())
     }
 
     <span class="doccomment">/// `Promise.all ( iterable )`
@@ -2864,7 +2987,7 @@
                     );
 
                     <span class="comment">// 2. Perform ? Call(resultCapability.[[Resolve]], undefined, « valuesArray »).
-                    </span>result_capability.resolve.call(
+                    </span>result_capability.functions.resolve.call(
                         <span class="kw-2">&amp;</span>JsValue::undefined(),
                         <span class="kw-2">&amp;</span>[values_array.into()],
                         context,
@@ -2896,7 +3019,7 @@
             // p. Set onFulfilled.[[Capability]] to resultCapability.
             // q. Set onFulfilled.[[RemainingElements]] to remainingElementsCount.
             </span><span class="kw">let </span>on_fulfilled = FunctionObjectBuilder::new(
-                context,
+                context.realm(),
                 NativeFunction::from_copy_closure_with_captures(
                     |<span class="kw">_</span>, args, captures, context| {
                         <span class="comment">// https://tc39.es/ecma262/#sec-promise.all-resolve-element-functions
@@ -2947,7 +3070,7 @@
                         already_called: Rc::new(Cell::new(<span class="bool-val">false</span>)),
                         index,
                         values: values.clone(),
-                        capability_resolve: result_capability.resolve.clone(),
+                        capability_resolve: result_capability.functions.resolve.clone(),
                         remaining_elements_count: remaining_elements_count.clone(),
                     },
                 ),
@@ -2963,7 +3086,10 @@
             <span class="comment">// s. Perform ? Invoke(nextPromise, &quot;then&quot;, « onFulfilled, resultCapability.[[Reject]] »).
             </span>next_promise.invoke(
                 <span class="macro">utf16!</span>(<span class="string">&quot;then&quot;</span>),
-                <span class="kw-2">&amp;</span>[on_fulfilled.into(), result_capability.reject.clone().into()],
+                <span class="kw-2">&amp;</span>[
+                    on_fulfilled.into(),
+                    result_capability.functions.reject.clone().into(),
+                ],
                 context,
             )<span class="question-mark">?</span>;
 
@@ -3088,7 +3214,7 @@
                     );
 
                     <span class="comment">// 2. Perform ? Call(resultCapability.[[Resolve]], undefined, « valuesArray »).
-                    </span>result_capability.resolve.call(
+                    </span>result_capability.functions.resolve.call(
                         <span class="kw-2">&amp;</span>JsValue::undefined(),
                         <span class="kw-2">&amp;</span>[values_array.into()],
                         context,
@@ -3121,7 +3247,7 @@
             // q. Set onFulfilled.[[Capability]] to resultCapability.
             // r. Set onFulfilled.[[RemainingElements]] to remainingElementsCount.
             </span><span class="kw">let </span>on_fulfilled = FunctionObjectBuilder::new(
-                context,
+                context.realm(),
                 NativeFunction::from_copy_closure_with_captures(
                     |<span class="kw">_</span>, args, captures, context| {
                         <span class="comment">// https://tc39.es/ecma262/#sec-promise.allsettled-resolve-element-functions
@@ -3146,8 +3272,12 @@
                         </span><span class="kw">let </span>obj = JsObject::with_object_proto(context.intrinsics());
 
                         <span class="comment">// 10. Perform ! CreateDataPropertyOrThrow(obj, &quot;status&quot;, &quot;fulfilled&quot;).
-                        </span>obj.create_data_property_or_throw(<span class="macro">utf16!</span>(<span class="string">&quot;status&quot;</span>), <span class="string">&quot;fulfilled&quot;</span>, context)
-                            .expect(<span class="string">&quot;cannot fail per spec&quot;</span>);
+                        </span>obj.create_data_property_or_throw(
+                            <span class="macro">utf16!</span>(<span class="string">&quot;status&quot;</span>),
+                            <span class="macro">js_string!</span>(<span class="string">&quot;fulfilled&quot;</span>),
+                            context,
+                        )
+                        .expect(<span class="string">&quot;cannot fail per spec&quot;</span>);
 
                         <span class="comment">// 11. Perform ! CreateDataPropertyOrThrow(obj, &quot;value&quot;, x).
                         </span>obj.create_data_property_or_throw(
@@ -3188,7 +3318,7 @@
                         already_called: Rc::new(Cell::new(<span class="bool-val">false</span>)),
                         index,
                         values: values.clone(),
-                        capability: result_capability.resolve.clone(),
+                        capability: result_capability.functions.resolve.clone(),
                         remaining_elements: remaining_elements_count.clone(),
                     },
                 ),
@@ -3207,7 +3337,7 @@
             // y. Set onRejected.[[Capability]] to resultCapability.
             // z. Set onRejected.[[RemainingElements]] to remainingElementsCount.
             </span><span class="kw">let </span>on_rejected = FunctionObjectBuilder::new(
-                context,
+                context.realm(),
                 NativeFunction::from_copy_closure_with_captures(
                     |<span class="kw">_</span>, args, captures, context| {
                         <span class="comment">// https://tc39.es/ecma262/#sec-promise.allsettled-reject-element-functions
@@ -3232,8 +3362,12 @@
                         </span><span class="kw">let </span>obj = JsObject::with_object_proto(context.intrinsics());
 
                         <span class="comment">// 10. Perform ! CreateDataPropertyOrThrow(obj, &quot;status&quot;, &quot;rejected&quot;).
-                        </span>obj.create_data_property_or_throw(<span class="macro">utf16!</span>(<span class="string">&quot;status&quot;</span>), <span class="string">&quot;rejected&quot;</span>, context)
-                            .expect(<span class="string">&quot;cannot fail per spec&quot;</span>);
+                        </span>obj.create_data_property_or_throw(
+                            <span class="macro">utf16!</span>(<span class="string">&quot;status&quot;</span>),
+                            <span class="macro">js_string!</span>(<span class="string">&quot;rejected&quot;</span>),
+                            context,
+                        )
+                        .expect(<span class="string">&quot;cannot fail per spec&quot;</span>);
 
                         <span class="comment">// 11. Perform ! CreateDataPropertyOrThrow(obj, &quot;reason&quot;, x).
                         </span>obj.create_data_property_or_throw(
@@ -3274,7 +3408,7 @@
                         already_called: Rc::new(Cell::new(<span class="bool-val">false</span>)),
                         index,
                         values: values.clone(),
-                        capability: result_capability.resolve.clone(),
+                        capability: result_capability.functions.resolve.clone(),
                         remaining_elements: remaining_elements_count.clone(),
                     },
                 ),
@@ -3450,7 +3584,7 @@
             // p. Set onRejected.[[Capability]] to resultCapability.
             // q. Set onRejected.[[RemainingElements]] to remainingElementsCount.
             </span><span class="kw">let </span>on_rejected = FunctionObjectBuilder::new(
-                context,
+                context.realm(),
                 NativeFunction::from_copy_closure_with_captures(
                     |<span class="kw">_</span>, args, captures, context| {
                         <span class="comment">// https://tc39.es/ecma262/#sec-promise.any-reject-element-functions
@@ -3509,7 +3643,7 @@
                         already_called: Rc::new(Cell::new(<span class="bool-val">false</span>)),
                         index,
                         errors: errors.clone(),
-                        capability_reject: result_capability.reject.clone(),
+                        capability_reject: result_capability.functions.reject.clone(),
                         remaining_elements_count: remaining_elements_count.clone(),
                     },
                 ),
@@ -3525,7 +3659,10 @@
             <span class="comment">// s. Perform ? Invoke(nextPromise, &quot;then&quot;, « resultCapability.[[Resolve]], onRejected »).
             </span>next_promise.invoke(
                 <span class="macro">utf16!</span>(<span class="string">&quot;then&quot;</span>),
-                <span class="kw-2">&amp;</span>[result_capability.resolve.clone().into(), on_rejected.into()],
+                <span class="kw-2">&amp;</span>[
+                    result_capability.functions.resolve.clone().into(),
+                    on_rejected.into(),
+                ],
                 context,
             )<span class="question-mark">?</span>;
 
@@ -3645,8 +3782,8 @@
             </span>next_promise.invoke(
                 <span class="macro">utf16!</span>(<span class="string">&quot;then&quot;</span>),
                 <span class="kw-2">&amp;</span>[
-                    result_capability.resolve.clone().into(),
-                    result_capability.reject.clone().into(),
+                    result_capability.functions.resolve.clone().into(),
+                    result_capability.functions.reject.clone().into(),
                 ],
                 context,
             )<span class="question-mark">?</span>;
@@ -3689,6 +3826,7 @@
 
         <span class="comment">// 3. Perform ? Call(promiseCapability.[[Reject]], undefined, « r »).
         </span>promise_capability
+            .functions
             .reject
             .call(<span class="kw-2">&amp;</span>JsValue::undefined(), <span class="kw-2">&amp;</span>[e], context)<span class="question-mark">?</span>;
 
@@ -3754,6 +3892,7 @@
 
         <span class="comment">// 3. Perform ? Call(promiseCapability.[[Resolve]], undefined, « x »).
         </span>promise_capability
+            .functions
             .resolve
             .call(<span class="kw-2">&amp;</span>JsValue::Undefined, <span class="kw-2">&amp;</span>[x], context)<span class="question-mark">?</span>;
 
@@ -3868,7 +4007,7 @@
 
         <span class="comment">// a. Let thenFinallyClosure be a new Abstract Closure with parameters (value) that captures onFinally and C and performs the following steps when called:
         </span><span class="kw">let </span>then_finally_closure = FunctionObjectBuilder::new(
-            context,
+            context.realm(),
             NativeFunction::from_copy_closure_with_captures(
                 |_this, args, captures, context| {
                     <span class="doccomment">/// Capture object for the abstract `returnValue` closure.
@@ -3889,7 +4028,7 @@
 
                     <span class="comment">// iii. Let returnValue be a new Abstract Closure with no parameters that captures value and performs the following steps when called:
                     </span><span class="kw">let </span>return_value = FunctionObjectBuilder::new(
-                        context,
+                        context.realm(),
                         NativeFunction::from_copy_closure_with_captures(
                             |_this, _args, captures, _context| {
                                 <span class="comment">// 1. Return value.
@@ -3919,7 +4058,7 @@
 
         <span class="comment">// c. Let catchFinallyClosure be a new Abstract Closure with parameters (reason) that captures onFinally and C and performs the following steps when called:
         </span><span class="kw">let </span>catch_finally_closure = FunctionObjectBuilder::new(
-            context,
+            context.realm(),
             NativeFunction::from_copy_closure_with_captures(
                 |_this, args, captures, context| {
                     <span class="doccomment">/// Capture object for the abstract `throwReason` closure.
@@ -3940,7 +4079,7 @@
 
                     <span class="comment">// iii. Let throwReason be a new Abstract Closure with no parameters that captures reason and performs the following steps when called:
                     </span><span class="kw">let </span>throw_reason = FunctionObjectBuilder::new(
-                        context,
+                        context.realm(),
                         NativeFunction::from_copy_closure_with_captures(
                             |_this, _args, captures, _context| {
                                 <span class="comment">// 1. Return ThrowCompletion(reason).
@@ -4321,7 +4460,7 @@
         // 3. Let lengthResolve be the number of non-optional parameters of the function definition in Promise Resolve Functions.
         // 4. Let resolve be CreateBuiltinFunction(stepsResolve, lengthResolve, &quot;&quot;, « [[Promise]], [[AlreadyResolved]] »).
         </span><span class="kw">let </span>resolve = FunctionObjectBuilder::new(
-            context,
+            context.realm(),
             NativeFunction::from_copy_closure_with_captures(
                 |_this, args, captures, context| {
                     <span class="comment">// https://tc39.es/ecma262/#sec-promise-resolve-functions
@@ -4420,7 +4559,7 @@
         // 8. Let lengthReject be the number of non-optional parameters of the function definition in Promise Reject Functions.
         // 9. Let reject be CreateBuiltinFunction(stepsReject, lengthReject, &quot;&quot;, « [[Promise]], [[AlreadyResolved]] »).
         </span><span class="kw">let </span>reject = FunctionObjectBuilder::new(
-            context,
+            context.realm(),
             NativeFunction::from_copy_closure_with_captures(
                 |_this, args, captures, context| {
                     <span class="comment">// https://tc39.es/ecma262/#sec-promise-reject-functions
@@ -4522,8 +4661,7 @@
                 <span class="comment">// g. Assert: promiseCapability is a PromiseCapability Record.
                 </span><span class="kw">let </span>PromiseCapability {
                     promise: <span class="kw">_</span>,
-                    resolve,
-                    reject,
+                    functions: ResolvingFunctions { resolve, reject },
                 } = <span class="kw-2">&amp;</span>promise_capability_record;
 
                 <span class="kw">match </span>handler_result {

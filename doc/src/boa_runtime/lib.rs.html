@@ -316,8 +316,6 @@
 <a href="#316" id="316">316</a>
 <a href="#317" id="317">317</a>
 <a href="#318" id="318">318</a>
-<a href="#319" id="319">319</a>
-<a href="#320" id="320">320</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Boa&#39;s **boa_runtime** crate contains an example runtime and basic runtime features and
 //! functionality for the `boa_engine` crate for runtime implementors.
 //!
@@ -326,7 +324,7 @@
 //! 1. Add **boa_runtime** as a dependency to your project along with **boa_engine**.
 //!
 //! ```
-//! use boa_engine::{ Context, Source, property::Attribute };
+//! use boa_engine::{ Context, Source, property::Attribute, js_string };
 //! use boa_runtime::Console;
 //!
 //! // Create the context.
@@ -337,7 +335,7 @@
 //!
 //! // Register the console as a global property to the context.
 //! context
-//!     .register_global_property(Console::NAME, console, Attribute::all())
+//!     .register_global_property(js_string!(Console::NAME), console, Attribute::all())
 //!     .expect(&quot;the console object shouldn&#39;t exist yet&quot;);
 //!
 //! // JavaScript source for parsing.
@@ -357,9 +355,7 @@
 //!         # panic!(&quot;An error occured in boa_runtime&#39;s js_code&quot;);
 //!     }
 //! };
-//!
 //! ```
-//!
 </span><span class="attr">#![doc = <span class="macro">include_str!</span>(<span class="string">&quot;../ABOUT.md&quot;</span>)]
 #![doc(
     html_logo_url = <span class="string">&quot;https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg&quot;</span>,
