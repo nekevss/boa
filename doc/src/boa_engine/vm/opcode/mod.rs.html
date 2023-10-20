@@ -2249,6 +2249,54 @@
 <a href="#2249" id="2249">2249</a>
 <a href="#2250" id="2250">2250</a>
 <a href="#2251" id="2251">2251</a>
+<a href="#2252" id="2252">2252</a>
+<a href="#2253" id="2253">2253</a>
+<a href="#2254" id="2254">2254</a>
+<a href="#2255" id="2255">2255</a>
+<a href="#2256" id="2256">2256</a>
+<a href="#2257" id="2257">2257</a>
+<a href="#2258" id="2258">2258</a>
+<a href="#2259" id="2259">2259</a>
+<a href="#2260" id="2260">2260</a>
+<a href="#2261" id="2261">2261</a>
+<a href="#2262" id="2262">2262</a>
+<a href="#2263" id="2263">2263</a>
+<a href="#2264" id="2264">2264</a>
+<a href="#2265" id="2265">2265</a>
+<a href="#2266" id="2266">2266</a>
+<a href="#2267" id="2267">2267</a>
+<a href="#2268" id="2268">2268</a>
+<a href="#2269" id="2269">2269</a>
+<a href="#2270" id="2270">2270</a>
+<a href="#2271" id="2271">2271</a>
+<a href="#2272" id="2272">2272</a>
+<a href="#2273" id="2273">2273</a>
+<a href="#2274" id="2274">2274</a>
+<a href="#2275" id="2275">2275</a>
+<a href="#2276" id="2276">2276</a>
+<a href="#2277" id="2277">2277</a>
+<a href="#2278" id="2278">2278</a>
+<a href="#2279" id="2279">2279</a>
+<a href="#2280" id="2280">2280</a>
+<a href="#2281" id="2281">2281</a>
+<a href="#2282" id="2282">2282</a>
+<a href="#2283" id="2283">2283</a>
+<a href="#2284" id="2284">2284</a>
+<a href="#2285" id="2285">2285</a>
+<a href="#2286" id="2286">2286</a>
+<a href="#2287" id="2287">2287</a>
+<a href="#2288" id="2288">2288</a>
+<a href="#2289" id="2289">2289</a>
+<a href="#2290" id="2290">2290</a>
+<a href="#2291" id="2291">2291</a>
+<a href="#2292" id="2292">2292</a>
+<a href="#2293" id="2293">2293</a>
+<a href="#2294" id="2294">2294</a>
+<a href="#2295" id="2295">2295</a>
+<a href="#2296" id="2296">2296</a>
+<a href="#2297" id="2297">2297</a>
+<a href="#2298" id="2298">2298</a>
+<a href="#2299" id="2299">2299</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::iter::FusedIterator;
 
 <span class="doccomment">/// The opcodes of the vm.
@@ -2647,11 +2695,11 @@
         }
 
         <span class="kw">impl </span>Opcode {
-            <span class="kw">const </span>MAX: usize = <span class="number">2usize</span>.pow(<span class="number">8</span>) * <span class="number">3</span>;
+            <span class="kw">const </span>MAX: usize = <span class="number">2usize</span>.pow(<span class="number">8</span>);
 
             <span class="comment">// TODO: see if this can be exposed on all features.
             </span><span class="attr">#[allow(unused)]
-            </span><span class="kw">const </span>NAMES: [<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str; <span class="self">Self</span>::MAX] = [
+            </span><span class="kw">const </span>NAMES: [<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str; <span class="self">Self</span>::MAX * <span class="number">3</span>] = [
                 $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::NAME),<span class="kw-2">*</span>,
                 $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::NAME),<span class="kw-2">*</span>,
                 $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::NAME),*
@@ -2665,7 +2713,7 @@
                 <span class="self">Self</span>::NAMES[<span class="self">self </span><span class="kw">as </span>usize]
             }
 
-            <span class="kw">const </span>INSTRUCTIONS: [<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str; <span class="self">Self</span>::MAX] = [
+            <span class="kw">const </span>INSTRUCTIONS: [<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str; <span class="self">Self</span>::MAX * <span class="number">3</span>] = [
                 $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::INSTRUCTION),<span class="kw-2">*</span>,
                 $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::INSTRUCTION),<span class="kw-2">*</span>,
                 $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::INSTRUCTION),*
@@ -2677,7 +2725,29 @@
                 <span class="self">Self</span>::INSTRUCTIONS[<span class="self">self </span><span class="kw">as </span>usize]
             }
 
-            <span class="kw">const </span>EXECUTE_FNS: [<span class="kw">fn</span>(<span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;CompletionType&gt;; <span class="self">Self</span>::MAX] = [
+            <span class="kw">const </span>SPEND_FNS: [<span class="kw">fn</span>(<span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;, <span class="kw-2">&amp;mut </span>u32) -&gt; JsResult&lt;CompletionType&gt;; <span class="self">Self</span>::MAX] = [
+                $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::spend_budget_and_execute),<span class="kw-2">*</span>,
+            ];
+
+            <span class="doccomment">/// Spends the cost of this opcode into the provided budget and executes it.
+            </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>spend_budget_and_execute(
+                <span class="self">self</span>,
+                context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
+                budget: <span class="kw-2">&amp;mut </span>u32
+            ) -&gt; JsResult&lt;CompletionType&gt; {
+                <span class="self">Self</span>::SPEND_FNS[<span class="self">self </span><span class="kw">as </span>usize](context, budget)
+            }
+
+            <span class="kw">const </span>COSTS: [u8; <span class="self">Self</span>::MAX] = [
+                $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::COST),<span class="kw-2">*</span>,
+            ];
+
+            <span class="doccomment">/// Return the cost of this opcode.
+            </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">const fn </span>cost(<span class="self">self</span>) -&gt; u8 {
+                <span class="self">Self</span>::COSTS[<span class="self">self </span><span class="kw">as </span>usize]
+            }
+
+            <span class="kw">const </span>EXECUTE_FNS: [<span class="kw">fn</span>(<span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;CompletionType&gt;; <span class="self">Self</span>::MAX * <span class="number">3</span>] = [
                 $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::execute),<span class="kw-2">*</span>,
                 $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::execute_with_u16_operands),<span class="kw-2">*</span>,
                 $(&lt;<span class="macro">generate_opcodes!</span>(name <span class="macro-nonterminal">$Variant </span>$(=&gt; <span class="macro-nonterminal">$mapping</span>)<span class="question-mark">?</span>)&gt;::execute_with_u32_operands),*
@@ -2691,7 +2761,7 @@
         <span class="doccomment">/// This represents a VM instruction, it contains both opcode and operands.
         ///
         </span><span class="comment">// TODO: An instruction should be a representation of a valid executable instruction (opcode + operands),
-        //       so variants like `ResevedN`, or operand width prefix modifiers, idealy shouldn&#39;t
+        //       so variants like `ReservedN`, or operand width prefix modifiers, idealy shouldn&#39;t
         //       be a part of `Instruction`.
         </span><span class="attr">#[derive(Debug, Clone, PartialEq)]
         #[repr(u8)]
@@ -2781,22 +2851,32 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>Operation {
     <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str;
     <span class="kw">const </span>INSTRUCTION: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str;
+    <span class="kw">const </span>COST: u8;
 
     <span class="doccomment">/// Execute opcode with [`VaryingOperandKind::U8`] sized [`VaryingOperand`]s.
     </span><span class="kw">fn </span>execute(context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;CompletionType&gt;;
 
     <span class="doccomment">/// Execute opcode with [`VaryingOperandKind::U16`] sized [`VaryingOperand`]s.
     ///
-    /// By default if not implemented will call [`Reserved::u16_execute()`] which panics.
+    /// By default if not implemented will call [`Reserved::execute_with_u16_operands()`] which panics.
     </span><span class="kw">fn </span>execute_with_u16_operands(context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;CompletionType&gt; {
         Reserved::execute_with_u16_operands(context)
     }
 
     <span class="doccomment">/// Execute opcode with [`VaryingOperandKind::U32`] sized [`VaryingOperand`]s.
     ///
-    /// By default if not implemented will call [`Reserved::u32_execute()`] which panics.
+    /// By default if not implemented will call [`Reserved::execute_with_u32_operands()`] which panics.
     </span><span class="kw">fn </span>execute_with_u32_operands(context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;CompletionType&gt; {
         Reserved::execute_with_u32_operands(context)
+    }
+
+    <span class="doccomment">/// Spends the cost of this operation into `budget` and runs `execute`.
+    </span><span class="kw">fn </span>spend_budget_and_execute(
+        context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
+        budget: <span class="kw-2">&amp;mut </span>u32,
+    ) -&gt; JsResult&lt;CompletionType&gt; {
+        <span class="kw-2">*</span>budget = budget.saturating_sub(u32::from(<span class="self">Self</span>::COST));
+        <span class="self">Self</span>::execute(context)
     }
 }
 
@@ -3308,6 +3388,15 @@
     ///
     /// Stack: **=&gt;**
     </span>ThrowMutateImmutable { index: VaryingOperand },
+
+    <span class="doccomment">/// Get i-th argument of the current frame.
+    ///
+    /// Returns `undefined` if `arguments.len()` &lt; `index`.
+    ///
+    /// Operands: index: `u32`
+    ///
+    /// Stack: **=&gt;** value
+    </span>GetArgument { index: VaryingOperand },
 
     <span class="doccomment">/// Find a binding on the environment chain and push its value.
     ///
@@ -3822,21 +3911,21 @@
     ///
     /// Operands:
     ///
-    /// Stack: **=&gt;** super_constructor, new_target
+    /// Stack: **=&gt;** super_constructor
     </span>SuperCallPrepare,
 
     <span class="doccomment">/// Execute the `super()` method.
     ///
     /// Operands: argument_count: `u32`
     ///
-    /// Stack: super_constructor, new_target, argument_1, ... argument_n **=&gt;**
+    /// Stack: super_constructor, argument_1, ... argument_n **=&gt;**
     </span>SuperCall { argument_count: VaryingOperand },
 
     <span class="doccomment">/// Execute the `super()` method where the arguments contain spreads.
     ///
     /// Operands:
     ///
-    /// Stack: super_constructor, new_target, arguments_array **=&gt;**
+    /// Stack: super_constructor, arguments_array **=&gt;**
     </span>SuperCallSpread,
 
     <span class="doccomment">/// Execute the `super()` method when no constructor of the class is defined.
@@ -3845,6 +3934,17 @@
     ///
     /// Stack: argument_n, ... argument_1 **=&gt;**
     </span>SuperCallDerived,
+
+    <span class="doccomment">/// Binds `this` value and initializes the instance elements.
+    ///
+    /// Performs steps 7-12 of [`SuperCall: super Arguments`][spec]
+    ///
+    /// Operands:
+    ///
+    /// Stack: result **=&gt;** result
+    ///
+    /// [spec]: https://tc39.es/ecma262/#sec-super-keyword-runtime-semantics-evaluation
+    </span>BindThisValue,
 
     <span class="doccomment">/// Dynamically import a module.
     ///
@@ -3951,6 +4051,13 @@
     ///
     /// Stack: arguments_array, func **=&gt;** result
     </span>NewSpread,
+
+    <span class="doccomment">/// Check return from a function.
+    ///
+    /// Operands:
+    ///
+    /// Stack: **=&gt;**
+    </span>CheckReturn,
 
     <span class="doccomment">/// Return from a function.
     ///
@@ -4163,18 +4270,11 @@
     /// Stack: `argument_1` .. `argument_n` **=&gt;** `array`
     </span>RestParameterInit,
 
-    <span class="doccomment">/// Pop the remaining arguments of a function.
-    ///
-    /// Operands:
-    ///
-    /// Stack: `argument_1` .. `argument_n` **=&gt;**
-    </span>RestParameterPop,
-
     <span class="doccomment">/// Yields from the current generator execution.
     ///
     /// Operands:
     ///
-    /// Stack: **=&gt;** resume_kind, received
+    /// Stack: value **=&gt;** resume_kind, received
     </span>GeneratorYield,
 
     <span class="doccomment">/// Resumes the current generator function.
@@ -4420,10 +4520,6 @@
     </span>Reserved55 =&gt; Reserved,
     <span class="doccomment">/// Reserved [`Opcode`].
     </span>Reserved56 =&gt; Reserved,
-    <span class="doccomment">/// Reserved [`Opcode`].
-    </span>Reserved57 =&gt; Reserved,
-    <span class="doccomment">/// Reserved [`Opcode`].
-    </span>Reserved58 =&gt; Reserved,
 }
 
 <span class="doccomment">/// Specific opcodes for bindings.

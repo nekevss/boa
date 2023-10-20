@@ -203,10 +203,19 @@
 <a href="#203" id="203">203</a>
 <a href="#204" id="204">204</a>
 <a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>boa_gc::{Gc, GcRefCell};
 
 <span class="kw">use crate</span>::{
-    builtins::{generator::GeneratorContext, Promise},
+    builtins::{generator::GeneratorContext, promise::PromiseCapability, Promise},
     native_function::NativeFunction,
     object::FunctionObjectBuilder,
     vm::{opcode::Operation, CompletionType, GeneratorResumeKind},
@@ -223,6 +232,7 @@
 <span class="kw">impl </span>Operation <span class="kw">for </span>Await {
     <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str = <span class="string">&quot;Await&quot;</span>;
     <span class="kw">const </span>INSTRUCTION: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str = <span class="string">&quot;INST - Await&quot;</span>;
+    <span class="kw">const </span>COST: u8 = <span class="number">5</span>;
 
     <span class="kw">fn </span>execute(context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;CompletionType&gt; {
         <span class="kw">let </span>value = context.vm.pop();
@@ -330,11 +340,17 @@
             context,
         );
 
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(promise_capabality) = context.vm.frame().promise_capability.clone() {
-            context.vm.push(promise_capabality.promise().clone());
-        } <span class="kw">else </span>{
-            context.vm.push(JsValue::undefined());
-        }
+        <span class="kw">let </span>return_value = context
+            .vm
+            .frame()
+            .promise_capability
+            .as_ref()
+            .map(PromiseCapability::promise)
+            .cloned()
+            .map(JsValue::from)
+            .unwrap_or_default();
+
+        context.vm.set_return_value(return_value);
         <span class="prelude-val">Ok</span>(CompletionType::Yield)
     }
 }
@@ -349,6 +365,7 @@
 <span class="kw">impl </span>Operation <span class="kw">for </span>CreatePromiseCapability {
     <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str = <span class="string">&quot;CreatePromiseCapability&quot;</span>;
     <span class="kw">const </span>INSTRUCTION: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str = <span class="string">&quot;INST - CreatePromiseCapability&quot;</span>;
+    <span class="kw">const </span>COST: u8 = <span class="number">8</span>;
 
     <span class="kw">fn </span>execute(context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;CompletionType&gt; {
         <span class="kw">if </span>context.vm.frame().promise_capability.is_some() {
@@ -376,6 +393,7 @@
 <span class="kw">impl </span>Operation <span class="kw">for </span>CompletePromiseCapability {
     <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str = <span class="string">&quot;CompletePromiseCapability&quot;</span>;
     <span class="kw">const </span>INSTRUCTION: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str = <span class="string">&quot;INST - CompletePromiseCapability&quot;</span>;
+    <span class="kw">const </span>COST: u8 = <span class="number">8</span>;
 
     <span class="kw">fn </span>execute(context: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; JsResult&lt;CompletionType&gt; {
         <span class="comment">// If the current executing function is an async function we have to resolve/reject it&#39;s promise at the end.
