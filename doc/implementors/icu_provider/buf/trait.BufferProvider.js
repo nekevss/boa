@@ -1,4 +1,3 @@
-(function() {var implementors = {};
-implementors["icu_provider"] = [];
-implementors["icu_provider_blob"] = [{"text":"impl <a class=\"trait\" href=\"icu_provider/buf/trait.BufferProvider.html\" title=\"trait icu_provider::buf::BufferProvider\">BufferProvider</a> for <a class=\"struct\" href=\"icu_provider_blob/struct.BlobDataProvider.html\" title=\"struct icu_provider_blob::BlobDataProvider\">BlobDataProvider</a>","synthetic":false,"types":["icu_provider_blob::blob_data_provider::BlobDataProvider"]},{"text":"impl <a class=\"trait\" href=\"icu_provider/buf/trait.BufferProvider.html\" title=\"trait icu_provider::buf::BufferProvider\">BufferProvider</a> for <a class=\"struct\" href=\"icu_provider_blob/struct.StaticDataProvider.html\" title=\"struct icu_provider_blob::StaticDataProvider\">StaticDataProvider</a>","synthetic":false,"types":["icu_provider_blob::static_data_provider::StaticDataProvider"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
+(function() {var implementors = {
+"boa_engine":[["impl&lt;T: BufferProvider&gt; BufferProvider for <a class=\"struct\" href=\"boa_engine/context/icu/struct.StaticProviderAdapter.html\" title=\"struct boa_engine::context::icu::StaticProviderAdapter\">StaticProviderAdapter</a>&lt;T&gt;"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
