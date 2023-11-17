@@ -1153,8 +1153,8 @@
     // 3. Return subset.
     </span>requested_locales
         .iter()
-        .cloned()
         .filter(|loc| best_available_locale(loc.id.clone(), provider).is_some())
+        .cloned()
         .collect()
 }
 
@@ -1171,8 +1171,8 @@
 ) -&gt; Vec&lt;Locale&gt; {
     requested_locales
         .iter()
-        .cloned()
         .filter(|loc| best_locale_for_provider(loc.id.clone(), provider).is_some())
+        .cloned()
         .collect()
 }
 
