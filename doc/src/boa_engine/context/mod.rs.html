@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `core/engine/src/context/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.0 (79e9716c9 2023-11-13)" data-channel="1.74.0" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `core/engine/src/context/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="boa_engine" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.1 (a28077b28 2023-12-04)" data-channel="1.74.1" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../boa_engine/index.html"><img src="https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1104,6 +1104,26 @@
 <a href="#1104" id="1104">1104</a>
 <a href="#1105" id="1105">1105</a>
 <a href="#1106" id="1106">1106</a>
+<a href="#1107" id="1107">1107</a>
+<a href="#1108" id="1108">1108</a>
+<a href="#1109" id="1109">1109</a>
+<a href="#1110" id="1110">1110</a>
+<a href="#1111" id="1111">1111</a>
+<a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
+<a href="#1114" id="1114">1114</a>
+<a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a>
+<a href="#1119" id="1119">1119</a>
+<a href="#1120" id="1120">1120</a>
+<a href="#1121" id="1121">1121</a>
+<a href="#1122" id="1122">1122</a>
+<a href="#1123" id="1123">1123</a>
+<a href="#1124" id="1124">1124</a>
+<a href="#1125" id="1125">1125</a>
+<a href="#1126" id="1126">1126</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! The ECMAScript context.
 
 </span><span class="kw">mod </span>hooks;
@@ -1112,8 +1132,10 @@
 <span class="kw">pub mod </span>intrinsics;
 
 <span class="kw">pub use </span>hooks::{DefaultHooks, HostHooks};
+
 <span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-</span><span class="kw">pub use </span>icu::{BoaProvider, IcuError};
+</span><span class="kw">pub use </span>icu::IcuError;
+
 <span class="kw">use </span>intrinsics::Intrinsics;
 
 <span class="attr">#[cfg(not(feature = <span class="string">&quot;intl&quot;</span>))]
@@ -1208,9 +1230,9 @@
 
     can_block: bool,
 
-    <span class="doccomment">/// ICU related utilities
+    <span class="doccomment">/// Intl data provider.
     </span><span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-    </span>icu: icu::Icu,
+    </span>intl_provider: icu::IntlProvider,
 
     host_hooks: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span><span class="kw">dyn </span>HostHooks,
 
@@ -1240,7 +1262,7 @@
             .field(<span class="string">&quot;optimizer_options&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.optimizer_options);
 
         <span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-        </span>debug.field(<span class="string">&quot;icu&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.icu);
+        </span>debug.field(<span class="string">&quot;intl_provider&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.intl_provider);
 
         debug.finish_non_exhaustive()
     }
@@ -1943,10 +1965,10 @@
         ContextCleanupGuard::new(<span class="self">self</span>, cleanup)
     }
 
-    <span class="doccomment">/// Get the ICU related utilities
+    <span class="doccomment">/// Get the Intl data provider.
     </span><span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>icu(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>icu::Icu {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.icu
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>intl_provider(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>icu::IntlProvider {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.intl_provider
     }
 }
 
@@ -1954,14 +1976,7 @@
 ///
 /// This builder allows custom initialization of the [`Interner`] within
 /// the context.
-/// Additionally, if the `intl` feature is enabled, [`ContextBuilder`] becomes
-/// the only way to create a new [`Context`], since now it requires a
-/// valid data provider for the `Intl` functionality.
-</span><span class="attr">#[cfg_attr(
-    feature = <span class="string">&quot;intl&quot;</span>,
-    doc = <span class="string">&quot;The required data in a valid provider is specified in [`BoaProvider`]&quot;
-</span>)]
-#[derive(Default)]
+</span><span class="attr">#[derive(Default)]
 </span><span class="kw">pub struct </span>ContextBuilder {
     interner: <span class="prelude-ty">Option</span>&lt;Interner&gt;,
     host_hooks: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span><span class="kw">dyn </span>HostHooks&gt;,
@@ -1969,7 +1984,7 @@
     module_loader: <span class="prelude-ty">Option</span>&lt;Rc&lt;<span class="kw">dyn </span>ModuleLoader&gt;&gt;,
     can_block: bool,
     <span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-    </span>icu: <span class="prelude-ty">Option</span>&lt;icu::Icu&gt;,
+    </span>icu: <span class="prelude-ty">Option</span>&lt;icu::IntlProvider&gt;,
     <span class="attr">#[cfg(feature = <span class="string">&quot;fuzz&quot;</span>)]
     </span>instructions_remaining: usize,
 }
@@ -2023,7 +2038,7 @@
         <span class="self">self
     </span>}
 
-    <span class="doccomment">/// Provides an icu data provider to the [`Context`].
+    <span class="doccomment">/// Provides a [`BufferProvider`] data provider to the [`Context`].
     ///
     /// This function is only available if the `intl` feature is enabled.
     ///
@@ -2036,9 +2051,36 @@
     ///
     /// [`LocaleCanonicalizer`]: icu_locid_transform::LocaleCanonicalizer
     /// [`LocaleExpander`]: icu_locid_transform::LocaleExpander
+    /// [`BufferProvider`]: icu_provider::BufferProvider
     </span><span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-    </span><span class="kw">pub fn </span>icu_provider(<span class="kw-2">mut </span><span class="self">self</span>, provider: BoaProvider) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, IcuError&gt; {
-        <span class="self">self</span>.icu = <span class="prelude-val">Some</span>(icu::Icu::new(provider)<span class="question-mark">?</span>);
+    </span><span class="kw">pub fn </span>icu_buffer_provider&lt;T: icu_provider::BufferProvider + <span class="lifetime">&#39;static</span>&gt;(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        provider: T,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, IcuError&gt; {
+        <span class="self">self</span>.icu = <span class="prelude-val">Some</span>(icu::IntlProvider::try_new_with_buffer_provider(provider)<span class="question-mark">?</span>);
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>)
+    }
+
+    <span class="doccomment">/// Provides an [`AnyProvider`] data provider to the [`Context`].
+    ///
+    /// This function is only available if the `intl` feature is enabled.
+    ///
+    /// # Errors
+    ///
+    /// This returns `Err` if the provided provider doesn&#39;t have the required locale information
+    /// to construct both a [`LocaleCanonicalizer`] and a [`LocaleExpander`]. Note that this doesn&#39;t
+    /// mean that the provider will successfully construct all `Intl` services; that check is made
+    /// until the creation of an instance of a service.
+    ///
+    /// [`LocaleCanonicalizer`]: icu_locid_transform::LocaleCanonicalizer
+    /// [`LocaleExpander`]: icu_locid_transform::LocaleExpander
+    /// [`AnyProvider`]: icu_provider::AnyProvider
+    </span><span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
+    </span><span class="kw">pub fn </span>icu_any_provider&lt;T: icu_provider::AnyProvider + <span class="lifetime">&#39;static</span>&gt;(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        provider: T,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, IcuError&gt; {
+        <span class="self">self</span>.icu = <span class="prelude-val">Some</span>(icu::IntlProvider::try_new_with_any_provider(provider)<span class="question-mark">?</span>);
         <span class="prelude-val">Ok</span>(<span class="self">self</span>)
     }
 
@@ -2133,11 +2175,9 @@
             vm,
             strict: <span class="bool-val">false</span>,
             <span class="attr">#[cfg(feature = <span class="string">&quot;intl&quot;</span>)]
-            </span>icu: <span class="self">self</span>.icu.unwrap_or_else(|| {
-                <span class="kw">let </span>provider = BoaProvider::Buffer(Box::new(icu::StaticProviderAdapter(
-                    boa_icu_provider::buffer(),
-                )));
-                icu::Icu::new(provider).expect(<span class="string">&quot;Failed to initialize default icu data.&quot;</span>)
+            </span>intl_provider: <span class="self">self</span>.icu.unwrap_or_else(|| {
+                icu::IntlProvider::try_new_with_buffer_provider(boa_icu_provider::buffer())
+                    .expect(<span class="string">&quot;Failed to initialize default icu data.&quot;</span>)
             }),
             <span class="attr">#[cfg(feature = <span class="string">&quot;fuzz&quot;</span>)]
             </span>instructions_remaining: <span class="self">self</span>.instructions_remaining,
