@@ -6069,7 +6069,7 @@
         context: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. If comparefn is not undefined and IsCallable(comparefn) is false, throw a TypeError exception.
-        </span><span class="kw">let </span>compare_fn = <span class="kw">match </span>args.get(<span class="number">0</span>) {
+        </span><span class="kw">let </span>compare_fn = <span class="kw">match </span>args.first() {
             <span class="prelude-val">None </span>| <span class="prelude-val">Some</span>(JsValue::Undefined) =&gt; <span class="prelude-val">None</span>,
             <span class="prelude-val">Some</span>(JsValue::Object(obj)) <span class="kw">if </span>obj.is_callable() =&gt; <span class="prelude-val">Some</span>(obj),
             <span class="kw">_ </span>=&gt; {
@@ -6136,7 +6136,7 @@
         context: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. If comparefn is not undefined and IsCallable(comparefn) is false, throw a TypeError exception.
-        </span><span class="kw">let </span>compare_fn = <span class="kw">match </span>args.get(<span class="number">0</span>) {
+        </span><span class="kw">let </span>compare_fn = <span class="kw">match </span>args.first() {
             <span class="prelude-val">None </span>| <span class="prelude-val">Some</span>(JsValue::Undefined) =&gt; <span class="prelude-val">None</span>,
             <span class="prelude-val">Some</span>(JsValue::Object(obj)) <span class="kw">if </span>obj.is_callable() =&gt; <span class="prelude-val">Some</span>(obj),
             <span class="kw">_ </span>=&gt; {

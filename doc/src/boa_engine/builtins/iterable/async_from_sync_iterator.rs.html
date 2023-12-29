@@ -468,7 +468,7 @@
         <span class="kw">let </span>result = next
             .call(
                 <span class="kw-2">&amp;</span>iterator.into(),
-                args.get(<span class="number">0</span>).map_or(<span class="kw-2">&amp;</span>[], std::slice::from_ref),
+                args.first().map_or(<span class="kw-2">&amp;</span>[], std::slice::from_ref),
                 context,
             )
             .and_then(IteratorResult::from_value);
@@ -511,7 +511,7 @@
         <span class="comment">// 6. IfAbruptRejectPromise(return, promiseCapability).
         </span><span class="kw">let </span>r#return = <span class="macro">if_abrupt_reject_promise!</span>(r#return, promise_capability, context);
 
-        <span class="kw">let </span>result = <span class="kw">match </span>(r#return, args.get(<span class="number">0</span>)) {
+        <span class="kw">let </span>result = <span class="kw">match </span>(r#return, args.first()) {
             <span class="comment">// 7. If return is undefined, then
             </span>(<span class="prelude-val">None</span>, <span class="kw">_</span>) =&gt; {
                 <span class="comment">// a. Let iterResult be CreateIterResultObject(value, true).
@@ -581,7 +581,7 @@
         <span class="comment">// 6. IfAbruptRejectPromise(throw, promiseCapability).
         </span><span class="kw">let </span>throw = <span class="macro">if_abrupt_reject_promise!</span>(throw, promise_capability, context);
 
-        <span class="kw">let </span>result = <span class="kw">match </span>(throw, args.get(<span class="number">0</span>)) {
+        <span class="kw">let </span>result = <span class="kw">match </span>(throw, args.first()) {
             <span class="comment">// 7. If throw is undefined, then
             </span>(<span class="prelude-val">None</span>, <span class="kw">_</span>) =&gt; {
                 <span class="comment">// a. Perform ! Call(promiseCapability.[[Reject]], undefined, « value »).

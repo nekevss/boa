@@ -333,7 +333,7 @@
 <span class="doccomment">/// JavaScript `Intl.DateTimeFormat` object.
 </span><span class="attr">#[derive(Debug, Clone, Trace, Finalize, JsData)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>DateTimeFormat {
-    initialized_date_time_format: bool,
+    initialized: bool,
     locale: JsString,
     calendar: JsString,
     numbering_system: JsString,
@@ -416,7 +416,7 @@
             context.root_shape(),
             prototype,
             <span class="self">Self </span>{
-                initialized_date_time_format: <span class="bool-val">true</span>,
+                initialized: <span class="bool-val">true</span>,
                 locale: <span class="macro">js_string!</span>(<span class="string">&quot;en-US&quot;</span>),
                 calendar: <span class="macro">js_string!</span>(<span class="string">&quot;gregory&quot;</span>),
                 numbering_system: <span class="macro">js_string!</span>(<span class="string">&quot;arab&quot;</span>),

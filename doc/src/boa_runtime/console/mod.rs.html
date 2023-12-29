@@ -973,7 +973,7 @@
         console: <span class="kw-2">&amp;</span><span class="self">Self</span>,
         context: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="kw">let </span>assertion = args.get(<span class="number">0</span>).map_or(<span class="bool-val">false</span>, JsValue::to_boolean);
+        <span class="kw">let </span>assertion = args.first().map_or(<span class="bool-val">false</span>, JsValue::to_boolean);
 
         <span class="kw">if </span>!assertion {
             <span class="kw">let </span><span class="kw-2">mut </span>args: Vec&lt;JsValue&gt; = args.iter().skip(<span class="number">1</span>).cloned().collect();
@@ -1159,7 +1159,7 @@
         console: <span class="kw-2">&amp;mut </span><span class="self">Self</span>,
         context: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="kw">let </span>label = <span class="kw">match </span>args.get(<span class="number">0</span>) {
+        <span class="kw">let </span>label = <span class="kw">match </span>args.first() {
             <span class="prelude-val">Some</span>(value) =&gt; value.to_string(context)<span class="question-mark">?</span>,
             <span class="prelude-val">None </span>=&gt; <span class="string">&quot;default&quot;</span>.into(),
         };
@@ -1188,7 +1188,7 @@
         console: <span class="kw-2">&amp;mut </span><span class="self">Self</span>,
         context: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="kw">let </span>label = <span class="kw">match </span>args.get(<span class="number">0</span>) {
+        <span class="kw">let </span>label = <span class="kw">match </span>args.first() {
             <span class="prelude-val">Some</span>(value) =&gt; value.to_string(context)<span class="question-mark">?</span>,
             <span class="prelude-val">None </span>=&gt; <span class="string">&quot;default&quot;</span>.into(),
         };
@@ -1227,7 +1227,7 @@
         console: <span class="kw-2">&amp;mut </span><span class="self">Self</span>,
         context: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="kw">let </span>label = <span class="kw">match </span>args.get(<span class="number">0</span>) {
+        <span class="kw">let </span>label = <span class="kw">match </span>args.first() {
             <span class="prelude-val">Some</span>(value) =&gt; value.to_string(context)<span class="question-mark">?</span>,
             <span class="prelude-val">None </span>=&gt; <span class="string">&quot;default&quot;</span>.into(),
         };
@@ -1264,7 +1264,7 @@
         console: <span class="kw-2">&amp;</span><span class="self">Self</span>,
         context: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="kw">let </span>label = <span class="kw">match </span>args.get(<span class="number">0</span>) {
+        <span class="kw">let </span>label = <span class="kw">match </span>args.first() {
             <span class="prelude-val">Some</span>(value) =&gt; value.to_string(context)<span class="question-mark">?</span>,
             <span class="prelude-val">None </span>=&gt; <span class="string">&quot;default&quot;</span>.into(),
         };
@@ -1308,7 +1308,7 @@
         console: <span class="kw-2">&amp;mut </span><span class="self">Self</span>,
         context: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="kw">let </span>label = <span class="kw">match </span>args.get(<span class="number">0</span>) {
+        <span class="kw">let </span>label = <span class="kw">match </span>args.first() {
             <span class="prelude-val">Some</span>(value) =&gt; value.to_string(context)<span class="question-mark">?</span>,
             <span class="prelude-val">None </span>=&gt; <span class="string">&quot;default&quot;</span>.into(),
         };

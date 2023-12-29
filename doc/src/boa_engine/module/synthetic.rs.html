@@ -370,6 +370,9 @@
 <a href="#370" id="370">370</a>
 <a href="#371" id="371">371</a>
 <a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::rc::Rc;
 
 <span class="kw">use </span>boa_gc::{Finalize, Gc, GcRefCell, Trace, WeakGc};
@@ -469,7 +472,10 @@
     {
         <span class="comment">// SAFETY: The caller must ensure the invariants of the closure hold.
         </span><span class="kw">unsafe </span>{
-            <span class="self">Self</span>::from_closure_with_captures(<span class="kw">move </span>|module, <span class="kw">_</span>, context| closure(module, context), ())
+            <span class="self">Self</span>::from_closure_with_captures(
+                <span class="kw">move </span>|module, (), context| closure(module, context),
+                (),
+            )
         }
     }
 

@@ -304,20 +304,8 @@
 <a href="#304" id="304">304</a>
 <a href="#305" id="305">305</a>
 <a href="#306" id="306">306</a>
-<a href="#307" id="307">307</a>
-<a href="#308" id="308">308</a>
-<a href="#309" id="309">309</a>
-<a href="#310" id="310">310</a>
-<a href="#311" id="311">311</a>
-<a href="#312" id="312">312</a>
-<a href="#313" id="313">313</a>
-<a href="#314" id="314">314</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::{
-    collections::hash_map::RandomState,
-    hash::{BuildHasher, Hash, Hasher},
-};
-
-<span class="kw">use </span><span class="kw">crate</span>::vm::flowgraph::{Color, Edge, EdgeStyle, EdgeType, Node, NodeShape};
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::vm::flowgraph::{Color, Edge, EdgeStyle, EdgeType, Node, NodeShape};
+<span class="kw">use </span>std::{collections::hash_map::RandomState, hash::BuildHasher};
 
 <span class="doccomment">/// This represents the direction of flow in the flowgraph.
 </span><span class="attr">#[derive(Debug, Clone, Copy)]
@@ -414,9 +402,7 @@
 
     <span class="doccomment">/// Format into the graphviz format.
     </span><span class="kw">fn </span>graphviz_format(<span class="kw-2">&amp;</span><span class="self">self</span>, result: <span class="kw-2">&amp;mut </span>String, prefix: <span class="kw-2">&amp;</span>str) {
-        <span class="kw">let </span><span class="kw-2">mut </span>hasher = RandomState::new().build_hasher();
-        <span class="self">self</span>.label.hash(<span class="kw-2">&amp;mut </span>hasher);
-        <span class="kw">let </span>label = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, hasher.finish());
+        <span class="kw">let </span>label = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, RandomState::new().hash_one(<span class="kw-2">&amp;</span><span class="self">self</span>.label));
         result.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\tsubgraph cluster_{prefix}_{label} {{\n&quot;</span>));
         result.push_str(<span class="string">&quot;\t\tstyle = filled;\n&quot;</span>);
         result.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
@@ -478,9 +464,7 @@
 
     <span class="doccomment">/// Format into the mermaid format.
     </span><span class="kw">fn </span>mermaid_format(<span class="kw-2">&amp;</span><span class="self">self</span>, result: <span class="kw-2">&amp;mut </span>String, prefix: <span class="kw-2">&amp;</span>str) {
-        <span class="kw">let </span><span class="kw-2">mut </span>hasher = RandomState::new().build_hasher();
-        <span class="self">self</span>.label.hash(<span class="kw-2">&amp;mut </span>hasher);
-        <span class="kw">let </span>label = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, hasher.finish());
+        <span class="kw">let </span>label = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, RandomState::new().hash_one(<span class="kw-2">&amp;</span><span class="self">self</span>.label));
         <span class="kw">let </span>rankdir = <span class="kw">match </span><span class="self">self</span>.direction {
             Direction::TopToBottom =&gt; <span class="string">&quot;TB&quot;</span>,
             Direction::BottomToTop =&gt; <span class="string">&quot;BT&quot;</span>,

@@ -1054,7 +1054,7 @@
         args: <span class="kw-2">&amp;</span>[JsValue],
         context: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="kw">let </span>data = <span class="kw">match </span>args.get(<span class="number">0</span>) {
+        <span class="kw">let </span>data = <span class="kw">match </span>args.first() {
             <span class="prelude-val">Some</span>(value) =&gt; value.to_numeric_number(context)<span class="question-mark">?</span>,
             <span class="prelude-val">None </span>=&gt; <span class="number">0.0</span>,
         };
@@ -1158,7 +1158,7 @@
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Let x be ? thisNumberValue(this value).
         </span><span class="kw">let </span>this_num = <span class="self">Self</span>::this_number_value(this)<span class="question-mark">?</span>;
-        <span class="kw">let </span>precision = <span class="kw">match </span>args.get(<span class="number">0</span>) {
+        <span class="kw">let </span>precision = <span class="kw">match </span>args.first() {
             <span class="prelude-val">None </span>| <span class="prelude-val">Some</span>(JsValue::Undefined) =&gt; <span class="prelude-val">None</span>,
             <span class="comment">// 2. Let f be ? ToIntegerOrInfinity(fractionDigits).
             </span><span class="prelude-val">Some</span>(n) =&gt; <span class="prelude-val">Some</span>(n.to_integer_or_infinity(context)<span class="question-mark">?</span>),
@@ -1685,7 +1685,7 @@
         <span class="comment">// 1. If number is not a Number, return false.
         // 2. If number is not finite, return false.
         // 3. Otherwise, return true.
-        </span><span class="prelude-val">Ok</span>(JsValue::new(args.get(<span class="number">0</span>).map_or(<span class="bool-val">false</span>, |val| <span class="kw">match </span>val {
+        </span><span class="prelude-val">Ok</span>(JsValue::new(args.first().map_or(<span class="bool-val">false</span>, |val| <span class="kw">match </span>val {
             JsValue::Integer(<span class="kw">_</span>) =&gt; <span class="bool-val">true</span>,
             JsValue::Rational(number) =&gt; number.is_finite(),
             <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
@@ -1708,7 +1708,7 @@
         args: <span class="kw-2">&amp;</span>[JsValue],
         _ctx: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="prelude-val">Ok</span>(args.get(<span class="number">0</span>).map_or(<span class="bool-val">false</span>, <span class="self">Self</span>::is_integer).into())
+        <span class="prelude-val">Ok</span>(args.first().map_or(<span class="bool-val">false</span>, <span class="self">Self</span>::is_integer).into())
     }
 
     <span class="doccomment">/// `Number.isNaN( number )`
@@ -1732,7 +1732,7 @@
         _ctx: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="prelude-val">Ok</span>(JsValue::new(
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>JsValue::Rational(number)) = args.get(<span class="number">0</span>) {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>JsValue::Rational(number)) = args.first() {
                 number.is_nan()
             } <span class="kw">else </span>{
                 <span class="bool-val">false
@@ -1760,7 +1760,7 @@
         args: <span class="kw-2">&amp;</span>[JsValue],
         _ctx: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="prelude-val">Ok</span>(JsValue::new(<span class="kw">match </span>args.get(<span class="number">0</span>) {
+        <span class="prelude-val">Ok</span>(JsValue::new(<span class="kw">match </span>args.first() {
             <span class="prelude-val">Some</span>(JsValue::Integer(<span class="kw">_</span>)) =&gt; <span class="bool-val">true</span>,
             <span class="prelude-val">Some</span>(JsValue::Rational(number)) <span class="kw">if </span><span class="self">Self</span>::is_float_integer(<span class="kw-2">*</span>number) =&gt; {
                 number.abs() &lt;= <span class="self">Self</span>::MAX_SAFE_INTEGER

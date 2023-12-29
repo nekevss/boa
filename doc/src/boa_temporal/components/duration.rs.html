@@ -1745,6 +1745,13 @@
 <a href="#1745" id="1745">1745</a>
 <a href="#1746" id="1746">1746</a>
 <a href="#1747" id="1747">1747</a>
+<a href="#1748" id="1748">1748</a>
+<a href="#1749" id="1749">1749</a>
+<a href="#1750" id="1750">1750</a>
+<a href="#1751" id="1751">1751</a>
+<a href="#1752" id="1752">1752</a>
+<a href="#1753" id="1753">1753</a>
+<a href="#1754" id="1754">1754</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module implements `Duration` along with it&#39;s methods and components.
 
 </span><span class="kw">use crate</span>::{
@@ -2107,6 +2114,13 @@
     #[must_use]
     </span><span class="kw">pub fn </span>is_time_within_range(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="self">self</span>.time.is_within_range()
+    }
+
+    <span class="doccomment">/// Return an iterator over the `Duration`&#39;s values.
+    </span><span class="attr">#[inline]
+    #[must_use]
+    </span><span class="kw">pub fn </span>iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DurationIter&lt;<span class="lifetime">&#39;_</span>&gt; {
+        &lt;<span class="kw-2">&amp;</span><span class="self">Self </span><span class="kw">as </span>IntoIterator&gt;::into_iter(<span class="self">self</span>)
     }
 }
 

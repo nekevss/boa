@@ -724,7 +724,7 @@
         <span class="comment">// SAFETY: The caller must ensure the invariants of the closure hold.
         </span><span class="kw">unsafe </span>{
             <span class="self">Self</span>::from_closure_with_captures(
-                <span class="kw">move </span>|this, args, <span class="kw">_</span>, context| closure(this, args, context),
+                <span class="kw">move </span>|this, args, (), context| closure(this, args, context),
                 (),
             )
         }

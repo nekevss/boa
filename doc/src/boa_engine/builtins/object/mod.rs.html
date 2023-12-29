@@ -2225,7 +2225,7 @@
 
         <span class="comment">// 1. Set O to ? RequireObjectCoercible(O).
         </span><span class="kw">let </span>o = args
-            .get(<span class="number">0</span>)
+            .first()
             .cloned()
             .unwrap_or_default()
             .require_object_coercible()<span class="question-mark">?
@@ -2494,7 +2494,7 @@
         args: <span class="kw-2">&amp;</span>[JsValue],
         context: <span class="kw-2">&amp;mut </span>Context,
     ) -&gt; JsResult&lt;JsValue&gt; {
-        <span class="kw">let </span><span class="prelude-val">Some</span>(key) = args.get(<span class="number">0</span>) <span class="kw">else </span>{
+        <span class="kw">let </span><span class="prelude-val">Some</span>(key) = args.first() <span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Ok</span>(JsValue::new(<span class="bool-val">false</span>));
         };
 
@@ -2579,7 +2579,7 @@
     </span><span class="kw">pub fn </span>keys(<span class="kw">_</span>: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Let obj be ? ToObject(target).
         </span><span class="kw">let </span>obj = args
-            .get(<span class="number">0</span>)
+            .first()
             .cloned()
             .unwrap_or_default()
             .to_object(context)<span class="question-mark">?</span>;
@@ -2604,7 +2604,7 @@
     </span><span class="kw">pub fn </span>values(<span class="kw">_</span>: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Let obj be ? ToObject(target).
         </span><span class="kw">let </span>obj = args
-            .get(<span class="number">0</span>)
+            .first()
             .cloned()
             .unwrap_or_default()
             .to_object(context)<span class="question-mark">?</span>;
@@ -2633,7 +2633,7 @@
     </span><span class="kw">pub fn </span>entries(<span class="kw">_</span>: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// 1. Let obj be ? ToObject(target).
         </span><span class="kw">let </span>obj = args
-            .get(<span class="number">0</span>)
+            .first()
             .cloned()
             .unwrap_or_default()
             .to_object(context)<span class="question-mark">?</span>;

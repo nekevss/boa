@@ -475,7 +475,7 @@
     }
 
     <span class="kw">let </span>array_buffer = args
-        .get(<span class="number">0</span>)
+        .first()
         .and_then(JsValue::as_object)
         .ok_or_else(type_err)<span class="question-mark">?</span>;
     <span class="kw">let </span><span class="kw-2">mut </span>array_buffer = array_buffer.borrow_mut();
@@ -501,7 +501,7 @@
 ///
 /// Accepts a string value as its first argument and executes it as an ECMAScript script.
 </span><span class="kw">fn </span>eval_script(_this: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; {
-    args.get(<span class="number">0</span>).and_then(JsValue::as_string).map_or_else(
+    args.first().and_then(JsValue::as_string).map_or_else(
         || <span class="prelude-val">Ok</span>(JsValue::undefined()),
         |source_text| context.eval(Source::from_bytes(<span class="kw-2">&amp;</span>source_text.to_std_string_escaped())),
     )

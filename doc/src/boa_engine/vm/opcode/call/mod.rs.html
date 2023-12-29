@@ -491,7 +491,7 @@
             <span class="kw">let </span>arguments = context.vm.pop_n_values(argument_count);
             <span class="kw">let </span>_func = context.vm.pop();
             <span class="kw">let </span>_this = context.vm.pop();
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(x) = arguments.get(<span class="number">0</span>) {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(x) = arguments.first() {
                 <span class="comment">// i. Let argList be ? ArgumentListEvaluation of arguments.
                 // ii. If argList has no elements, return undefined.
                 // iii. Let evalArg be the first element of argList.
@@ -584,7 +584,7 @@
         <span class="kw">if </span>JsObject::equals(object, <span class="kw-2">&amp;</span>eval) {
             <span class="kw">let </span>_func = context.vm.pop();
             <span class="kw">let </span>_this = context.vm.pop();
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(x) = arguments.get(<span class="number">0</span>) {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(x) = arguments.first() {
                 <span class="comment">// i. Let argList be ? ArgumentListEvaluation of arguments.
                 // ii. If argList has no elements, return undefined.
                 // iii. Let evalArg be the first element of argList.

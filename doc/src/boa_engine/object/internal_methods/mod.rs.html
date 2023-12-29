@@ -1390,7 +1390,7 @@
 ///
 /// For a guide on how to implement exotic internal methods, see `ORDINARY_INTERNAL_METHODS`.
 </span><span class="attr">#[derive(Debug, Clone, Copy)]
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::struct_field_names)]
 </span><span class="kw">pub struct </span>InternalObjectMethods {
     <span class="kw">pub</span>(<span class="kw">crate</span>) __get_prototype_of__: <span class="kw">fn</span>(<span class="kw-2">&amp;</span>JsObject, <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsPrototype&gt;,
     <span class="kw">pub</span>(<span class="kw">crate</span>) __set_prototype_of__: <span class="kw">fn</span>(<span class="kw-2">&amp;</span>JsObject, JsPrototype, <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;bool&gt;,

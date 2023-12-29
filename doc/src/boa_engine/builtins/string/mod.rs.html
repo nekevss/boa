@@ -2981,7 +2981,7 @@
     ) -&gt; JsResult&lt;JsValue&gt; {
         <span class="comment">// This value is used by console.log and other routines to match Object type
         // to its Javascript Identifier (global constructor method name)
-        </span><span class="kw">let </span>string = <span class="kw">match </span>args.get(<span class="number">0</span>) {
+        </span><span class="kw">let </span>string = <span class="kw">match </span>args.first() {
             <span class="comment">// 2. Else,
             // a. If NewTarget is undefined and Type(value) is Symbol, return SymbolDescriptiveString(value).
             </span><span class="prelude-val">Some</span>(JsValue::Symbol(<span class="kw-2">ref </span>sym)) <span class="kw">if </span>new_target.is_undefined() =&gt; {

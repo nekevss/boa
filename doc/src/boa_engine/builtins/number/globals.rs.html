@@ -332,7 +332,7 @@
 /// [spec]: https://tc39.es/ecma262/#sec-isfinite-number
 /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/isFinite
 </span><span class="kw">fn </span>is_finite(<span class="kw">_</span>: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; {
-    <span class="kw">if let </span><span class="prelude-val">Some</span>(value) = args.get(<span class="number">0</span>) {
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(value) = args.first() {
         <span class="kw">let </span>number = value.to_number(context)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(number.is_finite().into())
     } <span class="kw">else </span>{
@@ -374,7 +374,7 @@
 /// [spec]: https://tc39.es/ecma262/#sec-isnan-number
 /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/isNaN
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>is_nan(<span class="kw">_</span>: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; {
-    <span class="kw">if let </span><span class="prelude-val">Some</span>(value) = args.get(<span class="number">0</span>) {
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(value) = args.first() {
         <span class="kw">let </span>number = value.to_number(context)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(number.is_nan().into())
     } <span class="kw">else </span>{
@@ -416,7 +416,7 @@
 /// [spec]: https://tc39.es/ecma262/#sec-parseint-string-radix
 /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_int(<span class="kw">_</span>: <span class="kw-2">&amp;</span>JsValue, args: <span class="kw-2">&amp;</span>[JsValue], context: <span class="kw-2">&amp;mut </span>Context) -&gt; JsResult&lt;JsValue&gt; {
-    <span class="kw">if let </span>(<span class="prelude-val">Some</span>(val), radix) = (args.get(<span class="number">0</span>), args.get_or_undefined(<span class="number">1</span>)) {
+    <span class="kw">if let </span>(<span class="prelude-val">Some</span>(val), radix) = (args.first(), args.get_or_undefined(<span class="number">1</span>)) {
         <span class="comment">// 1. Let inputString be ? ToString(string).
         </span><span class="kw">let </span>input_string = val.to_string(context)<span class="question-mark">?</span>;
 
@@ -558,7 +558,7 @@
     args: <span class="kw-2">&amp;</span>[JsValue],
     context: <span class="kw-2">&amp;mut </span>Context,
 ) -&gt; JsResult&lt;JsValue&gt; {
-    <span class="kw">if let </span><span class="prelude-val">Some</span>(val) = args.get(<span class="number">0</span>) {
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(val) = args.first() {
         <span class="comment">// TODO: parse float with optimal utf16 algorithm
         </span><span class="kw">let </span>input_string = val.to_string(context)<span class="question-mark">?</span>.to_std_string_escaped();
         <span class="kw">let </span>s = input_string.trim_start_matches(is_trimmable_whitespace);
