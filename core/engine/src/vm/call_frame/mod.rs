@@ -33,6 +33,10 @@ bitflags::bitflags! {
 
         /// If the `this` value has been cached.
         const THIS_VALUE_CACHED = 0b0000_1000;
+
+        /// This is a lightweight frame pushed for a native function call.
+        /// It only exists to hold the function's realm on the frame stack.
+        const NATIVE_FRAME = 0b0001_0000;
     }
 }
 
@@ -63,7 +67,7 @@ pub struct CallFrame {
     // The stack of bindings being updated.
     // SAFETY: Nothing in `BindingLocator` requires tracing, so this is safe.
     #[unsafe_ignore_trace]
-    pub(crate) binding_stack: Vec<BindingLocator>,
+    pub(crate) binding_stack: ThinVec<BindingLocator>,
 
     /// How many iterations a loop has done.
     pub(crate) loop_iteration_count: u64,
@@ -148,7 +152,7 @@ impl CallFrame {
             argument_count: 0,
             rp: 0,
             iterators: ThinVec::new(),
-            binding_stack: Vec::new(),
+            binding_stack: ThinVec::new(),
             code_block,
             loop_iteration_count: 0,
             active_runnable,
@@ -240,26 +244,5 @@ pub enum GeneratorResumeKind {
 impl From<GeneratorResumeKind> for JsValue {
     fn from(value: GeneratorResumeKind) -> Self {
         Self::new(value as u8)
-    }
-}
-
-impl JsValue {
-    /// Convert value to [`GeneratorResumeKind`].
-    ///
-    /// # Panics
-    ///
-    /// If not a integer type or not in the range `0..=2`.
-    #[track_caller]
-    pub(crate) fn to_generator_resume_kind(&self) -> GeneratorResumeKind {
-        if let Some(value) = self.as_i32() {
-            match value {
-                0 => return GeneratorResumeKind::Normal,
-                1 => return GeneratorResumeKind::Throw,
-                2 => return GeneratorResumeKind::Return,
-                _ => unreachable!("generator kind must be a integer between 1..=2, got {value}"),
-            }
-        }
-
-        unreachable!("generator kind must be a integer type")
     }
 }

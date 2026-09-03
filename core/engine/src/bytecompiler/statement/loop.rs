@@ -1,5 +1,4 @@
 use boa_ast::{
-    Expression,
     declaration::Binding,
     operations::bound_names,
     scope::BindingLocatorError,
@@ -12,7 +11,7 @@ use boa_interner::Sym;
 
 use crate::{
     bytecompiler::{Access, BindingAccessOpcode, ByteCompiler, ToJsString},
-    vm::opcode::BindingOpcode,
+    vm::{GeneratorResumeKind, opcode::BindingOpcode},
 };
 
 impl ByteCompiler<'_> {
@@ -51,7 +50,7 @@ impl ByteCompiler<'_> {
                     let names = bound_names(decl.declaration());
                     if decl.declaration().is_const() {
                     } else {
-                        let mut indices = Vec::new();
+                        let mut indices = Vec::with_capacity(names.len());
                         for name in &names {
                             let name = name.to_js_string(self.interner());
                             let binding = decl
@@ -69,6 +68,10 @@ impl ByteCompiler<'_> {
         }
 
         self.push_empty_loop_jump_control(use_expr);
+
+        // Hoist loop-invariant constants from the condition (e.g. `10` in `i < 10`)
+        // so the value is loaded into a register once, not on every iteration.
+        let hoisted = self.try_hoist_loop_condition(for_loop.condition());
 
         // Per-iteration binding copy: for `for (let i = ...)`, each iteration needs
         // a fresh binding per the spec (important for closures). When the scope requires
@@ -119,23 +122,20 @@ impl ByteCompiler<'_> {
             }
         }
 
-        self.bytecode.emit_increment_loop_iteration();
-
         if let Some(final_expr) = for_loop.final_expr() {
-            let value = self.register_allocator.alloc();
-            if let Expression::Update(update) = final_expr {
-                self.compile_update(update, &value, true);
-            } else {
-                self.compile_expr(final_expr, &value);
-            }
-            self.register_allocator.dealloc(value);
+            self.compile_expr_for_side_effects(final_expr);
         }
 
         self.patch_jump(initial_jump);
 
         let exit = for_loop
             .condition()
-            .map(|condition| self.compile_condition_and_branch(condition));
+            .map(|condition| self.compile_condition_and_branch(condition, hoisted.as_ref()));
+
+        // Count the iteration after the condition check but before the body, so the
+        // limit counts body executions (including the first, which skips the loop
+        // preamble via `initial_jump`) and loops that finish within the limit pass.
+        self.bytecode.emit_increment_loop_iteration();
 
         self.compile_stmt(for_loop.body(), use_expr, true);
 
@@ -145,6 +145,10 @@ impl ByteCompiler<'_> {
             self.patch_jump(exit);
         }
         self.pop_loop_control_info();
+
+        if let Some(hoisted) = hoisted {
+            self.register_allocator.dealloc(hoisted.register);
+        }
 
         if let Some(outer_scope_local) = outer_scope_local {
             self.lexical_scope = outer_scope_local;
@@ -182,14 +186,17 @@ impl ByteCompiler<'_> {
 
         let start_address = self.next_opcode_location();
         self.push_loop_control_info_for_of_in_loop(label, start_address, use_expr);
-        self.bytecode.emit_increment_loop_iteration();
 
-        self.bytecode.emit_iterator_next();
+        self.iterator_next(true);
 
         let done_reg = self.register_allocator.alloc();
         self.bytecode.emit_iterator_done(done_reg.variable());
         let exit = self.jump_if_true(&done_reg);
         self.register_allocator.dealloc(done_reg);
+
+        // Count the iteration only after the done check, so exhausting the iterator
+        // within the limit does not raise a limit error.
+        self.bytecode.emit_increment_loop_iteration();
 
         let outer_scope = self.push_declarative_scope(for_in_loop.scope());
 
@@ -203,10 +210,10 @@ impl ByteCompiler<'_> {
         {
             let reg = self.register_allocator.alloc_persistent();
             self.local_binding_registers.insert(binding, reg.index());
-            self.bytecode.emit_iterator_value(reg.variable());
+            self.iterator_value(&reg, true);
         } else {
             let value = self.register_allocator.alloc();
-            self.bytecode.emit_iterator_value(value.variable());
+            self.iterator_value(&value, true);
 
             match for_in_loop.initializer() {
                 IterableLoopInitializer::Identifier(ident) => {
@@ -284,9 +291,8 @@ impl ByteCompiler<'_> {
         } else {
             self.push_loop_control_info_for_of_in_loop(label, start_address, use_expr);
         }
-        self.bytecode.emit_increment_loop_iteration();
 
-        self.bytecode.emit_iterator_next();
+        self.iterator_next(true);
         if for_of_loop.r#await() {
             let value = self.register_allocator.alloc();
             self.bytecode.emit_iterator_result(value.variable());
@@ -295,8 +301,24 @@ impl ByteCompiler<'_> {
             self.pop_into_register(&resume_kind);
             self.pop_into_register(&value);
 
+            let update_result =
+                self.jump_if_not_resume_kind(GeneratorResumeKind::Throw, &resume_kind);
+
+            // If after awaiting the `next` call the iterator returned an error, it can be considered
+            // as poisoned, meaning we can remove it from the iterator stack to avoid calling
+            // cleanup operations on it.
+            let temp = self.register_allocator.alloc();
             self.bytecode
-                .emit_iterator_finish_async_next(resume_kind.variable(), value.variable());
+                .emit_iterator_pop(temp.variable(), temp.variable());
+            self.register_allocator.dealloc(temp);
+            let skip_update_result = self.jump();
+            self.patch_jump(update_result);
+
+            // Otherwise, we can update the current iterator without popping it
+            // from the iterator stack.
+            self.bytecode.emit_iterator_update_result(value.variable());
+
+            self.patch_jump(skip_update_result);
             self.generator_next(&value, &resume_kind);
             self.register_allocator.dealloc(value);
             self.register_allocator.dealloc(resume_kind);
@@ -306,6 +328,10 @@ impl ByteCompiler<'_> {
         self.bytecode.emit_iterator_done(done_reg.variable());
         let exit = self.jump_if_true(&done_reg);
         self.register_allocator.dealloc(done_reg);
+
+        // Count the iteration only after the done check, so exhausting the iterator
+        // within the limit does not raise a limit error.
+        self.bytecode.emit_increment_loop_iteration();
 
         let outer_scope = self.push_declarative_scope(for_of_loop.scope());
 
@@ -320,12 +346,12 @@ impl ByteCompiler<'_> {
         {
             let reg = self.register_allocator.alloc_persistent();
             self.local_binding_registers.insert(ident, reg.index());
-            self.bytecode.emit_iterator_value(reg.variable());
+            self.iterator_value(&reg, true);
 
             self.push_handler()
         } else {
             let value = self.register_allocator.alloc();
-            self.bytecode.emit_iterator_value(value.variable());
+            self.iterator_value(&value, true);
             let handler_index = self.push_handler();
             match for_of_loop.initializer() {
                 IterableLoopInitializer::Identifier(ident) => {
@@ -423,11 +449,17 @@ impl ByteCompiler<'_> {
         label: Option<Sym>,
         use_expr: bool,
     ) {
+        // Hoist loop-invariant constants from the condition.
+        let hoisted = self.try_hoist_loop_condition(Some(while_loop.condition()));
+
         let start_address = self.next_opcode_location();
-        self.bytecode.emit_increment_loop_iteration();
         self.push_loop_control_info(label, start_address, use_expr);
 
-        let exit = self.compile_condition_and_branch(while_loop.condition());
+        let exit = self.compile_condition_and_branch(while_loop.condition(), hoisted.as_ref());
+
+        // Count the iteration after the condition check but before the body, so the
+        // limit counts body executions and loops that finish within the limit pass.
+        self.bytecode.emit_increment_loop_iteration();
 
         self.compile_stmt(while_loop.body(), use_expr, true);
 
@@ -435,6 +467,10 @@ impl ByteCompiler<'_> {
 
         self.patch_jump(exit);
         self.pop_loop_control_info();
+
+        if let Some(hoisted) = hoisted {
+            self.register_allocator.dealloc(hoisted.register);
+        }
     }
 
     pub(crate) fn compile_do_while_loop(
@@ -443,6 +479,9 @@ impl ByteCompiler<'_> {
         label: Option<Sym>,
         use_expr: bool,
     ) {
+        // Hoist loop-invariant constants from the condition.
+        let hoisted = self.try_hoist_loop_condition(Some(do_while_loop.cond()));
+
         let initial_label = self.jump();
 
         let start_address = self.next_opcode_location();
@@ -450,11 +489,15 @@ impl ByteCompiler<'_> {
         self.push_loop_control_info(label, start_address, use_expr);
 
         let condition_label_address = self.next_opcode_location();
-        self.bytecode.emit_increment_loop_iteration();
 
-        let exit = self.compile_condition_and_branch(do_while_loop.cond());
+        let exit = self.compile_condition_and_branch(do_while_loop.cond(), hoisted.as_ref());
 
         self.patch_jump(initial_label);
+
+        // Count the iteration after the condition check but before the body, so the
+        // limit counts body executions (including the first, which skips the condition
+        // via `initial_label`) and loops that finish within the limit pass.
+        self.bytecode.emit_increment_loop_iteration();
 
         self.compile_stmt(do_while_loop.body(), use_expr, true);
 
@@ -462,5 +505,9 @@ impl ByteCompiler<'_> {
         self.patch_jump(exit);
 
         self.pop_loop_control_info();
+
+        if let Some(hoisted) = hoisted {
+            self.register_allocator.dealloc(hoisted.register);
+        }
     }
 }

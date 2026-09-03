@@ -13,19 +13,17 @@ use crate::{
     realm::Realm,
     script::Script,
     vm::opcode::{OPCODE_HANDLERS, OPCODE_HANDLERS_BUDGET},
+    vm::shadow_stack::ErrorStack,
 };
 use boa_gc::{Finalize, Gc, Trace, custom_trace};
 use shadow_stack::ShadowStack;
-use std::{future::Future, ops::ControlFlow, pin::Pin, task};
+use std::{future::Future, ops::ControlFlow, path::Path, pin::Pin, task};
 
 #[cfg(feature = "trace")]
 pub use trace::{EmptyTracer, StdoutTracer, VirtualMachineTracer};
 
 #[cfg(feature = "trace")]
 use crate::sys::time::Instant;
-
-#[cfg(feature = "trace")]
-use std::fmt::Write as _;
 
 #[allow(unused_imports)]
 pub(crate) use opcode::{Instruction, InstructionIterator, Opcode};
@@ -45,6 +43,8 @@ pub use {
     code_block::CodeBlock,
     source_info::{NativeSourceInfo, SourcePath},
 };
+
+pub(crate) use code_block::GlobalFunctionBinding;
 
 mod call_frame;
 mod code_block;
@@ -287,8 +287,10 @@ impl Stack {
 
 /// Active runnable in the current vm context.
 #[derive(Debug, Clone, Finalize)]
-pub(crate) enum ActiveRunnable {
+pub enum ActiveRunnable {
+    /// A [**Script Record**](https://tc39.es/ecma262/#sec-script-records)
     Script(Script),
+    /// A [**Source Text Module Record**](https://tc39.es/ecma262/#sec-source-text-module-records).
     Module(Module),
 }
 
@@ -301,6 +303,17 @@ unsafe impl Trace for ActiveRunnable {
     });
 }
 
+impl ActiveRunnable {
+    /// Gets the path of the runnable, if it has one.
+    #[must_use]
+    pub fn path(&self) -> Option<&Path> {
+        match self {
+            Self::Script(script) => script.path(),
+            Self::Module(module) => module.path(),
+        }
+    }
+}
+
 impl Vm {
     /// Creates a new virtual machine.
     pub(crate) fn new(realm: Realm) -> Self {
@@ -308,7 +321,7 @@ impl Vm {
         frames.push(CallFrame::new(
             Gc::new(CodeBlock::new(JsString::default(), 0, true)),
             None,
-            EnvironmentStack::new(realm.environment().clone()),
+            EnvironmentStack::new(),
             realm,
         ));
         Self {
@@ -487,6 +500,9 @@ impl Vm {
     }
 
     pub(crate) fn push_frame(&mut self, mut frame: CallFrame) {
+        // Each function call starts with an implicit `undefined` return value.
+        self.return_value = JsValue::undefined();
+
         // NOTE: We need to check if we already pushed the registers,
         //       since generator-like functions push the same call
         //       frame with pre-built stack and registers (fp and rp already set).
@@ -656,7 +672,6 @@ impl Context {
                     stack_trace,
                 },
             ));
-
         result
     }
 }
@@ -731,6 +746,17 @@ impl Context {
             return ControlFlow::Break(CompletionRecord::Throw(err));
         }
 
+        if let Some(native) = err.as_native_mut()
+            && let ErrorStack::Position(position) = &mut native.stack.0
+        {
+            let backtrace = self.vm.shadow_stack.take_and_push(
+                self.vm.runtime_limits.backtrace_limit(),
+                self.vm.frame().pc,
+                position.clone(),
+            );
+            native.stack.0 = ErrorStack::Backtrace(backtrace);
+        }
+
         // Note: -1 because we increment after fetching the opcode.
         let pc = self.vm.frame().pc.saturating_sub(1);
         if self.vm.handle_exception_at(pc) {
@@ -752,7 +778,7 @@ impl Context {
 
         let result = self.vm.take_return_value();
         if exit_early {
-            return ControlFlow::Break(CompletionRecord::Normal(result));
+            return ControlFlow::Break(CompletionRecord::Return(result));
         }
 
         self.vm.stack.push(result);
@@ -763,7 +789,7 @@ impl Context {
     fn handle_yield(&mut self) -> ControlFlow<CompletionRecord> {
         let result = self.vm.take_return_value();
         if self.vm.frame().exit_early() {
-            return ControlFlow::Break(CompletionRecord::Return(result));
+            return ControlFlow::Break(CompletionRecord::Normal(result));
         }
 
         self.vm.stack.push(result);
@@ -835,11 +861,6 @@ impl Context {
     /// "clock cycles" have passed.
     #[allow(clippy::future_not_send)]
     pub(crate) async fn run_async_with_budget(&mut self, budget: u32) -> CompletionRecord {
-        #[cfg(feature = "trace")]
-        if self.vm.trace {
-            self.trace_call_frame();
-        }
-
         let mut runtime_budget: u32 = budget;
 
         while let Some(byte) = self
@@ -847,7 +868,7 @@ impl Context {
             .frame()
             .code_block
             .bytecode
-            .bytecode
+            .bytes
             .get(self.vm.frame().pc as usize)
         {
             let opcode = Opcode::decode(*byte);
@@ -875,17 +896,12 @@ impl Context {
     }
 
     pub(crate) fn run(&mut self) -> CompletionRecord {
-        #[cfg(feature = "trace")]
-        if self.vm.trace {
-            self.trace_call_frame();
-        }
-
         while let Some(byte) = self
             .vm
             .frame()
             .code_block
             .bytecode
-            .bytecode
+            .bytes
             .get(self.vm.frame().pc as usize)
         {
             let opcode = Opcode::decode(*byte);

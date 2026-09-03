@@ -1,5 +1,5 @@
-use super::{RegisterOperand, VaryingOperand};
-use crate::{Context, JsResult, error::JsNativeError, vm::opcode::Operation};
+use super::{IndexOperand, RegisterOperand};
+use crate::{Context, JsExpect, JsResult, error::JsNativeError, vm::opcode::Operation};
 
 pub(crate) mod logical;
 pub(crate) mod macro_defined;
@@ -105,7 +105,7 @@ pub(crate) struct InPrivate;
 impl InPrivate {
     #[inline(always)]
     pub(super) fn operation(
-        (dst, index, rhs): (RegisterOperand, VaryingOperand, RegisterOperand),
+        (dst, index, rhs): (RegisterOperand, IndexOperand, RegisterOperand),
         context: &mut Context,
     ) -> JsResult<()> {
         let name = context
@@ -129,7 +129,7 @@ impl InPrivate {
             .frame()
             .environments
             .resolve_private_identifier(name)
-            .expect("private name must be in environment");
+            .js_expect("private name must be in environment")?;
 
         let value = rhs.private_element_find(&name, true, true).is_some();
 

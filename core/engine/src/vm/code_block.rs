@@ -108,6 +108,16 @@ pub(crate) enum Constant {
     Scope(#[unsafe_ignore_trace] Scope),
 }
 
+/// Binding information about a global function.
+#[derive(Copy, Clone, Debug, Trace, Finalize)]
+#[boa_gc(empty_trace)]
+pub(crate) struct GlobalFunctionBinding {
+    /// The index of the global function's name in the constants array.
+    pub(crate) name_index: u32,
+    /// The index of the global function in the constants array
+    pub(crate) function_index: u32,
+}
+
 /// The internal representation of a JavaScript function.
 ///
 /// A `CodeBlock` is generated for each function compiled by the
@@ -134,7 +144,7 @@ pub struct CodeBlock {
 
     /// Bytecode
     #[unsafe_ignore_trace]
-    pub(crate) bytecode: ByteCode,
+    pub(crate) bytecode: Bytecode,
 
     pub(crate) constants: ThinVec<Constant>,
 
@@ -151,6 +161,17 @@ pub struct CodeBlock {
 
     /// Bytecode to source code mapping.
     pub(crate) source_info: SourceInfo,
+
+    pub(crate) global_lexs: Box<[u32]>,
+    pub(crate) global_fns: Box<[GlobalFunctionBinding]>,
+    pub(crate) global_vars: Box<[u32]>,
+
+    // Used for identifying anonymous functions in compiled output and call frames.
+    pub(crate) debug_id: u64,
+
+    #[cfg(feature = "trace")]
+    #[unsafe_ignore_trace]
+    pub(crate) traced: Cell<bool>,
 }
 
 /// ---- `CodeBlock` public API ----
@@ -161,7 +182,7 @@ impl CodeBlock {
         let mut flags = CodeBlockFlags::empty();
         flags.set(CodeBlockFlags::STRICT, strict);
         Self {
-            bytecode: ByteCode::default(),
+            bytecode: Bytecode::default(),
             constants: ThinVec::default(),
             bindings: Box::default(),
             flags: Cell::new(flags),
@@ -177,6 +198,12 @@ impl CodeBlock {
                 name,
                 SpannedSourceText::new_empty(),
             ),
+            global_lexs: Box::default(),
+            global_fns: Box::default(),
+            global_vars: Box::default(),
+            debug_id: CodeBlock::get_next_codeblock_id(),
+            #[cfg(feature = "trace")]
+            traced: Cell::new(false),
         }
     }
 
@@ -328,6 +355,18 @@ impl CodeBlock {
     pub(crate) fn source_info(&self) -> &SourceInfo {
         &self.source_info
     }
+
+    pub(crate) fn get_next_codeblock_id() -> u64 {
+        thread_local! {
+            static CODEBLOCK_ID_COUNTER: Cell<u64> = const { Cell::new(0) };
+        }
+
+        CODEBLOCK_ID_COUNTER.with(|c| {
+            let id = c.get();
+            c.set(id + 1);
+            id
+        })
+    }
 }
 
 impl Display for CodeBlock {
@@ -336,7 +375,14 @@ impl Display for CodeBlock {
         writeln!(
             f,
             "{:-^80}",
-            format!("Compiled Output: '{}'", name.to_std_string_escaped()),
+            format!(
+                " Compiled Output: {} ",
+                if name.is_empty() {
+                    format!("[anon#{}]", self.debug_id)
+                } else {
+                    format!("'{}'", name.to_std_string_escaped())
+                }
+            ),
         )?;
         writeln!(
             f,
@@ -440,7 +486,7 @@ impl Display for CodeBlock {
         } else {
             f.write_char('\n')?;
 
-            let bytecode_len = self.bytecode.bytecode.len() as u32;
+            let bytecode_len = self.bytecode.bytes.len() as u32;
             for (i, handler) in self.source_info().map().entries().windows(2).enumerate() {
                 let current = handler[0];
                 let next = handler.get(1);
@@ -490,7 +536,7 @@ pub(crate) fn create_function_object(
     let is_generator = code.is_generator();
     let function = OrdinaryFunction::new(
         code,
-        context.vm.frame().environments.clone(),
+        context.vm.frame().environments.snapshot_for_closure(),
         script_or_module,
         context.realm().clone(),
     );
@@ -559,7 +605,7 @@ pub(crate) fn create_function_object_fast(code: Gc<CodeBlock>, context: &mut Con
     let has_prototype_property = code.has_prototype_property();
     let function = OrdinaryFunction::new(
         code,
-        context.vm.frame().environments.clone(),
+        context.vm.frame().environments.snapshot_for_closure(),
         script_or_module,
         context.realm().clone(),
     );

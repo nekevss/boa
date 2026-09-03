@@ -74,7 +74,7 @@ impl ByteCompiler<'_> {
         self.push_from_register(is_return);
         self.push_from_register(value);
         self.bytecode.emit_call(1u8.into());
-        self.bytecode.emit_push_true(is_return.variable());
+        self.bytecode.emit_store_true(is_return.variable());
         self.pop_into_register(value);
         let return_jump = self.jump();
 
@@ -84,7 +84,7 @@ impl ByteCompiler<'_> {
         self.push_from_register(&next);
         self.push_from_register(value);
         self.bytecode.emit_call(1u8.into());
-        self.bytecode.emit_push_false(is_return.variable());
+        self.bytecode.emit_store_false(is_return.variable());
         self.pop_into_register(value);
         let normal_jump = self.jump();
 
@@ -110,7 +110,7 @@ impl ByteCompiler<'_> {
         self.push_from_register(is_return);
         self.push_from_register(value);
         self.bytecode.emit_call(1u8.into());
-        self.bytecode.emit_push_false(is_return.variable());
+        self.bytecode.emit_store_false(is_return.variable());
         self.pop_into_register(value);
 
         self.bytecode
@@ -147,7 +147,7 @@ impl ByteCompiler<'_> {
         // skip pop if the iterator is not done yet
         let skip_pop = self.jump_if_false(value);
 
-        self.bytecode.emit_iterator_value(value.variable());
+        self.iterator_value(value, true);
         self.bytecode
             .emit_iterator_pop(resume_kind.variable(), resume_kind.variable());
         let return_gen = self.jump_if_true(is_return);
