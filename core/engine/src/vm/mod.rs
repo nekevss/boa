@@ -56,6 +56,8 @@ pub(crate) mod opcode;
 pub(crate) mod shadow_stack;
 pub(crate) mod source_info;
 
+mod operands;
+
 #[cfg(feature = "trace")]
 mod trace;
 
@@ -280,30 +282,6 @@ impl Stack {
     ) {
         let index = self.stack.len() - existing_argument_count;
         self.stack.splice(index..index, arguments.iter().cloned());
-    }
-
-    #[cfg(feature = "trace")]
-    /// Display the stack trace of the current frame.
-    fn display_trace(&self, frame: &CallFrame, frame_count: usize) -> String {
-        let mut string = String::from("[ ");
-        for (i, (j, value)) in self.stack.iter().enumerate().rev().enumerate() {
-            match value {
-                value if value.is_callable() => string.push_str("[function]"),
-                value if value.is_object() => string.push_str("[object]"),
-                value => string.push_str(&value.display().to_string()),
-            }
-
-            if frame.frame_pointer() == j {
-                let _ = write!(string, " |{frame_count}|");
-            } else if i + 1 != self.stack.len() {
-                string.push(',');
-            }
-
-            string.push(' ');
-        }
-
-        string.push(']');
-        string
     }
 }
 
@@ -634,18 +612,15 @@ impl Context {
     where
         F: FnOnce(&mut Context, Opcode) -> ControlFlow<CompletionRecord>,
     {
-        use crate::vm::trace::{OpcodeExecutionMessage, VirtualMachineEvent};
+        use crate::vm::operands::Operands;
+        use crate::vm::trace::{OpcodeExecutionMessage, VirtualMachineEvent, VmStackTrace};
 
         let frame = self.vm.frame();
         let (instruction, _) = frame
             .code_block
             .bytecode
             .next_instruction(frame.pc as usize);
-        let operands = self
-            .vm
-            .frame()
-            .code_block()
-            .instruction_operands(&instruction);
+        let operands = Operands::from_instruction(&instruction);
 
         match opcode {
             Opcode::Call
@@ -669,19 +644,16 @@ impl Context {
         let result = self.execute_instruction(f, opcode);
         let duration = instant.elapsed();
 
-        let stack = self
-            .vm
-            .stack
-            .display_trace(self.vm.frame(), self.vm.frames.len() - 1);
+        let stack_trace = VmStackTrace::new(&self.vm);
 
         self.vm
             .tracer
             .emit_event(VirtualMachineEvent::ExecutionTrace(
                 OpcodeExecutionMessage {
-                    opcode: opcode.as_str(),
+                    opcode,
                     duration,
                     operands,
-                    stack,
+                    stack_trace,
                 },
             ));
 

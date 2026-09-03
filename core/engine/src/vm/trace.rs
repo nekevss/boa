@@ -1,5 +1,174 @@
 use std::time::Duration;
 
+use super::{Vm, operands::Operands};
+
+use crate::{JsValue, vm::Opcode};
+
+struct StackGroup {
+    value: String,
+    count: usize,
+    frame_pointer: Option<usize>,
+}
+
+impl StackGroup {
+    const fn new(value: String, count: usize, fp: Option<usize>) -> Self {
+        Self {
+            value,
+            count,
+            frame_pointer: fp,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CallFrameInfo {
+    pub frame_count: usize,
+    pub frame_pointer: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct VmDisplayOptions {
+    max_stack_width: usize,
+    max_value_len: usize,
+}
+
+/// A snapshot of the current stack at any moment in time
+#[derive(Debug, Clone)]
+pub struct VmStackTrace {
+    pub stack: Vec<JsValue>,
+    pub call_frame_info: CallFrameInfo,
+    pub display_options: VmDisplayOptions,
+}
+
+impl VmStackTrace {
+    const DEFAULT_MAX_VALUE_LEN: usize = 18;
+    const DEFAULT_MAX_STACK_WIDTH: usize = 68;
+
+    pub fn new(vm: &Vm) -> Self {
+        let display_options = VmDisplayOptions {
+            max_stack_width: Self::DEFAULT_MAX_STACK_WIDTH,
+            max_value_len: Self::DEFAULT_MAX_VALUE_LEN,
+        };
+
+        let call_frame_info = CallFrameInfo {
+            frame_count: vm.frames.len(),
+            frame_pointer: vm.frame().fp as usize,
+        };
+
+        Self {
+            stack: vm.stack.stack.clone(),
+            display_options,
+            call_frame_info,
+        }
+    }
+
+    fn group(&self) -> (Vec<StackGroup>, bool) {
+        let mut force_truncation = false;
+        let mut stack_groups: Vec<StackGroup> = Vec::default();
+        // Lazily group values to avoid eagerly evaluating `raw_value` for the entire stack.
+        for (idx, v) in self.stack.iter().enumerate().rev() {
+            let is_frame = self.call_frame_info.frame_pointer == idx;
+            let raw = raw_value(v);
+            if !is_frame
+                && let Some(last_group) = stack_groups.last_mut()
+                && last_group.value == raw
+                && last_group.frame_pointer.is_none()
+            {
+                last_group.count += 1;
+            } else {
+                let marker = if is_frame {
+                    Some(self.call_frame_info.frame_count)
+                } else {
+                    None
+                };
+                stack_groups.push(StackGroup::new(raw, 1, marker));
+                // If groups is large enough to mathematically guarantee overflowing the display width,
+                // we can stop evaluating to save instruction budget / time.
+                if stack_groups.len() > Self::DEFAULT_MAX_STACK_WIDTH / 2 {
+                    force_truncation = true;
+                    break;
+                }
+            }
+        }
+        (stack_groups, force_truncation)
+    }
+}
+
+impl std::fmt::Display for VmStackTrace {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.stack.is_empty() {
+            f.write_str("[ <empty> ]")?;
+            return Ok(());
+        }
+
+        let (groups, mut truncated) = self.group();
+
+        let mut stack_string = String::from("[ ");
+
+        let suffix = format!(".. ({} total) ]", self.call_frame_info.frame_count);
+
+        for (
+            i,
+            StackGroup {
+                value,
+                count,
+                frame_pointer,
+            },
+        ) in groups.iter().enumerate()
+        {
+            let displayable_value = truncate_to_len(value, self.display_options.max_value_len);
+            let part = if *count > 1 {
+                format!("{displayable_value} (x{count})")
+            } else {
+                displayable_value
+            };
+            let separator = if let Some(fc) = frame_pointer {
+                format!(" |{fc}|")
+            } else if i + 1 < groups.len() {
+                ",".to_string()
+            } else {
+                String::new()
+            };
+            let addition = format!("{part}{separator} ");
+            if stack_string.len() + addition.len() + suffix.len()
+                > self.display_options.max_stack_width
+            {
+                truncated = true;
+                break;
+            }
+            stack_string.push_str(&addition);
+        }
+
+        if truncated {
+            stack_string.push_str(&suffix);
+        } else {
+            stack_string.push(']');
+        }
+
+        f.write_str(&stack_string)
+    }
+}
+
+fn raw_value(value: &JsValue) -> String {
+    match value {
+        v if v.is_callable() => "func".to_string(),
+        v if v.is_object() => "obj".to_string(),
+        v if v.is_undefined() => "und".to_string(),
+        v if v.is_null() => "null".to_string(),
+        v => v.display().to_string(),
+    }
+}
+
+fn truncate_to_len(val: &str, max_len: usize) -> String {
+    if val.len() <= max_len {
+        return val.to_string();
+    }
+    let mut end = max_len - 2;
+    while !val.is_char_boundary(end) && end > 0 {
+        end -= 1;
+    }
+    format!("{}..", &val[..end])
+}
 /// The call frame name
 ///
 /// This will have the name of the call frame provided or `Global` it's
@@ -25,10 +194,10 @@ pub struct CallFrameMessage {
 /// A message that emits instruction execution details about a call frame
 #[derive(Debug, Clone)]
 pub struct OpcodeExecutionMessage {
-    pub opcode: &'static str,
+    pub opcode: Opcode,
     pub duration: Duration,
-    pub operands: String,
-    pub stack: String,
+    pub operands: Operands,
+    pub stack_trace: VmStackTrace,
 }
 
 /// The various events that are emitted from Boa's virtual machine.
@@ -110,11 +279,13 @@ impl VirtualMachineTracer for StdoutTracer {
                     opcode,
                     duration,
                     operands,
-                    stack,
+                    stack_trace,
                 } = execution_message;
 
+                let opcode = opcode.as_str();
+
                 println!(
-                    "{:<TIME_COLUMN_WIDTH$} {opcode:<OPCODE_COLUMN_WIDTH$} {operands:<OPERAND_COLUMN_WIDTH$} {stack}",
+                    "{:<TIME_COLUMN_WIDTH$} {opcode:<OPCODE_COLUMN_WIDTH$} {operands:<OPERAND_COLUMN_WIDTH$} {stack_trace}",
                     format!("{}μs", duration.as_micros()),
                     TIME_COLUMN_WIDTH = Self::TIME_COLUMN_WIDTH,
                     OPCODE_COLUMN_WIDTH = Self::OPCODE_COLUMN_WIDTH,

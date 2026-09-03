@@ -224,10 +224,17 @@ impl std::fmt::Display for Address {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 /// A register operand is a register index used in bytecode instructions.
 pub(crate) struct RegisterOperand {
     value: u32,
+}
+
+impl std::ops::Deref for RegisterOperand {
+    type Target = u32;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
 }
 
 impl RegisterOperand {
@@ -274,10 +281,17 @@ impl std::fmt::Display for RegisterOperand {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 /// A varying operand is a value that can be either a u8, u16 or u32.
 pub(crate) struct VaryingOperand {
     value: u32,
+}
+
+impl std::ops::Deref for VaryingOperand {
+    type Target = u32;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
 }
 
 impl VaryingOperand {
