@@ -878,6 +878,7 @@ impl Context {
     pub(crate) async fn run_async_with_budget(&mut self, budget: u32) -> CompletionRecord {
         let mut runtime_budget: u32 = budget;
 
+        #[cfg(feature = "trace")]
         if self.vm.trace {
             self.trace_call_frame();
         }
@@ -915,6 +916,7 @@ impl Context {
     }
 
     pub(crate) fn run(&mut self) -> CompletionRecord {
+        #[cfg(feature = "trace")]
         if self.vm.trace {
             self.trace_call_frame();
         }
