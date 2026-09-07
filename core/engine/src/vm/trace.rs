@@ -1,9 +1,10 @@
 use std::time::Duration;
 
-use super::{Vm, operands::Operands};
+use super::{Vm, operands::OperandsShape};
 
-use crate::{JsValue, vm::Opcode};
+use crate::JsValue;
 
+/// A stack group represents a group of stack values based on the call frame.
 struct StackGroup {
     value: String,
     count: usize,
@@ -20,23 +21,30 @@ impl StackGroup {
     }
 }
 
-#[derive(Debug, Clone)]
+/// Information about the current call frame.
+#[derive(Debug, Clone, Copy)]
 pub struct CallFrameInfo {
+    /// The amount of call frames on the frame stack
     pub frame_count: usize,
+    /// The current frame pointer
     pub frame_pointer: usize,
 }
 
-#[derive(Debug, Clone)]
+/// Display options for the current stack trace
+#[derive(Debug, Clone, Copy)]
 pub struct VmDisplayOptions {
     max_stack_width: usize,
     max_value_len: usize,
 }
 
-/// A snapshot of the current stack at any moment in time
+/// A trace of the current stack at a specific moment
 #[derive(Debug, Clone)]
 pub struct VmStackTrace {
+    /// A clone of the full stack
     pub stack: Vec<JsValue>,
+    /// Call frame information
     pub call_frame_info: CallFrameInfo,
+    /// Display options for the stack trace
     pub display_options: VmDisplayOptions,
 }
 
@@ -44,7 +52,8 @@ impl VmStackTrace {
     const DEFAULT_MAX_VALUE_LEN: usize = 18;
     const DEFAULT_MAX_STACK_WIDTH: usize = 68;
 
-    pub fn new(vm: &Vm) -> Self {
+    /// Creates a new stack trace from the current Vm.
+    pub(crate) fn new(vm: &Vm) -> Self {
         let display_options = VmDisplayOptions {
             max_stack_width: Self::DEFAULT_MAX_STACK_WIDTH,
             max_value_len: Self::DEFAULT_MAX_VALUE_LEN,
@@ -175,28 +184,36 @@ fn truncate_to_len(val: &str, max_len: usize) -> String {
 /// the global call frame.
 #[derive(Debug, Clone)]
 pub enum CallFrameName {
+    /// The global call frame
     Global,
+    /// The name of the current call frame.
     Name(String),
 }
 
 /// A message that is emitted at the beginning of execution
 #[derive(Debug, Clone)]
 pub struct ExecutionStartMessage {
+    /// The call frame name for the current execution start
     pub call_frame_name: CallFrameName,
 }
 
 /// A message that emits details about a call frame
 #[derive(Debug, Clone)]
 pub struct CallFrameMessage {
+    /// The displayable bytecode for the current call frame.
     pub bytecode: String,
 }
 
 /// A message that emits instruction execution details about a call frame
 #[derive(Debug, Clone)]
 pub struct OpcodeExecutionMessage {
-    pub opcode: Opcode,
+    /// The current opcode being executed
+    pub opcode: &'static str,
+    /// The duration taken for the current opcode execution
     pub duration: Duration,
-    pub operands: Operands,
+    /// The operands for the opcode
+    pub operands: OperandsShape,
+    /// A stack trace for the current execution
     pub stack_trace: VmStackTrace,
 }
 
@@ -281,8 +298,6 @@ impl VirtualMachineTracer for StdoutTracer {
                     operands,
                     stack_trace,
                 } = execution_message;
-
-                let opcode = opcode.as_str();
 
                 println!(
                     "{:<TIME_COLUMN_WIDTH$} {opcode:<OPCODE_COLUMN_WIDTH$} {operands:<OPERAND_COLUMN_WIDTH$} {stack_trace}",

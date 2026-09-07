@@ -1,269 +1,432 @@
 use crate::vm::Instruction;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// An address is a bytecode offset, displayed as hexadecimal.
+pub struct Address(pub(crate) u32);
+
+impl Address {
+    /// Create a new [`Address`] from a u32 value.
+    pub(crate) const fn new(value: u32) -> Self {
+        Self(value)
+    }
+
+    /// Returns the inner `u32` value.
+    pub(crate) const fn as_u32(self) -> u32 {
+        self.0
+    }
+}
+
+impl From<Address> for u32 {
+    fn from(addr: Address) -> Self {
+        addr.0
+    }
+}
+
+impl From<u32> for Address {
+    fn from(value: u32) -> Self {
+        Self::new(value)
+    }
+}
+
+impl std::ops::Add<u32> for Address {
+    type Output = Self;
+
+    fn add(self, rhs: u32) -> Self {
+        Self::new(self.0 + rhs)
+    }
+}
+
+impl std::fmt::Display for Address {
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:06x}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+/// A register operand is a register index used in bytecode instructions.
+pub struct RegisterOperand(pub(crate) u32);
+
+impl RegisterOperand {
+    /// Create a new [`RegisterOperand`] from a u32 value.
+    pub(crate) fn new(value: u32) -> Self {
+        Self(value)
+    }
+}
+
+impl From<RegisterOperand> for u32 {
+    fn from(value: RegisterOperand) -> Self {
+        value.0
+    }
+}
+
+impl From<RegisterOperand> for usize {
+    fn from(value: RegisterOperand) -> Self {
+        value.0 as usize
+    }
+}
+
+impl From<u8> for RegisterOperand {
+    fn from(value: u8) -> Self {
+        Self::new(value.into())
+    }
+}
+
+impl From<u16> for RegisterOperand {
+    fn from(value: u16) -> Self {
+        Self::new(value.into())
+    }
+}
+
+impl From<u32> for RegisterOperand {
+    fn from(value: u32) -> Self {
+        Self::new(value)
+    }
+}
+
+impl std::fmt::Display for RegisterOperand {
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "r{:02}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+/// A index operand is e.g. an index into the constant pool
+pub struct IndexOperand(pub(crate) u32);
+
+impl IndexOperand {
+    /// Create a new [`IndexOperand`] from a u32 value.
+    pub(crate) fn new(value: u32) -> Self {
+        Self(value)
+    }
+}
+
+impl From<IndexOperand> for u32 {
+    fn from(value: IndexOperand) -> Self {
+        value.0
+    }
+}
+
+impl From<IndexOperand> for usize {
+    fn from(value: IndexOperand) -> Self {
+        value.0 as usize
+    }
+}
+
+impl From<bool> for IndexOperand {
+    fn from(value: bool) -> Self {
+        Self::new(value.into())
+    }
+}
+
+impl From<u8> for IndexOperand {
+    fn from(value: u8) -> Self {
+        Self::new(value.into())
+    }
+}
+
+impl From<u16> for IndexOperand {
+    fn from(value: u16) -> Self {
+        Self::new(value.into())
+    }
+}
+
+impl From<u32> for IndexOperand {
+    fn from(value: u32) -> Self {
+        Self::new(value)
+    }
+}
+
+impl std::fmt::Display for IndexOperand {
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// Available Operands types that Boa's VM uses
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq)]
-pub enum Operands {
+pub enum OperandsShape {
     None,
     Dst {
-        dst: u32,
+        dst: RegisterOperand,
     },
     LhsRhsDst {
-        lhs: u32,
-        rhs: u32,
-        dst: u32,
+        lhs: RegisterOperand,
+        rhs: RegisterOperand,
+        dst: RegisterOperand,
     },
     RhsIndexDst {
-        rhs: u32,
-        index: u32,
-        dst: u32,
+        rhs: RegisterOperand,
+        index: IndexOperand,
+        dst: RegisterOperand,
     },
     SrcDst {
-        src: u32,
-        dst: u32,
+        src: RegisterOperand,
+        dst: RegisterOperand,
     },
     SetFunctionName {
-        function: u32,
-        name: u32,
+        function: RegisterOperand,
+        name: RegisterOperand,
         prefix: u8,
     },
-    ValueDst {
+    ValueDstI8 {
+        value: i8,
+        dst: RegisterOperand,
+    },
+    ValueDstI16 {
+        value: i16,
+        dst: RegisterOperand,
+    },
+    ValueDstI32 {
+        value: i32,
+        dst: RegisterOperand,
+    },
+    ValueDstF32 {
+        value: f32,
+        dst: RegisterOperand,
+    },
+    ValueDstF64 {
         value: f64,
-        dst: u32,
+        dst: RegisterOperand,
     },
     IndexDst {
-        index: u32,
-        dst: u32,
+        index: IndexOperand,
+        dst: RegisterOperand,
     },
     Message {
-        message: u32,
+        message: IndexOperand,
     },
     Regexp {
-        pattern_index: u32,
-        flags_index: u32,
-        dst: u32,
+        pattern_index: IndexOperand,
+        flags_index: IndexOperand,
+        dst: RegisterOperand,
     },
     Address {
-        address: u32,
+        address: Address,
     },
     AddressValue {
-        address: u32,
-        value: u32,
+        address: Address,
+        value: RegisterOperand,
     },
     AddressLhsRhs {
-        address: u32,
-        lhs: u32,
-        rhs: u32,
+        address: Address,
+        lhs: RegisterOperand,
+        rhs: RegisterOperand,
     },
     Case {
-        address: u32,
-        value: u32,
-        condition: u32,
+        address: Address,
+        value: RegisterOperand,
+        condition: RegisterOperand,
     },
     CallEval {
-        argument_count: u32,
-        scope_index: u32,
+        argument_count: IndexOperand,
+        scope_index: IndexOperand,
     },
     ScopeIndex {
-        scope_index: u32,
+        scope_index: IndexOperand,
     },
     ArgumentCount {
-        argument_count: u32,
+        argument_count: IndexOperand,
     },
     BindingIndex {
-        binding_index: u32,
+        binding_index: IndexOperand,
     },
     SrcBindingIndex {
-        src: u32,
-        binding_index: u32,
+        src: RegisterOperand,
+        binding_index: IndexOperand,
     },
     DstBindingIndex {
-        dst: u32,
-        binding_index: u32,
+        dst: RegisterOperand,
+        binding_index: IndexOperand,
     },
     GetNameGlobal {
-        dst: u32,
-        binding_index: u32,
-        ic_index: u32,
+        dst: RegisterOperand,
+        binding_index: IndexOperand,
+        ic_index: IndexOperand,
     },
     ObjectValueName {
-        object: u32,
-        value: u32,
-        name_index: u32,
+        object: RegisterOperand,
+        value: RegisterOperand,
+        name_index: IndexOperand,
     },
     DstObjectName {
-        dst: u32,
-        object: u32,
-        name_index: u32,
+        dst: RegisterOperand,
+        object: RegisterOperand,
+        name_index: IndexOperand,
     },
     ObjectProtoValueName {
-        object: u32,
-        proto: u32,
-        value: u32,
-        name_index: u32,
+        object: RegisterOperand,
+        proto: RegisterOperand,
+        value: RegisterOperand,
+        name_index: IndexOperand,
     },
     Index {
-        index: u32,
+        index: IndexOperand,
     },
     ObjectName {
-        object: u32,
-        name_index: u32,
+        object: RegisterOperand,
+        name_index: IndexOperand,
     },
     DstValueIc {
-        dst: u32,
-        value: u32,
-        ic_index: u32,
+        dst: RegisterOperand,
+        value: RegisterOperand,
+        ic_index: IndexOperand,
     },
     DstReceiverValueIc {
-        dst: u32,
-        receiver: u32,
-        value: u32,
-        ic_index: u32,
+        dst: RegisterOperand,
+        receiver: RegisterOperand,
+        value: RegisterOperand,
+        ic_index: IndexOperand,
     },
     ObjectValueIc {
-        object: u32,
-        value: u32,
-        ic_index: u32,
+        object: RegisterOperand,
+        value: RegisterOperand,
+        ic_index: IndexOperand,
     },
     ObjectReceiverValueIc {
-        object: u32,
-        receiver: u32,
-        value: u32,
-        ic_index: u32,
+        object: RegisterOperand,
+        receiver: RegisterOperand,
+        value: RegisterOperand,
+        ic_index: IndexOperand,
     },
     DstKeyReceiverObject {
-        dst: u32,
-        key: u32,
-        receiver: u32,
-        object: u32,
+        dst: RegisterOperand,
+        key: RegisterOperand,
+        receiver: RegisterOperand,
+        object: RegisterOperand,
     },
     ObjectReceiverKeyValue {
-        object: u32,
-        receiver: u32,
-        key: u32,
-        value: u32,
+        object: RegisterOperand,
+        receiver: RegisterOperand,
+        key: RegisterOperand,
+        value: RegisterOperand,
     },
     ObjectKeyValue {
-        object: u32,
-        key: u32,
-        value: u32,
+        object: RegisterOperand,
+        key: RegisterOperand,
+        value: RegisterOperand,
     },
     ObjectKey {
-        object: u32,
-        key: u32,
+        object: RegisterOperand,
+        key: RegisterOperand,
     },
     ValueDone {
-        value: u32,
-        done: u32,
+        value: RegisterOperand,
+        done: IndexOperand,
     },
     DstClassSuperclass {
-        dst: u32,
-        class: u32,
-        superclass: u32,
+        dst: RegisterOperand,
+        class: RegisterOperand,
+        superclass: RegisterOperand,
     },
     DstPrototypeClass {
-        dst: u32,
-        prototype: u32,
-        class: u32,
+        dst: RegisterOperand,
+        prototype: RegisterOperand,
+        class: RegisterOperand,
     },
     FunctionHome {
-        function: u32,
-        home: u32,
+        function: RegisterOperand,
+        home: RegisterOperand,
     },
     Function {
-        function: u32,
+        function: RegisterOperand,
     },
     ObjectPrototype {
-        object: u32,
-        prototype: u32,
+        object: RegisterOperand,
+        prototype: RegisterOperand,
     },
     Object {
-        object: u32,
+        object: RegisterOperand,
     },
     ValueArray {
-        value: u32,
-        array: u32,
+        value: RegisterOperand,
+        array: RegisterOperand,
     },
     Array {
-        array: u32,
+        array: RegisterOperand,
     },
     Value {
-        value: u32,
+        value: RegisterOperand,
     },
     SpecifierOptions {
-        specifier: u32,
-        options: u32,
+        specifier: RegisterOperand,
+        options: RegisterOperand,
+        phase: IndexOperand,
     },
     ClassField {
-        object: u32,
-        name: u32,
-        value: u32,
-        is_anonymous_function: u32,
+        object: RegisterOperand,
+        name: RegisterOperand,
+        value: RegisterOperand,
+        is_anonymous_function: IndexOperand,
     },
     MaybeException {
-        has_exception: u32,
-        exception: u32,
+        has_exception: RegisterOperand,
+        exception: RegisterOperand,
     },
     Src {
-        src: u32,
+        src: RegisterOperand,
     },
     IteratorNextReg {
-        iterator: u32,
-        next: u32,
+        iterator: RegisterOperand,
+        next: RegisterOperand,
     },
     Result {
-        result: u32,
+        result: RegisterOperand,
     },
     ResumeKindValue {
-        resume_kind: u32,
-        value: u32,
+        resume_kind: RegisterOperand,
+        value: RegisterOperand,
     },
     ValueCalled {
-        value: u32,
-        called: u32,
+        value: RegisterOperand,
+        called: RegisterOperand,
     },
     SrcConfigurableName {
-        src: u32,
-        configurable: u32,
-        name_index: u32,
+        src: RegisterOperand,
+        configurable: RegisterOperand,
+        name_index: IndexOperand,
     },
     ConfigurableName {
         configurable: bool,
-        name_index: u32,
+        name_index: IndexOperand,
     },
     ClassNames {
-        class: u32,
+        class: RegisterOperand,
         name_indices: Box<[u32]>,
     },
     AddressSiteDst {
-        address: u32,
+        address: Address,
         site: u64,
-        dst: u32,
+        dst: RegisterOperand,
     },
     JumpTable {
         index: u32,
-        addresses: Box<[u32]>,
+        addresses: Box<[Address]>,
     },
     DstValues {
-        dst: u32,
-        values: Box<[u32]>,
+        dst: RegisterOperand,
+        values: Box<[RegisterOperand]>,
     },
     ObjectSourceExcluded {
-        object: u32,
-        source: u32,
-        excluded_keys: Box<[u32]>,
+        object: RegisterOperand,
+        source: RegisterOperand,
+        excluded_keys: Box<[RegisterOperand]>,
     },
     SiteDstValues {
         site: u64,
-        dst: u32,
+        dst: RegisterOperand,
         values: Box<[u32]>,
     },
     FunctionObject {
-        function_object: u32,
+        function_object: RegisterOperand,
     },
 }
 
-impl Operands {
-    pub fn from_instruction(instruction: &Instruction) -> Self {
+impl OperandsShape {
+    pub(crate) fn from_instruction(instruction: &Instruction) -> Self {
         match instruction {
             Instruction::Pop
             | Instruction::DeleteSuperThrow
@@ -281,27 +444,7 @@ impl Operands {
             | Instruction::SuperCallSpread
             | Instruction::PopPrivateEnvironment
             | Instruction::Generator
-            | Instruction::AsyncGenerator => Operands::None,
-
-            Instruction::SetRegisterFromAccumulator { dst }
-            | Instruction::PopIntoRegister { dst }
-            | Instruction::PushZero { dst }
-            | Instruction::PushOne { dst }
-            | Instruction::PushNan { dst }
-            | Instruction::PushPositiveInfinity { dst }
-            | Instruction::PushNegativeInfinity { dst }
-            | Instruction::PushNull { dst }
-            | Instruction::PushTrue { dst }
-            | Instruction::PushFalse { dst }
-            | Instruction::PushUndefined { dst }
-            | Instruction::Exception { dst }
-            | Instruction::This { dst }
-            | Instruction::NewTarget { dst }
-            | Instruction::ImportMeta { dst }
-            | Instruction::CreateMappedArgumentsObject { dst }
-            | Instruction::CreateUnmappedArgumentsObject { dst }
-            | Instruction::RestParameterInit { dst }
-            | Instruction::PushNewArray { dst } => Operands::Dst { dst: **dst },
+            | Instruction::AsyncGenerator => OperandsShape::None,
 
             Instruction::Add { lhs, rhs, dst }
             | Instruction::Sub { lhs, rhs, dst }
@@ -324,86 +467,80 @@ impl Operands {
             | Instruction::GreaterThanOrEq { lhs, rhs, dst }
             | Instruction::LessThan { lhs, rhs, dst }
             | Instruction::LessThanOrEq { lhs, rhs, dst }
-            | Instruction::InstanceOf { lhs, rhs, dst } => Operands::LhsRhsDst {
-                lhs: **lhs,
-                rhs: **rhs,
-                dst: **dst,
+            | Instruction::InstanceOf { lhs, rhs, dst } => OperandsShape::LhsRhsDst {
+                lhs: *lhs,
+                rhs: *rhs,
+                dst: *dst,
             },
 
-            Instruction::InPrivate { dst, index, rhs } => Operands::RhsIndexDst {
-                rhs: **rhs,
-                index: **index,
-                dst: **dst,
+            Instruction::InPrivate { dst, index, rhs } => OperandsShape::RhsIndexDst {
+                rhs: *rhs,
+                index: *index,
+                dst: *dst,
             },
 
             Instruction::Inc { src, dst }
             | Instruction::Dec { src, dst }
             | Instruction::Move { src, dst }
-            | Instruction::ToPropertyKey { src, dst } => Operands::SrcDst {
-                src: u32::from(*src),
-                dst: **dst,
+            | Instruction::ToInt32 { src, dst }
+            | Instruction::ToPropertyKey { src, dst } => OperandsShape::SrcDst {
+                src: *src,
+                dst: *dst,
             },
 
             Instruction::SetFunctionName {
                 function,
                 name,
                 prefix,
-            } => Operands::SetFunctionName {
-                function: **function,
-                name: **name,
+            } => OperandsShape::SetFunctionName {
+                function: *function,
+                name: *name,
                 prefix: u32::from(*prefix) as u8,
             },
-
-            Instruction::PushInt8 { value, dst } => Operands::ValueDst {
-                value: f64::from(*value),
-                dst: **dst,
-            },
-            Instruction::PushInt16 { value, dst } => Operands::ValueDst {
-                value: f64::from(*value),
-                dst: **dst,
-            },
-            Instruction::PushInt32 { value, dst } => Operands::ValueDst {
-                value: f64::from(*value),
-                dst: **dst,
-            },
-            Instruction::PushFloat { value, dst } => Operands::ValueDst {
-                value: f64::from(*value),
-                dst: **dst,
-            },
-            Instruction::PushDouble { value, dst } => Operands::ValueDst {
-                value: *value,
-                dst: **dst,
-            },
-
-            Instruction::PushLiteral { index, dst }
-            | Instruction::ThisForObjectEnvironmentName { index, dst }
+            Instruction::ThisForObjectEnvironmentName { index, dst }
             | Instruction::GetFunction { index, dst }
-            | Instruction::HasRestrictedGlobalProperty { index, dst }
-            | Instruction::CanDeclareGlobalFunction { index, dst }
-            | Instruction::CanDeclareGlobalVar { index, dst }
-            | Instruction::GetArgument { index, dst } => Operands::IndexDst {
-                index: **index,
-                dst: **dst,
+            | Instruction::StoreLiteral { index, dst }
+            | Instruction::GetArgument { index, dst } => OperandsShape::IndexDst {
+                index: *index,
+                dst: *dst,
             },
 
             Instruction::ThrowNewTypeError { message }
-            | Instruction::ThrowNewSyntaxError { message }
             | Instruction::ThrowNewReferenceError { message } => {
-                Operands::Message { message: **message }
+                OperandsShape::Message { message: *message }
             }
 
-            Instruction::PushRegexp {
-                pattern_index,
-                flags_index,
-                dst,
-            } => Operands::Regexp {
-                pattern_index: **pattern_index,
-                flags_index: **flags_index,
-                dst: **dst,
+            Instruction::Jump { address } => OperandsShape::Address { address: *address },
+
+            Instruction::StoreInt8 { value, dst } => OperandsShape::ValueDstI8 {
+                value: *value,
+                dst: *dst,
+            },
+            Instruction::StoreInt16 { value, dst } => OperandsShape::ValueDstI16 {
+                value: *value,
+                dst: *dst,
+            },
+            Instruction::StoreInt32 { value, dst } => OperandsShape::ValueDstI32 {
+                value: *value,
+                dst: *dst,
+            },
+            Instruction::StoreFloat { value, dst } => OperandsShape::ValueDstF32 {
+                value: *value,
+                dst: *dst,
+            },
+            Instruction::StoreDouble { value, dst } => OperandsShape::ValueDstF64 {
+                value: *value,
+                dst: *dst,
             },
 
-            Instruction::Jump { address } => Operands::Address {
-                address: u32::from(*address),
+            Instruction::StoreClassPrototype {
+                dst,
+                class,
+                superclass,
+            } => OperandsShape::DstClassSuperclass {
+                dst: *dst,
+                class: *class,
+                superclass: *superclass,
             },
 
             Instruction::JumpIfTrue { address, value }
@@ -412,79 +549,79 @@ impl Operands {
             | Instruction::JumpIfNullOrUndefined { address, value }
             | Instruction::LogicalAnd { address, value }
             | Instruction::LogicalOr { address, value }
-            | Instruction::Coalesce { address, value } => Operands::AddressValue {
-                address: u32::from(*address),
-                value: **value,
+            | Instruction::Coalesce { address, value } => OperandsShape::AddressValue {
+                address: *address,
+                value: *value,
             },
 
             Instruction::JumpIfNotLessThan { address, lhs, rhs }
             | Instruction::JumpIfNotLessThanOrEqual { address, lhs, rhs }
             | Instruction::JumpIfNotGreaterThan { address, lhs, rhs }
             | Instruction::JumpIfNotGreaterThanOrEqual { address, lhs, rhs }
-            | Instruction::JumpIfNotEqual { address, lhs, rhs } => Operands::AddressLhsRhs {
-                address: u32::from(*address),
-                lhs: **lhs,
-                rhs: **rhs,
+            | Instruction::JumpIfNotEqual { address, lhs, rhs } => OperandsShape::AddressLhsRhs {
+                address: *address,
+                lhs: *lhs,
+                rhs: *rhs,
             },
 
             Instruction::Case {
                 address,
                 value,
                 condition,
-            } => Operands::Case {
-                address: u32::from(*address),
-                value: **value,
-                condition: **condition,
+            } => OperandsShape::Case {
+                address: *address,
+                value: *value,
+                condition: *condition,
             },
 
             Instruction::CallEval {
                 argument_count,
                 scope_index,
-            } => Operands::CallEval {
-                argument_count: **argument_count,
-                scope_index: **scope_index,
+            } => OperandsShape::CallEval {
+                argument_count: *argument_count,
+                scope_index: *scope_index,
             },
 
             Instruction::CallEvalSpread { scope_index }
-            | Instruction::PushScope { scope_index } => Operands::ScopeIndex {
-                scope_index: **scope_index,
+            | Instruction::PushScope { scope_index } => OperandsShape::ScopeIndex {
+                scope_index: *scope_index,
             },
 
             Instruction::Call { argument_count }
             | Instruction::New { argument_count }
-            | Instruction::SuperCall { argument_count } => Operands::ArgumentCount {
-                argument_count: **argument_count,
+            | Instruction::SuperCall { argument_count } => OperandsShape::ArgumentCount {
+                argument_count: *argument_count,
             },
 
-            Instruction::DefVar { binding_index } | Instruction::GetLocator { binding_index } => {
-                Operands::BindingIndex {
-                    binding_index: **binding_index,
-                }
-            }
+            Instruction::DefVar { binding_index }
+            | Instruction::DefEvalVar { binding_index }
+            | Instruction::GetLocator { binding_index } => OperandsShape::BindingIndex {
+                binding_index: *binding_index,
+            },
 
             Instruction::DefInitVar { src, binding_index }
             | Instruction::PutLexicalValue { src, binding_index }
-            | Instruction::SetName { src, binding_index } => Operands::SrcBindingIndex {
-                src: u32::from(*src),
-                binding_index: **binding_index,
+            | Instruction::SetName { src, binding_index } => OperandsShape::SrcBindingIndex {
+                src: *src,
+                binding_index: *binding_index,
             },
 
             Instruction::GetName { dst, binding_index }
             | Instruction::GetNameAndLocator { dst, binding_index }
             | Instruction::GetNameOrUndefined { dst, binding_index }
-            | Instruction::DeleteName { dst, binding_index } => Operands::DstBindingIndex {
-                dst: **dst,
-                binding_index: **binding_index,
+            | Instruction::DeleteName { dst, binding_index } => OperandsShape::DstBindingIndex {
+                dst: *dst,
+                binding_index: *binding_index,
             },
 
             Instruction::GetNameGlobal {
                 dst,
                 binding_index,
                 ic_index,
-            } => Operands::GetNameGlobal {
-                dst: **dst,
-                binding_index: **binding_index,
-                ic_index: **ic_index,
+            } => OperandsShape::GetNameGlobal {
+                dst: *dst,
+                binding_index: *binding_index,
+                ic_index: *ic_index,
             },
 
             Instruction::DefineOwnPropertyByName {
@@ -571,36 +708,36 @@ impl Operands {
                 object,
                 value,
                 name_index,
-            } => Operands::ObjectValueName {
-                object: **object,
-                value: **value,
-                name_index: **name_index,
+            } => OperandsShape::ObjectValueName {
+                object: *object,
+                value: *value,
+                name_index: *name_index,
             },
             Instruction::GetPrivateField {
                 dst,
                 object,
                 name_index,
-            } => Operands::DstObjectName {
-                dst: **dst,
-                object: **object,
-                name_index: **name_index,
+            } => OperandsShape::DstObjectName {
+                dst: *dst,
+                object: *object,
+                name_index: *name_index,
             },
             Instruction::PushClassPrivateMethod {
                 object,
                 proto,
                 value,
                 name_index,
-            } => Operands::ObjectProtoValueName {
-                object: **object,
-                proto: **proto,
-                value: **value,
-                name_index: **name_index,
+            } => OperandsShape::ObjectProtoValueName {
+                object: *object,
+                proto: *proto,
+                value: *value,
+                name_index: *name_index,
             },
-            Instruction::ThrowMutateImmutable { index } => Operands::Index { index: **index },
+            Instruction::ThrowMutateImmutable { index } => OperandsShape::Index { index: *index },
             Instruction::DeletePropertyByName { object, name_index }
-            | Instruction::GetMethod { object, name_index } => Operands::ObjectName {
-                object: **object,
-                name_index: **name_index,
+            | Instruction::GetMethod { object, name_index } => OperandsShape::ObjectName {
+                object: *object,
+                name_index: *name_index,
             },
             Instruction::GetLengthProperty {
                 dst,
@@ -611,41 +748,41 @@ impl Operands {
                 dst,
                 value,
                 ic_index,
-            } => Operands::DstValueIc {
-                dst: **dst,
-                value: **value,
-                ic_index: **ic_index,
+            } => OperandsShape::DstValueIc {
+                dst: *dst,
+                value: *value,
+                ic_index: *ic_index,
             },
             Instruction::GetPropertyByNameWithThis {
                 dst,
                 receiver,
                 value,
                 ic_index,
-            } => Operands::DstReceiverValueIc {
-                dst: **dst,
-                receiver: **receiver,
-                value: **value,
-                ic_index: **ic_index,
+            } => OperandsShape::DstReceiverValueIc {
+                dst: *dst,
+                receiver: *receiver,
+                value: *value,
+                ic_index: *ic_index,
             },
             Instruction::SetPropertyByName {
                 value,
                 object,
                 ic_index,
-            } => Operands::ObjectValueIc {
-                object: **object,
-                value: **value,
-                ic_index: **ic_index,
+            } => OperandsShape::ObjectValueIc {
+                object: *object,
+                value: *value,
+                ic_index: *ic_index,
             },
             Instruction::SetPropertyByNameWithThis {
                 value,
                 receiver,
                 object,
                 ic_index,
-            } => Operands::ObjectReceiverValueIc {
-                object: **object,
-                receiver: **receiver,
-                value: **value,
-                ic_index: **ic_index,
+            } => OperandsShape::ObjectReceiverValueIc {
+                object: *object,
+                receiver: *receiver,
+                value: *value,
+                ic_index: *ic_index,
             },
             Instruction::GetPropertyByValue {
                 dst,
@@ -658,22 +795,22 @@ impl Operands {
                 key,
                 receiver,
                 object,
-            } => Operands::DstKeyReceiverObject {
-                dst: **dst,
-                key: **key,
-                receiver: **receiver,
-                object: **object,
+            } => OperandsShape::DstKeyReceiverObject {
+                dst: *dst,
+                key: *key,
+                receiver: *receiver,
+                object: *object,
             },
             Instruction::SetPropertyByValue {
                 value,
                 key,
                 receiver,
                 object,
-            } => Operands::ObjectReceiverKeyValue {
-                object: **object,
-                receiver: **receiver,
-                key: **key,
-                value: **value,
+            } => OperandsShape::ObjectReceiverKeyValue {
+                object: *object,
+                receiver: *receiver,
+                key: *key,
+                value: *value,
             },
             Instruction::DefineOwnPropertyByValue { value, key, object }
             | Instruction::DefineClassStaticMethodByValue { value, key, object }
@@ -684,84 +821,80 @@ impl Operands {
             | Instruction::SetPropertySetterByValue { value, key, object }
             | Instruction::DefineClassStaticSetterByValue { value, key, object }
             | Instruction::DefineClassSetterByValue { value, key, object } => {
-                Operands::ObjectKeyValue {
-                    object: **object,
-                    key: **key,
-                    value: **value,
+                OperandsShape::ObjectKeyValue {
+                    object: *object,
+                    key: *key,
+                    value: *value,
                 }
             }
-            Instruction::DeletePropertyByValue { key, object } => Operands::ObjectKey {
-                object: **object,
-                key: **key,
+            Instruction::DeletePropertyByValue { key, object } => OperandsShape::ObjectKey {
+                object: *object,
+                key: *key,
             },
-            Instruction::CreateIteratorResult { value, done } => Operands::ValueDone {
-                value: **value,
-                done: **done,
-            },
-            Instruction::PushClassPrototype {
-                dst,
-                class,
-                superclass,
-            } => Operands::DstClassSuperclass {
-                dst: **dst,
-                class: **class,
-                superclass: **superclass,
+            Instruction::CreateIteratorResult { value, done } => OperandsShape::ValueDone {
+                value: *value,
+                done: *done,
             },
             Instruction::SetClassPrototype {
                 dst,
                 prototype,
                 class,
-            } => Operands::DstPrototypeClass {
-                dst: u32::from(**dst),
-                prototype: **prototype,
-                class: **class,
+            } => OperandsShape::DstPrototypeClass {
+                dst: *dst,
+                prototype: *prototype,
+                class: *class,
             },
-            Instruction::SetHomeObject { function, home } => Operands::FunctionHome {
-                function: **function,
-                home: **home,
+            Instruction::SetHomeObject { function, home } => OperandsShape::FunctionHome {
+                function: *function,
+                home: *home,
             },
-            Instruction::GetHomeObject { function } => Operands::Function {
-                function: **function,
+            Instruction::GetHomeObject { function } => OperandsShape::Function {
+                function: *function,
             },
-            Instruction::SetPrototype { object, prototype } => Operands::ObjectPrototype {
-                object: **object,
-                prototype: **prototype,
+            Instruction::SetPrototype { object, prototype } => OperandsShape::ObjectPrototype {
+                object: *object,
+                prototype: *prototype,
             },
-            Instruction::GetPrototype { object } => Operands::Object { object: **object },
-            Instruction::PushValueToArray { value, array } => Operands::ValueArray {
-                value: **value,
-                array: **array,
+            Instruction::GetPrototype { object } => OperandsShape::Object { object: *object },
+            Instruction::PushValueToArray { value, array } => OperandsShape::ValueArray {
+                value: *value,
+                array: *array,
             },
             Instruction::PushElisionToArray { array }
-            | Instruction::PushIteratorToArray { array } => Operands::Array { array: **array },
+            | Instruction::PushIteratorToArray { array } => OperandsShape::Array { array: *array },
             Instruction::TypeOf { value }
             | Instruction::LogicalNot { value }
             | Instruction::Pos { value }
             | Instruction::Neg { value }
             | Instruction::IsObject { value }
             | Instruction::BindThisValue { value }
-            | Instruction::BitNot { value } => Operands::Value { value: **value },
-            Instruction::ImportCall { specifier, options } => Operands::SpecifierOptions {
-                specifier: **specifier,
-                options: **options,
+            | Instruction::BitNot { value } => OperandsShape::Value { value: *value },
+            Instruction::ImportCall {
+                specifier,
+                options,
+                phase,
+            } => OperandsShape::SpecifierOptions {
+                specifier: *specifier,
+                options: *options,
+                phase: *phase,
             },
             Instruction::PushClassField {
                 object,
                 name,
                 value,
                 is_anonymous_function,
-            } => Operands::ClassField {
-                object: **object,
-                name: **name,
-                value: **value,
-                is_anonymous_function: **is_anonymous_function,
+            } => OperandsShape::ClassField {
+                object: *object,
+                name: *name,
+                value: *value,
+                is_anonymous_function: *is_anonymous_function,
             },
             Instruction::MaybeException {
                 has_exception,
                 exception,
-            } => Operands::MaybeException {
-                has_exception: **has_exception,
-                exception: **exception,
+            } => OperandsShape::MaybeException {
+                has_exception: *has_exception,
+                exception: *exception,
             },
             Instruction::SetAccumulator { src }
             | Instruction::PushFromRegister { src }
@@ -774,77 +907,67 @@ impl Operands {
             | Instruction::ValueNotNullOrUndefined { src }
             | Instruction::GeneratorYield { src }
             | Instruction::AsyncGeneratorYield { src }
-            | Instruction::Await { src } => Operands::Src {
-                src: u32::from(*src),
-            },
+            | Instruction::Await { src } => OperandsShape::Src { src: *src },
             Instruction::IteratorPush { iterator, next }
-            | Instruction::IteratorPop { iterator, next } => Operands::IteratorNextReg {
-                iterator: **iterator,
-                next: **next,
+            | Instruction::IteratorPop { iterator, next } => OperandsShape::IteratorNextReg {
+                iterator: *iterator,
+                next: *next,
             },
-            Instruction::IteratorUpdateResult { result } => Operands::Result { result: **result },
-            Instruction::IteratorDone { dst }
-            | Instruction::IteratorValue { dst }
-            | Instruction::IteratorResult { dst }
-            | Instruction::IteratorToArray { dst }
-            | Instruction::IteratorStackEmpty { dst }
-            | Instruction::PushEmptyObject { dst } => Operands::Dst { dst: **dst },
-            Instruction::IteratorFinishAsyncNext { resume_kind, value } => {
-                Operands::ResumeKindValue {
-                    resume_kind: **resume_kind,
-                    value: **value,
-                }
+            Instruction::IteratorUpdateResult { result } => {
+                OperandsShape::Result { result: *result }
             }
-            Instruction::IteratorReturn { value, called } => Operands::ValueCalled {
-                value: **value,
-                called: **called,
-            },
-            Instruction::CreateGlobalFunctionBinding {
-                src,
-                configurable,
-                name_index,
-            } => Operands::SrcConfigurableName {
-                src: **src,
-                configurable: **configurable,
-                name_index: **name_index,
-            },
-            Instruction::CreateGlobalVarBinding {
-                configurable,
-                name_index,
-            } => Operands::ConfigurableName {
-                configurable: u32::from(*configurable) == 1,
-                name_index: **name_index,
-            },
+            Instruction::SetRegisterFromAccumulator { dst }
+            | Instruction::PopIntoRegister { dst }
+            | Instruction::StoreZero { dst }
+            | Instruction::StoreOne { dst }
+            | Instruction::StoreNan { dst }
+            | Instruction::StorePositiveInfinity { dst }
+            | Instruction::StoreNegativeInfinity { dst }
+            | Instruction::StoreNull { dst }
+            | Instruction::StoreTrue { dst }
+            | Instruction::StoreFalse { dst }
+            | Instruction::StoreUndefined { dst }
+            | Instruction::Exception { dst }
+            | Instruction::This { dst }
+            | Instruction::NewTarget { dst }
+            | Instruction::ImportMeta { dst }
+            | Instruction::CreateMappedArgumentsObject { dst }
+            | Instruction::CreateUnmappedArgumentsObject { dst }
+            | Instruction::RestParameterInit { dst }
+            | Instruction::StoreEmptyObject { dst }
+            | Instruction::IteratorDone { dst }
+            | Instruction::IteratorResult { dst }
+            | Instruction::IteratorStackEmpty { dst }
+            | Instruction::IteratorValue { dst }
+            | Instruction::StoreNewArray { dst } => OperandsShape::Dst { dst: *dst },
             Instruction::PushPrivateEnvironment {
                 class,
                 name_indices,
-            } => Operands::ClassNames {
-                class: **class,
+            } => OperandsShape::ClassNames {
+                class: *class,
                 name_indices: name_indices
                     .iter()
                     .copied()
                     .collect::<Vec<_>>()
                     .into_boxed_slice(),
             },
-            Instruction::TemplateLookup { address, site, dst } => Operands::AddressSiteDst {
-                address: u32::from(*address),
+            Instruction::TemplateLookup { address, site, dst } => OperandsShape::AddressSiteDst {
+                address: *address,
                 site: *site,
-                dst: **dst,
+                dst: *dst,
             },
-            Instruction::JumpTable { index, addresses } => Operands::JumpTable {
+            Instruction::JumpTable { index, addresses } => OperandsShape::JumpTable {
                 index: *index,
                 addresses: addresses
                     .iter()
                     .copied()
-                    .map(u32::from)
                     .collect::<Vec<_>>()
                     .into_boxed_slice(),
             },
-            Instruction::ConcatToString { dst, values } => Operands::DstValues {
-                dst: **dst,
+            Instruction::ConcatToString { dst, values } => OperandsShape::DstValues {
+                dst: *dst,
                 values: values
                     .iter()
-                    .map(std::ops::Deref::deref)
                     .copied()
                     .collect::<Vec<_>>()
                     .into_boxed_slice(),
@@ -853,28 +976,37 @@ impl Operands {
                 object,
                 source,
                 excluded_keys,
-            } => Operands::ObjectSourceExcluded {
-                object: **object,
-                source: **source,
+            } => OperandsShape::ObjectSourceExcluded {
+                object: *object,
+                source: *source,
                 excluded_keys: excluded_keys
                     .iter()
-                    .map(std::ops::Deref::deref)
                     .copied()
-                    .collect::<Vec<u32>>()
+                    .collect::<Vec<_>>()
                     .into_boxed_slice(),
             },
-            Instruction::TemplateCreate { site, dst, values } => Operands::SiteDstValues {
+            Instruction::TemplateCreate { site, dst, values } => OperandsShape::SiteDstValues {
                 site: *site,
-                dst: **dst,
+                dst: *dst,
                 values: values
                     .iter()
                     .copied()
                     .collect::<Vec<_>>()
                     .into_boxed_slice(),
             },
-            Instruction::GetFunctionObject { function_object } => Operands::FunctionObject {
-                function_object: **function_object,
+            Instruction::GetFunctionObject { function_object } => OperandsShape::FunctionObject {
+                function_object: *function_object,
             },
+            Instruction::StoreRegexp {
+                dst,
+                pattern_index,
+                flags_index,
+            } => OperandsShape::Regexp {
+                pattern_index: *pattern_index,
+                flags_index: *flags_index,
+                dst: *dst,
+            },
+
             Instruction::Reserved1
             | Instruction::Reserved2
             | Instruction::Reserved3
@@ -928,12 +1060,19 @@ impl Operands {
             | Instruction::Reserved51
             | Instruction::Reserved52
             | Instruction::Reserved53
-            | Instruction::Reserved54 => unreachable!("Reserved opcodes are unreachable"),
+            | Instruction::Reserved54
+            | Instruction::Reserved55
+            | Instruction::Reserved56
+            | Instruction::Reserved57
+            | Instruction::Reserved58
+            | Instruction::Reserved59
+            | Instruction::Reserved60
+            | Instruction::Reserved61 => unreachable!("Reserved opcodes are unreachable"),
         }
     }
 }
 
-impl std::fmt::Display for Operands {
+impl std::fmt::Display for OperandsShape {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::None => Ok(()),
@@ -955,7 +1094,11 @@ impl std::fmt::Display for Operands {
                 };
                 write!(f, "function:{function}, name:{name}, {prefix_str}")
             }
-            Self::ValueDst { value, dst } => write!(f, "value:{value}, dst:{dst}"),
+            Self::ValueDstI8 { value, dst } => write!(f, "value:{value}, dst:{dst}"),
+            Self::ValueDstI16 { value, dst } => write!(f, "value:{value}, dst:{dst}"),
+            Self::ValueDstI32 { value, dst } => write!(f, "value:{value}, dst:{dst}"),
+            Self::ValueDstF32 { value, dst } => write!(f, "value:{value}, dst:{dst}"),
+            Self::ValueDstF64 { value, dst } => write!(f, "value:{value}, dst:{dst}"),
             Self::IndexDst { index, dst } => write!(f, "index:{index}, dst:{dst}"),
             Self::Message { message } => write!(f, "message:{message}"),
             Self::Regexp {
@@ -1116,8 +1259,15 @@ impl std::fmt::Display for Operands {
             Self::ValueArray { value, array } => write!(f, "value:{value}, array:{array}"),
             Self::Array { array } => write!(f, "array:{array}"),
             Self::Value { value } => write!(f, "value:{value}"),
-            Self::SpecifierOptions { specifier, options } => {
-                write!(f, "specifier:{specifier}, options:{options}")
+            Self::SpecifierOptions {
+                specifier,
+                options,
+                phase,
+            } => {
+                write!(
+                    f,
+                    "specifier:{specifier}, options:{options}, options:{phase}"
+                )
             }
             Self::ClassField {
                 object,

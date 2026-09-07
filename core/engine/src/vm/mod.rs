@@ -20,10 +20,12 @@ use shadow_stack::ShadowStack;
 use std::{future::Future, ops::ControlFlow, path::Path, pin::Pin, task};
 
 #[cfg(feature = "trace")]
-pub use trace::{EmptyTracer, StdoutTracer, VirtualMachineTracer};
+pub use trace::{EmptyTracer, StdoutTracer, VirtualMachineEvent, VirtualMachineTracer};
 
 #[cfg(feature = "trace")]
 use crate::sys::time::Instant;
+
+pub use operands::{Address, IndexOperand, RegisterOperand};
 
 #[allow(unused_imports)]
 pub(crate) use opcode::{Instruction, InstructionIterator, Opcode};
@@ -56,10 +58,12 @@ pub(crate) mod opcode;
 pub(crate) mod shadow_stack;
 pub(crate) mod source_info;
 
-mod operands;
+/// Operand types specific to Boa's virtual machine
+pub mod operands;
 
+/// Boa's virtual machine tracing types and logic
 #[cfg(feature = "trace")]
-mod trace;
+pub mod trace;
 
 #[cfg(feature = "flowgraph")]
 pub mod flowgraph;
@@ -596,18 +600,29 @@ impl Context {
         self.vm.tracer = tracer;
     }
 
-    pub(crate) fn trace_call_frame(&self) {
-        use crate::vm::trace::{
-            CallFrameMessage, CallFrameName, ExecutionStartMessage, VirtualMachineEvent,
-        };
-        let frame = self.vm.frame();
-        let call_frame_message = CallFrameMessage {
-            bytecode: frame.code_block.to_string(),
-        };
-        self.vm
-            .tracer
-            .emit_event(VirtualMachineEvent::CallFrameTrace(call_frame_message));
+    pub(crate) fn walk_code_block(&self, code_block: &Gc<CodeBlock>) {
+        use crate::vm::trace::CallFrameMessage;
+        if !code_block.traced.get() {
+            let call_frame_message = CallFrameMessage {
+                bytecode: code_block.to_string(),
+            };
+            self.vm
+                .tracer
+                .emit_event(VirtualMachineEvent::CallFrameTrace(call_frame_message));
+            code_block.traced.set(true);
 
+            for constant in &code_block.constants {
+                if let Constant::Function(code_block) = constant {
+                    self.walk_code_block(code_block);
+                }
+            }
+        }
+    }
+
+    pub(crate) fn trace_call_frame(&self) {
+        use crate::vm::trace::{CallFrameName, ExecutionStartMessage, VirtualMachineEvent};
+        let frame = self.vm.frame();
+        self.walk_code_block(frame.code_block());
         let call_frame_name = if self.vm.frames.is_empty() {
             CallFrameName::Global
         } else {
@@ -628,7 +643,7 @@ impl Context {
     where
         F: FnOnce(&mut Context, Opcode) -> ControlFlow<CompletionRecord>,
     {
-        use crate::vm::operands::Operands;
+        use crate::vm::operands::OperandsShape;
         use crate::vm::trace::{OpcodeExecutionMessage, VirtualMachineEvent, VmStackTrace};
 
         let frame = self.vm.frame();
@@ -636,7 +651,11 @@ impl Context {
             .code_block
             .bytecode
             .next_instruction(frame.pc as usize);
-        let operands = Operands::from_instruction(&instruction);
+        let operands = OperandsShape::from_instruction(&instruction);
+
+        let instant = Instant::now();
+        let result = self.execute_instruction(f, opcode);
+        let duration = instant.elapsed();
 
         match opcode {
             Opcode::Call
@@ -656,17 +675,13 @@ impl Context {
             _ => {}
         }
 
-        let instant = Instant::now();
-        let result = self.execute_instruction(f, opcode);
-        let duration = instant.elapsed();
-
         let stack_trace = VmStackTrace::new(&self.vm);
 
         self.vm
             .tracer
             .emit_event(VirtualMachineEvent::ExecutionTrace(
                 OpcodeExecutionMessage {
-                    opcode,
+                    opcode: opcode.as_str(),
                     duration,
                     operands,
                     stack_trace,
@@ -863,6 +878,10 @@ impl Context {
     pub(crate) async fn run_async_with_budget(&mut self, budget: u32) -> CompletionRecord {
         let mut runtime_budget: u32 = budget;
 
+        if self.vm.trace {
+            self.trace_call_frame();
+        }
+
         while let Some(byte) = self
             .vm
             .frame()
@@ -896,6 +915,10 @@ impl Context {
     }
 
     pub(crate) fn run(&mut self) -> CompletionRecord {
+        if self.vm.trace {
+            self.trace_call_frame();
+        }
+
         while let Some(byte) = self
             .vm
             .frame()

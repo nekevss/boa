@@ -18,8 +18,8 @@ use thin_vec::ThinVec;
 
 use super::{
     InlineCache,
-    opcode::{Address, ByteCode, InstructionIterator},
-    operands::Operands,
+    opcode::{Bytecode, InstructionIterator},
+    operands::{Address, OperandsShape},
     source_info::{SourceInfo, SourceMap, SourcePath},
 };
 
@@ -391,7 +391,7 @@ impl Display for CodeBlock {
         let mut iterator = InstructionIterator::new(&self.bytecode);
         while let Some((instruction_start_pc, opcode, instruction)) = iterator.next() {
             let opcode = opcode.as_str();
-            let operands = Operands::from_instruction(&instruction);
+            let operands = OperandsShape::from_instruction(&instruction);
             let pc = iterator.pc();
             let handler = if let Some((i, handler)) = self.find_handler(instruction_start_pc as u32)
             {
