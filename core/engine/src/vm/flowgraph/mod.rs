@@ -35,7 +35,10 @@ impl CodeBlock {
         while let Some((previous_pc, opcode, instruction)) = iterator.next() {
             let opcode_str = opcode.as_str();
 
-            let label = format!("{opcode_str} {}", OperandsShape::from_instruction(&instruction));
+            let label = format!(
+                "{opcode_str} {}",
+                OperandsShape::from_instruction(&instruction)
+            );
 
             let pc = iterator.pc();
 

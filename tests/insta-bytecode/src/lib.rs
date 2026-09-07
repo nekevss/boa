@@ -19,12 +19,9 @@ fn compile_bytecode() {
 
     impl VirtualMachineTracer for SnapshotTracer {
         fn emit_event(&self, event: VirtualMachineEvent) {
-            match event {
-                VirtualMachineEvent::CallFrameTrace(call_frame_message) => {
-                    let mut out = self.inner.borrow_mut();
-                    writeln!(&mut *out, "{}", call_frame_message.bytecode).unwrap();
-                }
-                _ => {} // Execution trace is a no-op for bytecode snapshotting
+            if let VirtualMachineEvent::CallFrameTrace(call_frame_message) = event {
+                let mut out = self.inner.borrow_mut();
+                writeln!(&mut *out, "{}", call_frame_message.bytecode).unwrap();
             }
         }
     }
